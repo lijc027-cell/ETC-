@@ -64,13 +64,14 @@ Qwen 只负责把自然语言转成结构化查询计划。数据查询、结果
 ## 4. v1 支持范围
 
 v1 只支持单只 ETF 的标量字段查询。若远端真实字段以 `[{value, btime}]` 时间序列形式存储，v1 只取最新 `btime` 的 `value` 做标量展示，不展开完整时间序列。
+同类排名字段现在同时包含 `_fund`（数字排名）、`_fund_origin`（展示字符串）和 `_etf`（ETF 内排名）；v1 的展示优先使用 `_fund_origin` 和 `_etf`，需要排序或比较时再用 `_fund`。
 
 | intent | 支持问题 | 数据范围 |
 | --- | --- | --- |
 | `basic_info` | 基本信息、是什么、介绍 | 基金代码、简称、类型、跟踪指数、规模等基础字段 |
-| `fund_scale` | 基金规模、盘子多大 | 基金规模、总市值 |
+| `fund_scale` | 基金规模、盘子多大 | 基金规模、总市值、基金份额 |
 | `tracking_index` | 跟踪什么指数、标的指数 | 跟踪指数代码、跟踪指数名称 |
-| `performance` | 收益率、表现、涨跌、回报 | 各周期收益率和排名 |
+| `performance` | 收益率、表现、涨跌、回报 | 各周期收益率和排名（数字排名、排名字符串、ETF 内排名） |
 | `fee` | 管理费、托管费、费率 | 管理费率、托管费率 |
 | `manager` | 基金经理、谁在管、管理人 | 现任基金经理、基金管理人 |
 | `fee_and_manager` | 费率和基金经理组合问题 | 管理费率、托管费率、现任基金经理、基金管理人 |
@@ -357,13 +358,13 @@ Qwen 生成查询计划之前，先用确定性规则抽取实体。
 
 | period | 强制补充候选字段 |
 | --- | --- |
-| `1w` | `ths_yeild_1w_fund`、`ths_yeild_rank_1w_fund_origin`、`ths_yeild_rank_1w_etf` |
-| `1m` | `ths_yeild_1m_fund`、`ths_yeild_rank_1m_fund_origin`、`ths_yeild_rank_1m_etf` |
-| `3m` | `ths_yeild_3m_fund`、`ths_yeild_rank_3m_fund_origin`、`ths_yeild_rank_3m_etf` |
-| `6m` | `ths_yeild_6m_fund`、`ths_yeild_rank_6m_fund_origin`、`ths_yeild_rank_6m_etf` |
-| `1y` | `ths_yeild_1y_fund`、`ths_yeild_rank_1y_fund_origin`、`ths_yeild_rank_1y_etf` |
-| `ytd` | `ths_yeild_ytd_fund`、`ths_yeild_rank_ytd_fund_origin`、`ths_yeild_rank_ytd_etf` |
-| `std` | `ths_yeild_std_fund`、`ths_yeild_rank_std_fund_origin`、`ths_yeild_rank_std_etf` |
+| `1w` | `ths_yeild_1w_fund`、`ths_yeild_rank_1w_fund`、`ths_yeild_rank_1w_fund_origin`、`ths_yeild_rank_1w_etf` |
+| `1m` | `ths_yeild_1m_fund`、`ths_yeild_rank_1m_fund`、`ths_yeild_rank_1m_fund_origin`、`ths_yeild_rank_1m_etf` |
+| `3m` | `ths_yeild_3m_fund`、`ths_yeild_rank_3m_fund`、`ths_yeild_rank_3m_fund_origin`、`ths_yeild_rank_3m_etf` |
+| `6m` | `ths_yeild_6m_fund`、`ths_yeild_rank_6m_fund`、`ths_yeild_rank_6m_fund_origin`、`ths_yeild_rank_6m_etf` |
+| `1y` | `ths_yeild_1y_fund`、`ths_yeild_rank_1y_fund`、`ths_yeild_rank_1y_fund_origin`、`ths_yeild_rank_1y_etf` |
+| `ytd` | `ths_yeild_ytd_fund`、`ths_yeild_rank_ytd_fund`、`ths_yeild_rank_ytd_fund_origin`、`ths_yeild_rank_ytd_etf` |
+| `std` | `ths_yeild_std_fund`、`ths_yeild_rank_std_fund`、`ths_yeild_rank_std_fund_origin`、`ths_yeild_rank_std_etf` |
 
 候选合并顺序：
 
@@ -596,7 +597,7 @@ intent 模板补齐：
 | `basic_info` | `fundcode`、`ths_fund_extended_inner_short_name_fund`、`ths_name_of_tracking_index_fund`、`ths_fund_scale_fund` |
 | `fund_scale` | `ths_fund_scale_fund` |
 | `tracking_index` | `ths_tracking_index_code_fund`、`ths_name_of_tracking_index_fund` |
-| `performance` | 根据 `period` 补齐对应 `ths_yeild_{period}_fund`、`ths_yeild_rank_{period}_fund_origin`、`ths_yeild_rank_{period}_etf` |
+| `performance` | 根据 `period` 补齐对应 `ths_yeild_{period}_fund`、`ths_yeild_rank_{period}_fund`、`ths_yeild_rank_{period}_fund_origin`、`ths_yeild_rank_{period}_etf` |
 | `fee` | `ths_manage_fee_rate_fund`、`ths_mandate_fee_rate_fund` |
 | `manager` | `ths_fund_manager_current_fund`、`ths_fund_supervisor_fund` |
 | `fee_and_manager` | `ths_manage_fee_rate_fund`、`ths_mandate_fee_rate_fund`、`ths_fund_manager_current_fund`、`ths_fund_supervisor_fund` |

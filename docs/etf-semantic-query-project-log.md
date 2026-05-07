@@ -12,6 +12,232 @@
 
 第一版不接入原有 FastAPI 项目，不封装 MCP，只在本地 CLI 跑通。
 
+## 当前项目状态
+
+项目已从 v2 语义编排方向转向 text2sql 主线。v2 spec（`docs/etf-semantic-query-spec-v2.md`）已归档。
+
+目标链路：
+
+```text
+自然语言问题 -> Qwen 生成 SQL AST(JSON) -> 本地安全校验 -> 编译成 Mongo 查询 -> 远端执行 -> 模板化结果输出
+```
+
+text2sql 中间形态选择 **SQL AST（结构化 JSON）而非 SQL 字符串**。原因：
+
+- v1 已验证"模型出 JSON 计划 → 本地校验 → 编译执行"链路稳定可用，text2sql 阶段是升级 AST 节点能力而不是换范式
+- 目标库是 MongoDB，SQL 字符串无直接执行价值，多一层 SQL parser 只会引入方言兼容和注入风险
+- AST 层面的安全校验（字段白名单、值域检查、运算符控制）比 SQL 字符串层面简单且可测
+- 调试用的 SQL-lookalike 文本由本地根据已校验 AST 机械生成，不依赖 Qwen 输出
+
+从 v1 继承到 text2sql 的资产：
+
+- 字段字典解析（`references/data-dictionary.md`）
+- 真实枚举值和口语映射
+- ETF 名称解析与歧义处理（`name_resolver.py`）
+- 安全白名单、单位阈值、值域约束（`plan.py` 校验层）
+- 结果格式化（`formatter.py`）
+- 测试问题集与验收样例（`test-questions.md`，38 条）
+- 远端数据连接和配置管理（`remote.py`、`.env`）
+
+v2 中保留参考价值的部分：
+
+- 标准化指数名册、分类字段枚举值
+- Filter/Sort 字段白名单和值域阈值
+- 口语到数据库值的映射规则
+- 测试用例中未解决问题的分类
+
+不再继续投入：
+
+- `search` / `filter` / `compare` 的本地预封装执行骨架
+- 基于本地 catalog 的业务分流
+- 面向 v2 的 pipeline 语义
+- v2 的 catalog 快照与签名机制
+
+## v3 Text2SQL Spec 决策与 Review 记录
+
+本轮 v3 规格打磨的目标不是为 `test-questions.md` 写死答案，而是把 ETF 查询能力收敛成可执行、可校验、可分阶段验收的 Text-to-Query AST 运行时。当前权威文档为：
+
+- `docs/etf-semantic-query-spec-v3.md`
+- `docs/v3-coverage-matrix.md`
+
+### 1. v3 runtime 必须脱离 v1 执行链路
+
+问题：
+
+早期 `--v3` 入口仍然包着 v1 pipeline：`semantic_query_v3()` 内部复用 `semantic_query()`，导致 v3 问题最终被 v1 `validate_query_plan()` 校验，出现：
+
+```text
+v1 暂不支持 intent rank
+v1 暂不支持 intent fund_rank
+v1 暂不支持 intent fund_existence_check
+```
+
+结论：
+
+- 这不是用户跑错了 v1 命令，而是 v3 外壳下面还复用了 v1 执行/校验层。
+- v3 运行时必须按独立链路实现：
+
+```text
+classification -> AST -> v3 validator -> v3 compiler -> remote readonly query -> v3 formatter
+```
+
+- v1 代码可以作为字段、模板、回归行为参考，但 v3 AST 不能再交给 v1 validator 判断。
+- deny / unsupported / clarify 需要在 AST 前置阶段直接返回，不能进入 v1 pipeline。
+
+### 2. Hard / Strategy / Test 三层分离
+
+问题：
+
+如果 spec 为了完美匹配固定测试句，把触发词、默认排序、固定列、覆盖矩阵全部写成硬协议，上线后会变成“测试可过、生产泛化差”的系统。
+
+结论：
+
+- Hard 层：AST schema、集合/字段/操作符白名单、deny、禁止可执行 SQL/PyMongo、AST 不暴露 OR、compiler 安全边界。
+- Strategy 层：触发词种子、deny 关键词、搜索泛词、默认 limit、默认排序、compare 默认列。
+- Test 层：coverage matrix、golden、smoke 和 v1 回归基线。
+- 覆盖矩阵只用于验收和回归，不是生产问法全集，也不是路由权威。
+- 触发词表是 canonical seed list，不是穷举协议；配置可以增量扩展同义词，但不能把核心 seed list 从 spec 中挪空。
+
+### 3. Intent Recognition 成为 AST 前置权威
+
+问题：
+
+仅依赖 LLM 自由输出 intent，会出现 intent 漂移、from 漂移、query_mode 与 output_style 冲突。
+
+结论：
+
+- `recognized_query_mode` 由本地前置识别产生，不由 LLM 输出，也不属于 AST 字段。
+- LLM 接收并只能服从以下约束上下文：
+
+```text
+recognized_query_mode
+intent_candidates
+from_candidates
+entity_hints
+```
+
+- LLM 只能在 `intent_candidates` 和 `from_candidates` 内选择，不能扩大候选范围。
+- 多候选时，LLM 根据用户原文做语义消歧；无法判断时返回 unsupported 或 clarify。
+- `entity_hints` 需要结构化，承载 fundcode、名称候选、period、报告期、搜索关键词、筛选条件、排序条件等前置解析结果。
+- `entity_hints.search_keyword` 优先级高于 AST 中 `__search_text__` 的 value，避免 LLM 把整句问题当搜索词。
+
+### 4. Non-AST 路由结果统一
+
+问题：
+
+`DeniedQuery`、`UnsupportedQuery`、`ClarificationRequired` 分散在 spec 中，容易导致不同入口各写一套失败处理。
+
+结论：
+
+- 三类结果都不生成 AST、不进入 compiler、不访问远端 Mongo。
+- `DeniedQuery`：实时行情、交易指标、技术分析、投资建议、个股分析等明确拒绝。
+- `UnsupportedQuery`：无法归类、阶段未开放、远端验证未通过、超出 ETF v3 领域。
+- `ClarificationRequired`：可归类但条件不足，例如名称歧义、候选过多、搜索关键词无效。
+- `ClarificationRequired.options` 必须是对象数组，不能只是展示字符串；至少包含 `id`、`kind`、`label`、`value`、`fundcode`、`thscode`、`reason`，避免用户选择后再次模糊回绑。
+
+### 5. 阶段白名单是当前版本能力边界
+
+问题：
+
+全版本 Query Classification Matrix 列出了 `manager_detail`、`investment_profile`、`report_*` 等 intent，但 v3.0 / v3.1 并不开放这些能力，容易造成 scope creep。
+
+结论：
+
+- Section 3 阶段白名单是当前阶段唯一权威可用集。
+- Section 4 矩阵只定义全集映射；和阶段白名单冲突时，以阶段白名单为准。
+- v3.0：`basic_info`、`fund_scale`、`tracking_index`、`performance`、`fee`、`manager`、`fee_and_manager`、`dividend`。
+- v3.1：在 v3.0 基础上增加 `search`、`filter`、`compare`。
+- v3.2：增加 `manager_detail`、`investment_profile`、`subscription_redemption`、`linked_fund`。
+- v3.3：report intent 只有在 `verification_passed=true` 后才开放。
+- blocked intent 回退规则：
+  - `manager_detail -> manager`，保留 single query mode，只少返回详情字段。
+  - `investment_profile`、`subscription_redemption`、`linked_fund`、`report_*` 在未开放阶段返回 `UnsupportedQuery`，不偷偷降级成 base AST。
+
+### 6. search / filter 边界收紧
+
+问题：
+
+“找”“帮我找”既可能是搜索，也可能只是口语前缀；“找规模大于 10 亿的 ETF”同时命中 search 和 filter，如果没有 tiebreaker，LLM 可能误选 search。
+
+结论：
+
+- `contains` 使用虚拟字段 `__search_text__`，compiler 内部展开为受控多字段 OR。
+- 搜索字段只限基金简称、跟踪指数名称、跟踪指数代码。
+- LLM 负责抽取搜索关键词；本地做二次清洗和长度检查。
+- search/filter 同优先级冲突时，确定性结构优先：
+  - 数值比较 `gt/gte/lt/lte`
+  - “前 N”
+  - “最高/最低/最大/最小”
+  - 分类词，如股票型、债券型、上交所、深交所
+- 有 fundcode 或唯一名称，并且问题包含费率、规模、收益、经理等非 search intent 时，“帮我找/找一下”不触发 search。
+- 跟踪指数筛选不应因“沪深300指数”不在枚举表中退化为 search；应本地先精确匹配指数代码，再模糊匹配指数名称，匹配成功后生成 filter。
+
+### 7. Composite 两步编排规则
+
+问题：
+
+“先搜再查”“筛选后对比”“找费率最低的沪深300ETF再看基本信息和收益”不能靠单 AST 覆盖，但如果无限拆步又会回到 v2 pipeline。
+
+结论：
+
+- composite 最多 2 步。
+- Step 1 默认 limit 由 orchestrator 控制，默认 10；显式 top-k 使用 `min(k, 10)`。
+- Step 1 空结果时停止，返回未找到候选。
+- search/filter -> single detail：
+  - 1 条候选自动进入 Step 2。
+  - 2 条以上默认选规模最大的 1 条，并在答案中说明“自动选择规模最大的基金”。
+  - 用户显式要求全部、每只或对比时，按 compare / list 规则处理。
+- Step 2 如果是同集合 single detail，可以在主 intent 外附带可展示辅助字段；例如 intent=`performance`，`answer_fields` 同时展示 fundcode、简称、跟踪指数，不视为通用多 intent merge。
+- 最终输出顺序：Step 2 已包含上下文时只展示 Step 2；否则先展示 Step 1 简要候选依据，再展示 Step 2。
+
+### 8. v3.3 report gate 与降级边界
+
+问题：
+
+`latest`、`type_num`、年报 array 字段、年报证券名称字段、`rank_num` 对齐等语义如果未远端验证就开放，会直接影响报告展开准确率。
+
+结论：
+
+- v3.3 不等于 report 自动开放。
+- `report_*` 进入 `intent_candidates` 的前提是对应远端验证项通过。
+- 未验证或 blocked report 返回 `UnsupportedQuery(reason=blocked_by_verification)`。
+- blocked report 不允许静默降级为 base 查询。
+- 只有 composite 中 base 子步骤本身可执行时，才允许先展示 base 结果，并明确标注 report 部分因结构未验证或能力未开放无法回答。
+- expand 字段在已开放 report 文档中缺失或为 null 时，降级展示 fundcode + 报告期基础信息，并说明该报告期暂无对应数据。
+
+### 9. 字段能力矩阵与 formatter 基线
+
+问题：
+
+能力矩阵如果把身份字段、交易字段、金额字段标错，会直接破坏安全边界或展示质量。
+
+结论：
+
+- `fundcode` / `thscode` 只能作为 `filterable_eq` / `in` 身份字段，不应标成 `filterable_compare`。
+- 交易类指标字段可以保留在数据字典中，但不能进入 v3 能力矩阵的 selectable/filterable/sortable。
+- 分红金额字段必须使用 `amount` format，按元转亿元展示，避免科学计数法。
+- `answer_fields` 控制字段展示顺序和格式，compiler projection 独立生成，不能回写污染 AST。
+- compare v3.1 默认 8 列是默认模板，不是永久协议；后续可在白名单内扩展。
+- v1 13 条回归 answer shape 是测试基线，不要求 formatter 在生产代码里识别“v1 问题”；未来 formatter 升级时同步更新 golden baseline。
+
+### 10. 测试覆盖与泛化验收
+
+问题：
+
+38 条测试问题能覆盖阶段验收，但不能代表生产端全部问法。
+
+结论：
+
+- `docs/v3-coverage-matrix.md` 映射 38 条测试问题到 phase / query mode / intent / outcome。
+- smoke 必须覆盖基础、搜索、筛选、显式 compare、空结果、拒绝类、contains 安全。
+- golden 需要记录 expected intent recognition result、AST、Mongo params、answer shape、answer value policy。
+- v3.1+ 增加 paraphrase set 和 template fuzz set，用于验证同义改写和真实生产问法泛化。
+- 准确率验收拆成四层：
+  - Intent / AST 准确
+  - Mongo params 准确
+  - Answer shape 准确
+  - Answer value 或格式策略准确
+
 ## 问题与方案记录
 
 ### 1. 自然语言和数据库字段映射复杂
