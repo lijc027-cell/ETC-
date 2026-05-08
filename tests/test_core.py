@@ -12,7 +12,13 @@ from etf_agent.llm import deterministic_plan, is_plan_schema_like
 from etf_agent.name_resolver import resolve_fundcode_from_catalog
 from etf_agent.retrieval import EMBEDDING_BATCH_SIZE
 from etf_agent.plan import PlanValidationError, build_sql_like, validate_query_plan
-from etf_agent.v3 import build_v3_ast, classify_v3_query
+from etf_agent.v3 import (
+    build_v3_ast,
+    build_v3_1_ast,
+    classify_v3_query,
+    extract_v3_1_entity_hints,
+    extract_v3_test_questions,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -379,6 +385,29 @@ def test_format_answer_uses_latest_timeseries_value():
     assert answer == "510300 的基金规模为 2.50 亿元（2026-05-05）。"
 
 
+def test_compare_formatter_preserves_requested_fundcode_order():
+    plan = {
+        "filter": {"fundcode": {"$in": ["510300", "510500", "159919"]}},
+        "output_style": "compare",
+        "answer_fields": [
+            {"field": "fundcode", "label": "基金代码", "format": "plain"},
+            {"field": "ths_fund_extended_inner_short_name_fund", "label": "基金简称", "format": "plain"},
+        ],
+    }
+    result = {
+        "success": True,
+        "data": [
+            {"fundcode": "510500", "ths_fund_extended_inner_short_name_fund": "中证500ETF"},
+            {"fundcode": "159919", "ths_fund_extended_inner_short_name_fund": "沪深300ETF深市"},
+            {"fundcode": "510300", "ths_fund_extended_inner_short_name_fund": "沪深300ETF"},
+        ],
+    }
+
+    answer = format_answer(plan, result)
+
+    assert answer.splitlines()[0] == "| 指标 | 510300 | 510500 | 159919 |"
+
+
 @pytest.mark.parametrize("data", [None, [], {}])
 def test_format_answer_reports_missing_etf_for_empty_results(data):
     plan = {
@@ -676,7 +705,7 @@ def test_v3_ast_builds_single_query_shape_for_v1_baseline():
 
 
 def test_answer_md_exists_and_contains_v3_0_base_questions():
-    answer_md = ROOT / "answer" / "test3.0.md"
+    answer_md = ROOT / "answer" / "test3.0-results.md"
     assert answer_md.exists()
     text = answer_md.read_text(encoding="utf-8")
     assert "v3.0" in text
@@ -776,3 +805,352 @@ def test_semantic_query_v3_fund_scale_subfields(question, expected_field, expect
     assert expected_field in result["v3_ast"]["select"]
     assert result["v3_ast"]["answer_fields"][1]["field"] == expected_field
     assert result["v3_ast"]["answer_fields"][1]["label"] == expected_label
+
+
+@pytest.mark.parametrize(
+    ("question", "expected_mode"),
+    [
+        ("帮我找沪深300相关的ETF", "search"),
+        ("找规模大于10亿的ETF", "filter"),
+        ("成立以来收益最好的沪深300ETF是哪只", "filter"),
+        ("近1年收益率超过20%的ETF", "filter"),
+        ("对比510300、510500和159919", "compare"),
+        ("股票型ETF里今年收益最高的5只是哪些？对比一下", "filter"),
+        ("512880和510300哪个更好", "deny"),
+    ],
+)
+def test_v3_1_classification_recognizes_search_filter_compare(question, expected_mode):
+    result = classify_v3_query(question, {}, [])
+
+    assert result["recognized_query_mode"] == expected_mode
+
+
+@pytest.mark.parametrize(
+    ("question", "expected_mode"),
+    [
+        ("低成本的沪深300产品都有哪些", "filter"),
+        ("便宜一点的沪深300产品", "filter"),
+        ("科创板50相关产品", "search"),
+        ("偏债的场内基金有哪些", "filter"),
+        ("510300 510500 159919放一起看看", "compare"),
+        ("512880和510300谁费用更省", "compare"),
+        ("沪深300产品里回报靠前的", "filter"),
+        ("规模不小于100亿的产品", "filter"),
+    ],
+)
+def test_v3_1_classification_recognizes_agent_paraphrases(question, expected_mode):
+    result = classify_v3_query(question, {}, [])
+
+    assert result["recognized_query_mode"] == expected_mode
+
+
+def test_v3_1_agent_paraphrase_entity_hints():
+    low_cost = extract_v3_1_entity_hints("低成本的沪深300产品都有哪些")
+    bond = extract_v3_1_entity_hints("偏债的场内基金有哪些")
+    min_scale = extract_v3_1_entity_hints("规模不小于100亿的产品")
+
+    assert {"field": "ths_name_of_tracking_index_fund", "op": "eq", "value": "沪深300指数", "raw_value": "沪深300"} in low_cost["filters"]
+    assert low_cost["order_by"] == {"field": "ths_manage_fee_rate_fund", "direction": "asc"}
+    assert {"field": "ths_fund_invest_type_fund", "op": "eq", "value": "债券型"} in bond["filters"]
+    assert {"field": "ths_fund_scale_fund", "op": "gte", "value": 10000000000} in min_scale["filters"]
+
+
+@pytest.mark.parametrize(
+    ("question", "expected_intent"),
+    [
+        ("159919这只基金跟踪什么指数", "tracking_index"),
+        ("159919近1年收益，同类排名第几", "performance"),
+        ("510300近5年收益率是多少，排名如何", "performance"),
+    ],
+)
+def test_v3_1_does_not_steal_single_fund_questions(question, expected_intent):
+    result = classify_v3_query(question, {}, [])
+
+    assert result["recognized_query_mode"] == "single"
+    assert result["intent"] == expected_intent
+
+
+def test_v3_1_entity_hints_extract_search_filter_compare_signals():
+    search = extract_v3_1_entity_hints("有没有名字里带医药的ETF")
+    scale_filter = extract_v3_1_entity_hints("找规模大于10亿的ETF")
+    compare = extract_v3_1_entity_hints("对比510300、510500和159919")
+
+    assert search["search_keyword"] == "医药"
+    assert scale_filter["filters"] == [
+        {"field": "ths_fund_scale_fund", "op": "gt", "value": 1000000000}
+    ]
+    assert compare["fundcodes"] == ["510300", "510500", "159919"]
+
+
+def test_v3_1_search_keyword_strips_trailing_structural_particle():
+    hints = extract_v3_1_entity_hints('有没有ETF名字里带"红利"的')
+
+    assert hints["search_keyword"] == "红利"
+
+
+def test_v3_1_filter_extracts_tracking_index_before_de_particle():
+    hints = extract_v3_1_entity_hints("对比所有跟踪沪深300的前5只ETF，看收益和费率")
+
+    assert {"field": "ths_name_of_tracking_index_fund", "op": "eq", "value": "沪深300", "raw_value": "沪深300"} in hints["filters"]
+
+
+def test_v3_1_filter_ast_projects_where_only_compare_field():
+    hints = extract_v3_1_entity_hints("近1年收益率超过20%的ETF")
+    ast = build_v3_1_ast("filter", hints, "近1年收益率超过20%的ETF")
+
+    assert "ths_yeild_1y_fund" in ast["select"]
+    assert {"field": "ths_yeild_1y_fund", "op": "gt", "value": 20} in ast["where"]
+    assert {"field": "ths_yeild_1y_fund", "label": "近1年收益率", "format": "percent"} in ast["answer_fields"]
+
+
+def test_v3_1_resolves_tracking_index_alias_to_catalog_value_in_dry_run():
+    from etf_agent import semantic_query_v3
+
+    result = semantic_query_v3("我想找跟踪科创50的ETF", root=ROOT, dry_run=True)
+
+    assert result["v3"]["recognized_query_mode"] == "filter"
+    assert {"field": "ths_name_of_tracking_index_fund", "op": "eq", "value": "上证科创板50成份指数"} in result["v3_ast"]["where"]
+
+
+def test_index_catalog_resolves_alias_to_real_index_name():
+    from etf_agent.index_catalog import resolve_index_name_from_catalog
+
+    catalog = [
+        {
+            "ths_name_of_tracking_index_fund": "上证科创板50成份指数",
+            "ths_tracking_index_code_fund": "000688",
+        }
+    ]
+
+    assert resolve_index_name_from_catalog("科创50", catalog) == {
+        "status": "matched",
+        "value": "上证科创板50成份指数",
+        "matches": [{"name": "上证科创板50成份指数", "code": "000688"}],
+    }
+
+
+def test_build_v3_1_search_ast_uses_contains_and_fixed_list_columns():
+    hints = extract_v3_1_entity_hints("搜索中证500")
+    ast = build_v3_1_ast("search", hints, "搜索中证500")
+
+    assert ast["intent"] == "search"
+    assert ast["output_style"] == "list"
+    assert ast["where"] == [{"field": "__search_text__", "op": "contains", "value": "中证500"}]
+    assert ast["select"] == [
+        "fundcode",
+        "ths_fund_extended_inner_short_name_fund",
+        "ths_fund_scale_fund",
+        "ths_manage_fee_rate_fund",
+    ]
+
+
+def test_build_v3_1_filter_ast_extracts_limit_order_and_filters():
+    hints = extract_v3_1_entity_hints("找上交所规模前10的ETF")
+    ast = build_v3_1_ast("filter", hints, "找上交所规模前10的ETF")
+
+    assert ast["intent"] == "filter"
+    assert ast["where"] == [{"field": "ths_fund_listed_exchange_fund", "op": "eq", "value": "上交所"}]
+    assert ast["order_by"] == {"field": "ths_fund_scale_fund", "direction": "desc"}
+    assert ast["limit"] == 10
+    assert ast["output_style"] == "list"
+
+
+def test_build_v3_1_compare_ast_uses_fundcode_in_and_fixed_columns():
+    hints = extract_v3_1_entity_hints("对比510300、510500和159919")
+    ast = build_v3_1_ast("compare", hints, "对比510300、510500和159919")
+
+    assert ast["intent"] == "compare"
+    assert ast["where"] == [{"field": "fundcode", "op": "in", "value": ["510300", "510500", "159919"]}]
+    assert ast["output_style"] == "compare"
+    assert ast["limit"] == 10
+    assert len(ast["select"]) == 8
+
+
+def test_semantic_query_v3_1_dry_run_formats_search_filter_and_compare():
+    from etf_agent import semantic_query_v3
+
+    search = semantic_query_v3("帮我找沪深300相关的ETF", root=ROOT, dry_run=True)
+    filtered = semantic_query_v3("找规模大于10亿的ETF", root=ROOT, dry_run=True)
+    compare = semantic_query_v3("对比510300、510500和159919", root=ROOT, dry_run=True)
+
+    assert search["v3"]["recognized_query_mode"] == "search"
+    assert "| 基金代码 | 基金简称 | 基金规模 | 管理费率 |" in search["answer"]
+    assert filtered["v3"]["recognized_query_mode"] == "filter"
+    assert filtered["v3_ast"]["where"][0]["field"] == "ths_fund_scale_fund"
+    assert compare["v3"]["recognized_query_mode"] == "compare"
+    assert "| 指标 | 510300 | 510500 | 159919 |" in compare["answer"]
+
+
+def test_semantic_query_v3_1_compare_reports_missing_codes_in_dry_run():
+    from etf_agent import semantic_query_v3
+
+    result = semantic_query_v3("对比510300和000000", root=ROOT, dry_run=True)
+
+    assert result["v3"]["recognized_query_mode"] == "compare"
+    assert "| 指标 | 510300 |" in result["answer"]
+    assert "缺失代码：000000" in result["answer"]
+
+
+def test_semantic_query_v3_1_filter_sort_uses_stable_tiebreakers():
+    from etf_agent import semantic_query_v3
+
+    result = semantic_query_v3("哪些ETF管理费率最低", root=ROOT, dry_run=True)
+
+    assert result["query_plan"]["sort"] == [
+        ["ths_manage_fee_rate_fund", 1],
+        ["ths_fund_scale_fund", -1],
+        ["fundcode", 1],
+    ]
+
+
+def test_remote_runner_sort_documents_uses_all_sort_fields():
+    from etf_agent.remote import RUNNER
+
+    assert "sort_spec[0]" not in RUNNER
+    assert "for field, direction in reversed(sort_spec)" in RUNNER
+
+
+def test_extract_v3_test_questions_splits_v3_0_and_v3_1_scope():
+    extracted = extract_v3_test_questions(ROOT / "etf-query-test-questions.md")
+
+    v3_0_questions = {item["question"] for item in extracted if item["phase"] == "v3.0"}
+    v3_1_questions = {item["question"] for item in extracted if item["phase"] == "v3.1"}
+    excluded_questions = {item["question"] for item in extracted if item["phase"] == "excluded"}
+
+    assert "510300是什么" in v3_0_questions
+    assert "510300最新净值是多少" in v3_0_questions
+    assert "帮我找沪深300相关的ETF" in v3_1_questions
+    assert "成立以来收益最好的沪深300ETF是哪只" in v3_1_questions
+    assert "找规模大于10亿的ETF" in v3_1_questions
+    assert "对比510300、510500和159919" in v3_1_questions
+    assert "对比510300和000000" in v3_1_questions
+    assert "510300前十大重仓股是什么" in excluded_questions
+
+
+def test_cli_print_report_handles_v3_1_composite_plan(capsys):
+    from etf_agent import semantic_query_v3
+    from etf_agent_demo import print_report
+
+    output = semantic_query_v3("股票型ETF里今年收益最高的5只是哪些？对比一下", root=ROOT, dry_run=True)
+
+    print_report(output, verbose=True)
+
+    captured = capsys.readouterr()
+    assert "查询步骤 1" in captured.out
+    assert "查询步骤 2" in captured.out
+
+
+def test_v3_1_filter_to_compare_marks_composite_route():
+    from etf_agent import semantic_query_v3
+
+    result = semantic_query_v3("股票型ETF里今年收益最高的5只是哪些？对比一下", root=ROOT, dry_run=True)
+
+    assert result["v3"]["recognized_query_mode"] == "composite"
+    assert result["v3"]["intent"] == "filter_to_compare"
+    assert result["v3"]["steps"] == [
+        {"recognized_query_mode": "filter", "intent": "filter"},
+        {"recognized_query_mode": "compare", "intent": "compare"},
+    ]
+    assert "steps" in result["query_plan"]
+
+
+def test_cli_default_prints_user_display_without_debug_sections(capsys):
+    from etf_agent import semantic_query_v3
+    from etf_agent_demo import print_report
+
+    output = semantic_query_v3("510300是什么", root=ROOT, dry_run=True)
+
+    print_report(output)
+
+    captured = capsys.readouterr()
+    assert "最终简短回答" in captured.out
+    assert "关键查询信息" not in captured.out
+    assert "v3 AST" not in captured.out
+
+
+def test_cli_v3_verbose_search_does_not_require_v1_debug_fields(capsys):
+    from etf_agent import semantic_query_v3
+    from etf_agent_demo import print_report
+
+    output = semantic_query_v3("搜索中证500", root=ROOT, dry_run=True)
+
+    print_report(output, verbose=True)
+
+    captured = capsys.readouterr()
+    assert "v3 AST" in captured.out
+    assert "查询计划" in captured.out
+    assert "远端数据库结果" in captured.out
+    assert "向量召回候选" not in captured.out
+
+
+def test_v3_1_result_generator_defaults_to_real_remote_mode():
+    script = (ROOT / "scripts" / "generate_v3_1_results.py").read_text(encoding="utf-8")
+
+    assert "dry_run=True" not in script
+    assert "no_llm=True" in script
+    assert "远端真实 MongoDB" in script
+    assert "OUT_JSON" in script
+    assert "### Q" in script
+    assert "_inline(" not in script
+
+
+def test_v3_1_result_generator_evaluates_expected_failures():
+    from scripts.generate_v3_1_results import evaluate_result
+
+    result = {
+        "answer": "未找到符合条件的 ETF。",
+        "v3": {"recognized_query_mode": "filter", "intent": "filter"},
+    }
+
+    status, reason = evaluate_result("近1年收益率超过20%的ETF", result)
+
+    assert status == "FAIL"
+    assert "不应包含：未找到符合条件的 ETF" in reason
+
+
+def test_audit_v3_reference_comparison_detects_empty_model_result():
+    from scripts.audit_v3_results import compare_audit_case
+
+    model = {
+        "answer": "未找到符合条件的 ETF。",
+        "v3": {"recognized_query_mode": "filter", "intent": "filter"},
+        "query_plan": {"collection": "tb_ths_etf_base", "filter": {"ths_yeild_1y_fund": {"$gt": 20}}, "sort": []},
+        "result": {"success": True, "data": []},
+    }
+    reference = {"data": [{"fundcode": "510300", "ths_yeild_1y_fund": 31.27}]}
+
+    audited = compare_audit_case(
+        question="近1年收益率超过20%的ETF",
+        expected={"route": ("filter", "filter"), "filter": {"ths_yeild_1y_fund": {"$gt": 20}}},
+        model=model,
+        reference=reference,
+    )
+
+    assert audited["status"] == "FAIL"
+    assert "model returned empty" in audited["reason"]
+
+
+def test_agent_result_evaluator_rejects_forbidden_fields():
+    from scripts.generate_v3_1_agent_results import evaluate_agent_result
+
+    result = {
+        "answer": "ok",
+        "v3": {"recognized_query_mode": "filter", "intent": "filter"},
+        "query_plan": {"collection": "tb_ths_etf_base", "filter": {}, "projection": ["fundcode", "made_up_field"]},
+        "result": {"success": True, "data": [{"fundcode": "510300"}]},
+    }
+
+    status, reason = evaluate_agent_result("低成本的沪深300产品都有哪些", result)
+
+    assert status == "FAIL"
+    assert "forbidden field" in reason
+
+
+def test_answer_directory_keeps_only_result_markdown_files():
+    files = sorted(path.name for path in (ROOT / "answer").iterdir() if path.is_file())
+
+    assert files == [
+        "test3.0-results.md",
+        "test3.1-agent-results.md",
+        "test3.1-results.md",
+    ]

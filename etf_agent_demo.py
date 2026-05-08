@@ -61,12 +61,15 @@ def print_report(output: dict, *, verbose: bool = False, answer_only: bool = Fal
     print(output["answer"])
     print()
 
+    if not verbose:
+        print("提示：需要 AST、查询计划和远端原始 JSON 时，加 --verbose。")
+        return
+
     print("关键查询信息")
     if output.get("entities"):
         print(f"基金代码: {output['entities'].get('fundcode', '暂无数据')}")
     if output.get("query_plan"):
-        print(f"集合: {output['query_plan']['collection']}")
-        print(f"字段: {', '.join(output['query_plan']['projection'])}")
+        print_query_plan_summary(output["query_plan"])
     if output.get("v3"):
         print(f"v3 路由: {output['v3'].get('recognized_query_mode')} / {output['v3'].get('intent')}")
     if output.get("v3_ast"):
@@ -74,8 +77,13 @@ def print_report(output: dict, *, verbose: bool = False, answer_only: bool = Fal
         print(json.dumps(output["v3_ast"], ensure_ascii=False, indent=2))
     print()
 
-    if not verbose:
-        print("提示：需要完整调试链路和远端原始 JSON 时，加 --verbose。")
+    if output.get("v3"):
+        print("查询计划")
+        print(json.dumps(output.get("query_plan"), ensure_ascii=False, indent=2))
+        print()
+
+        print("远端数据库结果")
+        print(json.dumps(output.get("result"), ensure_ascii=False, indent=2))
         return
 
     print("实体识别结果")
@@ -108,6 +116,17 @@ def print_report(output: dict, *, verbose: bool = False, answer_only: bool = Fal
 
     print("调试过程")
     print(json.dumps(output["debug"], ensure_ascii=False, indent=2))
+
+
+def print_query_plan_summary(query_plan: dict) -> None:
+    if "steps" in query_plan:
+        for index, step in enumerate(query_plan["steps"], start=1):
+            print(f"查询步骤 {index}")
+            print(f"集合: {step['collection']}")
+            print(f"字段: {', '.join(step['projection'])}")
+        return
+    print(f"集合: {query_plan['collection']}")
+    print(f"字段: {', '.join(query_plan['projection'])}")
 
 
 if __name__ == "__main__":
