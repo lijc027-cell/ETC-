@@ -12,6 +12,7 @@ from etf_agent.llm import deterministic_plan, is_plan_schema_like
 from etf_agent.name_resolver import resolve_fundcode_from_catalog
 from etf_agent.retrieval import EMBEDDING_BATCH_SIZE
 from etf_agent.plan import PlanValidationError, build_sql_like, validate_query_plan
+from etf_agent.v3 import build_v3_ast, classify_v3_query
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -624,3 +625,154 @@ def test_out_of_scope_questions_remain_rejected(question):
     result = semantic_query(question, root=ROOT, dry_run=True)
 
     assert "error" in result
+
+
+@pytest.mark.parametrize(
+    ("question", "expected_mode", "expected_intent"),
+    [
+        ("510300是什么", "single", "basic_info"),
+        ("510300的基金经理是谁", "single", "manager"),
+        ("帮我查510300的实时行情", "deny", None),
+        ("510300的持仓有哪些", "unsupported", None),
+    ],
+)
+def test_v3_classification_covers_v3_0_questions(question, expected_mode, expected_intent):
+    entities = {"fundcode": "510300"}
+    if "实时" in question:
+        entities = {"fundcode": "510300"}
+
+    result = classify_v3_query(question, entities, [])
+
+    assert result["recognized_query_mode"] == expected_mode
+    assert result.get("intent") == expected_intent
+
+
+def test_v3_ast_builds_single_query_shape_for_v1_baseline():
+    entities = {"fundcode": "510300"}
+    ast = build_v3_ast("basic_info", entities)
+
+    assert ast == {
+        "intent": "basic_info",
+        "from": "tb_ths_etf_base",
+        "select": [
+            "fundcode",
+            "ths_fund_extended_inner_short_name_fund",
+            "ths_name_of_tracking_index_fund",
+            "ths_fund_scale_fund",
+        ],
+        "where": [{"field": "fundcode", "op": "eq", "value": "510300"}],
+        "order_by": None,
+        "limit": 1,
+        "output_style": "summary",
+        "answer_fields": [
+            {"field": "fundcode", "label": "基金代码", "format": "plain"},
+            {"field": "ths_fund_extended_inner_short_name_fund", "label": "基金简称", "format": "plain"},
+            {"field": "ths_name_of_tracking_index_fund", "label": "跟踪指数名称", "format": "plain"},
+            {"field": "ths_fund_scale_fund", "label": "基金规模", "format": "amount"},
+        ],
+        "report_period": None,
+        "expand": None,
+    }
+
+
+def test_answer_md_exists_and_contains_v3_0_base_questions():
+    answer_md = ROOT / "answer" / "test3.0.md"
+    assert answer_md.exists()
+    text = answer_md.read_text(encoding="utf-8")
+    assert "v3.0" in text
+    assert "510300是什么" in text
+
+
+def test_semantic_query_v3_dry_run_has_v3_ast_and_amount_formatting():
+    from etf_agent import semantic_query_v3
+
+    result = semantic_query_v3("510300是什么", root=ROOT, dry_run=True)
+
+    assert result["v3"]["recognized_query_mode"] == "single"
+    assert result["v3_ast"]["intent"] == "basic_info"
+    assert result["answer"] == "510300 的基金简称为 沪深300ETF，跟踪指数名称为 沪深300指数，基金规模为 123.46 亿元。"
+
+
+def test_semantic_query_v3_resolves_chinese_name_in_dry_run():
+    from etf_agent import semantic_query_v3
+
+    result = semantic_query_v3("工银沪深300ETF的费率和基金经理是什么", root=ROOT, dry_run=True)
+
+    assert result["entities"]["fundcode"] == "510350"
+    assert result["v3_ast"]["intent"] == "fee_and_manager"
+    assert "510350 的管理费率为 0.50%" in result["answer"]
+
+
+def test_semantic_query_v3_returns_clarification_for_ambiguous_name_in_dry_run():
+    from etf_agent import semantic_query_v3
+
+    result = semantic_query_v3("沪深300ETF的费率是多少", root=ROOT, dry_run=True)
+
+    assert result["v3"]["recognized_query_mode"] == "clarify"
+    assert "匹配到多只 ETF" in result["answer"]
+    assert result["v3"]["type"] == "ClarificationRequired"
+    assert len(result["v3"]["options"]) > 1
+
+
+def test_v3_performance_fields_do_not_include_numeric_fund_rank():
+    ast = build_v3_ast("performance", {"fundcode": "510300", "period": "2y"})
+
+    assert "ths_yeild_rank_2y_fund" not in ast["select"]
+    assert all(field["field"] != "ths_yeild_rank_2y_fund" for field in ast["answer_fields"])
+    assert "ths_yeild_rank_2y_fund_origin" in ast["select"]
+    assert "ths_yeild_rank_2y_etf" in ast["select"]
+
+
+def test_semantic_query_v3_does_not_deny_v3_0_net_value_or_etf_rank_questions():
+    from etf_agent.v3 import _lexical_classify
+
+    for question in ("510300近2年ETF排第几", "510300最新净值是多少", "510300净值增长率是多少"):
+        classification = _lexical_classify(question, {"fundcode": "510300"}, [])
+        assert classification["recognized_query_mode"] == "single"
+
+
+def test_semantic_query_v3_empty_result_formats_not_found():
+    from etf_agent import semantic_query_v3
+
+    result = semantic_query_v3("000001有这只ETF吗", root=ROOT, dry_run=True)
+
+    assert result["answer"] == "未在 ETF 数据库中找到代码 000001 对应的 ETF。"
+
+
+def test_semantic_query_v3_denies_investment_advice_before_embedding():
+    from etf_agent import semantic_query_v3
+
+    result = semantic_query_v3("510300能买吗", root=ROOT, dry_run=True)
+
+    assert result["v3"]["recognized_query_mode"] == "deny"
+    assert "投资建议" in result["answer"]
+
+
+def test_semantic_query_v3_recognizes_three_month_period_and_rank_label():
+    from etf_agent import semantic_query_v3
+
+    result = semantic_query_v3("510300近3个月涨了多少", root=ROOT, dry_run=True)
+
+    assert result["entities"]["period"] == "3m"
+    assert "ths_yeild_3m_fund" in result["v3_ast"]["select"]
+    assert "近3月同类排名" in result["answer"]
+
+
+@pytest.mark.parametrize(
+    ("question", "expected_field", "expected_label"),
+    [
+        ("510300总市值多少", "ths_current_mv_fund", "总市值"),
+        ("510300最新净值是多少", "ths_unit_nv_fund", "单位净值"),
+        ("510300的份额有多少", "ths_fund_shares_fund", "基金份额"),
+        ("510300的净值增长率是多少", "ths_unit_nvg_rate_fund", "单位净值增长率"),
+    ],
+)
+def test_semantic_query_v3_fund_scale_subfields(question, expected_field, expected_label):
+    from etf_agent import semantic_query_v3
+
+    result = semantic_query_v3(question, root=ROOT, dry_run=True)
+
+    assert result["v3_ast"]["intent"] == "fund_scale"
+    assert expected_field in result["v3_ast"]["select"]
+    assert result["v3_ast"]["answer_fields"][1]["field"] == expected_field
+    assert result["v3_ast"]["answer_fields"][1]["label"] == expected_label

@@ -5,7 +5,7 @@ import argparse
 import json
 from pathlib import Path
 
-from etf_agent import semantic_query
+from etf_agent import semantic_query, semantic_query_v3
 
 
 def main() -> int:
@@ -13,11 +13,25 @@ def main() -> int:
     parser.add_argument("question", help="自然语言 ETF 问题，例如：510300 盘子有多大")
     parser.add_argument("--dry-run", action="store_true", help="不调用 Qwen/SSH，使用确定性计划和示例远端结果演示链路")
     parser.add_argument("--no-llm", action="store_true", help="跳过 Qwen，仍执行真实 SSH 查询")
+    parser.add_argument("--v3", action="store_true", help="使用 v3.0 路由和 AST 预览")
     parser.add_argument("--verbose", action="store_true", help="打印完整调试链路和远端原始 JSON")
     parser.add_argument("--answer-only", action="store_true", help="只打印最终人话回答")
     args = parser.parse_args()
 
-    output = semantic_query(args.question, root=Path(__file__).resolve().parent, dry_run=args.dry_run, no_llm=args.no_llm)
+    if args.v3:
+        output = semantic_query_v3(
+            args.question,
+            root=Path(__file__).resolve().parent,
+            dry_run=args.dry_run,
+            no_llm=args.no_llm,
+        )
+    else:
+        output = semantic_query(
+            args.question,
+            root=Path(__file__).resolve().parent,
+            dry_run=args.dry_run,
+            no_llm=args.no_llm,
+        )
     print_report(output, verbose=args.verbose, answer_only=args.answer_only)
     return 1 if "error" in output else 0
 
@@ -48,9 +62,16 @@ def print_report(output: dict, *, verbose: bool = False, answer_only: bool = Fal
     print()
 
     print("关键查询信息")
-    print(f"基金代码: {output['entities'].get('fundcode', '暂无数据')}")
-    print(f"集合: {output['query_plan']['collection']}")
-    print(f"字段: {', '.join(output['query_plan']['projection'])}")
+    if output.get("entities"):
+        print(f"基金代码: {output['entities'].get('fundcode', '暂无数据')}")
+    if output.get("query_plan"):
+        print(f"集合: {output['query_plan']['collection']}")
+        print(f"字段: {', '.join(output['query_plan']['projection'])}")
+    if output.get("v3"):
+        print(f"v3 路由: {output['v3'].get('recognized_query_mode')} / {output['v3'].get('intent')}")
+    if output.get("v3_ast"):
+        print("v3 AST")
+        print(json.dumps(output["v3_ast"], ensure_ascii=False, indent=2))
     print()
 
     if not verbose:

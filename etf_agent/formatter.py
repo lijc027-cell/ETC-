@@ -32,7 +32,7 @@ def _format_value(value: Any, fmt: str) -> str:
     if value is None or value == "":
         return "暂无数据"
     suffix = f"（{as_of}）" if as_of else ""
-    if fmt == "yuan_to_100m":
+    if fmt in {"yuan_to_100m", "amount"}:
         return f"{float(value) / 100000000:.2f} 亿元{suffix}"
     if fmt == "percent":
         return f"{float(value):.2f}%{suffix}"

@@ -155,6 +155,12 @@ def fake_result(plan: dict[str, Any]) -> dict[str, Any]:
             values[field] = 12345678900
         elif field == "ths_current_mv_fund":
             values[field] = 12100000000
+        elif field == "ths_unit_nv_fund":
+            values[field] = 5.1234
+        elif field == "ths_unit_nvg_rate_fund":
+            values[field] = 0.56
+        elif field == "ths_fund_shares_fund":
+            values[field] = 2345678900
         elif field == "ths_tracking_index_code_fund":
             values[field] = "000300"
         elif field == "ths_name_of_tracking_index_fund":
@@ -171,7 +177,9 @@ def fake_result(plan: dict[str, Any]) -> dict[str, Any]:
             values[field] = "100/500"
         elif "yeild" in field:
             values[field] = 8.88
-        elif "dividend" in field:
+        elif field == "ths_accum_dividend_total_amt_fund":
+            values[field] = 2639000000
+        elif field == "ths_accum_dividend_times_fund":
             values[field] = 3
         else:
             values[field] = "示例值"

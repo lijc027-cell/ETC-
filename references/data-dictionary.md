@@ -28,6 +28,7 @@
 | 字段名                      | 中文名     | 类型     | 说明   |
 | ------------------------ | ------- | ------ | ---- |
 | `ths_fund_scale_fund`    | 基金规模    | number | 单位：元 |
+| `ths_fund_shares_fund`   | 基金份额    | number |      |
 | `ths_current_mv_fund`    | 总市值     | number | 单位：元 |
 | `ths_unit_nv_fund`       | 单位净值    | number |      |
 | `ths_unit_nvg_rate_fund` | 单位净值增长率 | number | 百分比  |
@@ -49,26 +50,42 @@
 
 ### 同类排名
 
+> **排名字段说明**：
+> 
+> - `_fund_origin`（string）：完整排名字符串，格式如 `"4247/22901"`（排名/同类总数），适合展示
+> - `_fund`（number）：纯数字排名，如 `4247`，适合排序和比较
+> - `_etf`（number）：仅在 ETF 内部的排名
+
 | 字段名                              | 中文名         | 类型     | 说明          |
 | -------------------------------- | ----------- | ------ | ----------- |
+| `ths_yeild_rank_1w_fund`         | 近1周同类排名     | number | 纯数字排名       |
 | `ths_yeild_rank_1w_fund_origin`  | 近1周同类排名     | string | 如 "100/500" |
 | `ths_yeild_rank_1w_etf`          | 近1周 ETF 排名  | number | ETF 内排名     |
+| `ths_yeild_rank_1m_fund`         | 近1月同类排名     | number | 纯数字排名       |
 | `ths_yeild_rank_1m_fund_origin`  | 近1月同类排名     | string |             |
 | `ths_yeild_rank_1m_etf`          | 近1月 ETF 排名  | number |             |
+| `ths_yeild_rank_3m_fund`         | 近3月同类排名     | number | 纯数字排名       |
 | `ths_yeild_rank_3m_fund_origin`  | 近3月同类排名     | string |             |
 | `ths_yeild_rank_3m_etf`          | 近3月 ETF 排名  | number |             |
+| `ths_yeild_rank_6m_fund`         | 近6月同类排名     | number | 纯数字排名       |
 | `ths_yeild_rank_6m_fund_origin`  | 近6月同类排名     | string |             |
 | `ths_yeild_rank_6m_etf`          | 近6月 ETF 排名  | number |             |
+| `ths_yeild_rank_1y_fund`         | 近1年同类排名     | number | 纯数字排名       |
 | `ths_yeild_rank_1y_fund_origin`  | 近1年同类排名     | string |             |
 | `ths_yeild_rank_1y_etf`          | 近1年 ETF 排名  | number |             |
+| `ths_yeild_rank_2y_fund`         | 近2年同类排名     | number | 纯数字排名       |
 | `ths_yeild_rank_2y_fund_origin`  | 近2年同类排名     | string |             |
 | `ths_yeild_rank_2y_etf`          | 近2年 ETF 排名  | number |             |
+| `ths_yeild_rank_3y_fund`         | 近3年同类排名     | number | 纯数字排名       |
 | `ths_yeild_rank_3y_fund_origin`  | 近3年同类排名     | string |             |
 | `ths_yeild_rank_3y_etf`          | 近3年 ETF 排名  | number |             |
+| `ths_yeild_rank_5y_fund`         | 近5年同类排名     | number | 纯数字排名       |
 | `ths_yeild_rank_5y_fund_origin`  | 近5年同类排名     | string |             |
 | `ths_yeild_rank_5y_etf`          | 近5年 ETF 排名  | number |             |
+| `ths_yeild_rank_ytd_fund`        | 今年以来同类排名    | number | 纯数字排名       |
 | `ths_yeild_rank_ytd_fund_origin` | 今年以来同类排名    | string |             |
 | `ths_yeild_rank_ytd_etf`         | 今年以来 ETF 排名 | number |             |
+| `ths_yeild_rank_std_fund`        | 成立以来同类排名    | number | 纯数字排名       |
 | `ths_yeild_rank_std_fund_origin` | 成立以来同类排名    | string |             |
 | `ths_yeild_rank_std_etf`         | 成立以来 ETF 排名 | number |             |
 
@@ -79,6 +96,31 @@
 | `ths_fund_manager_current_fund` | 基金经理(现任) | string |                                                                                                                                                            |
 | `ths_manager`                   | 基金经理详情   | array  | 包含 rank_num, ths_name_fund(姓名), ths_service_sd_fund(任职起始日), ths_service_duration_annual_return_fund(任职年化回报), ths_tenure_fund(任职天数), ths_rzjjzgm_fund(管理规模) |
 | `ths_fund_supervisor_fund`      | 基金管理人    | string |                                                                                                                                                            |
+
+### 基金经理详情子字段（ths_manager 数组内嵌字段，也作为独立字段存储）
+
+| 字段名                                       | 中文名      | 类型     | 说明                               |
+| ----------------------------------------- | -------- | ------ | -------------------------------- |
+| `ths_service_sd_fund`                     | 任职起始日    | string | 如 "2024-02-02"，rank_num=1 为第一任经理 |
+| `ths_name_fund`                           | 基金经理姓名   | string | rank_num=1 为第一任经理                |
+| `ths_service_duration_annual_return_fund` | 任职期间年化回报 | number | 单位：%                             |
+| `ths_rzjjzgm_fund`                        | 任职基金总规模  | number | 单位：元                             |
+| `ths_tenure_fund`                         | 任职天数     | number |                                  |
+
+### 交易类指标
+
+| 字段名                               | 中文名    | 类型     | 说明  |
+| --------------------------------- | ------ | ------ | --- |
+| `ths_amt_fund`                    | 成交额    | number |     |
+| `ths_netcashflow_fund`            | 净现金流   | number |     |
+| `ths_margin_trading_balance_fund` | 融资余额   | number |     |
+| `ths_short_selling_amtb_fund`     | 融券卖出金额 | number |     |
+
+### 其他补充字段
+
+| 字段名                                   | 中文名           | 类型     | 说明  |
+| ------------------------------------- | ------------- | ------ | --- |
+| `ths_similar_fund_std_avg_yield_fund` | 同类基金成立以来平均收益率 | number |     |
 
 ### 费率
 

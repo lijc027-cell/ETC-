@@ -1,6 +1,6 @@
 # ETF Semantic Query Demo
 
-本目录是按 `docs/etf-semantic-query-spec.md` 实现的 v1 本地 CLI 原型。
+本目录是按 `docs/etf-semantic-query-spec.md` 实现的本地 CLI 原型，`--v3` 可切到 `docs/etf-semantic-query-spec-v3.md` 的 v3.0 路由预览。
 
 ## 安装
 
@@ -20,7 +20,7 @@ ETF_SSH_PASSWORD=远端 SSH 密码
 
 `.env.example` 不包含真实密码。
 
-## 本地演示
+## 本地调试
 
 不连 Qwen、不连 SSH 时，可以用 dry-run 展示完整链路：
 
@@ -28,14 +28,20 @@ ETF_SSH_PASSWORD=远端 SSH 密码
 .venv/bin/python etf_agent_demo.py --dry-run "510300 盘子有多大"
 ```
 
-dry-run 会输出实体识别、候选字段、查询计划、SQL-like、Mongo 参数、示例远端结果和最终回答。
+dry-run 只用于离线调试，不用于正式展示。
 
 ## 真实查询
 
-完整链路会调用 DashScope embedding、Qwen 和远端 Mongo：
+真实链路会调用 DashScope embedding、Qwen 和远端 Mongo：
 
 ```bash
 .venv/bin/python etf_agent_demo.py "510300 盘子有多大"
+```
+
+v3.0 真实远端演示：
+
+```bash
+.venv/bin/python etf_agent_demo.py --v3 --no-llm "510300是什么"
 ```
 
 也可以用单只 ETF 中文名称提问，系统会先从远端基础表解析基金代码：
