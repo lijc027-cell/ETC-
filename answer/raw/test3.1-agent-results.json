@@ -1,0 +1,1031 @@
+[
+  {
+    "question": "帮我找沪深300相关的ETF",
+    "status": "PASS",
+    "reason": "",
+    "result": {
+      "route": [
+        "search",
+        "search"
+      ],
+      "llm_ast_status": "generated",
+      "answer": "| 基金代码 | 基金简称 | 基金规模 | 管理费率 |\n| --- | --- | --- | --- |\n| 510300 | 沪深300ETF | 1777.76 亿元（2026-05-07） | 0.15% |\n| 510310 | 沪深300ETF易方达 | 1367.01 亿元（2026-05-07） | 0.15% |\n| 510330 | 沪深300ETF华夏 | 915.48 亿元（2026-05-07） | 0.15% |\n| 159919 | 沪深300ETF | 886.02 亿元（2026-05-07） | 0.15% |\n| 512010 | 医药ETF | 172.28 亿元（2026-05-07） | 0.50% |\n| 512070 | 证券保险ETF | 133.69 亿元（2026-05-07） | 0.50% |\n| 515330 | 沪深300ETF天弘 | 80.72 亿元（2026-05-07） | 0.50% |\n| 515300 | 300红利低波ETF嘉实 | 51.79 亿元（2026-05-07） | 0.50% |\n| 515380 | 沪深300ETF泰康 | 36.83 亿元（2026-05-07） | 0.40% |\n| 510350 | 沪深300ETF工银 | 35.59 亿元（2026-05-07） | 0.15% |\n| 510360 | 沪深300ETF广发 | 29.85 亿元（2026-05-07） | 0.50% |\n| 515660 | 沪深300ETF国联安 | 28.50 亿元（2026-05-07） | 0.30% |\n| 159925 | 沪深300ETF南方 | 27.73 亿元（2026-05-07） | 0.15% |\n| 159673 | 沪深300ETF鹏华 | 18.98 亿元（2026-05-07） | 0.15% |\n| 510380 | 沪深300ETF国寿 | 18.02 亿元（2026-05-07） | 0.50% |\n| 515390 | 沪深300ETF华安 | 10.70 亿元（2026-05-07） | 0.15% |\n| 159300 | 沪深300ETF富国 | 10.50 亿元（2026-05-07） | 0.15% |\n| 510320 | 沪深300ETF中金 | 7.66 亿元（2026-05-07） | 0.15% |\n| 562310 | 沪深300成长ETF银华 | 6.66 亿元（2026-05-07） | 0.50% |\n| 563900 | 300自由现金流ETF摩根 | 6.65 亿元（2026-05-07） | 0.50% |",
+      "query_plan": {
+        "collection": "tb_ths_etf_base",
+        "filter": {
+          "__search_text__": {
+            "$contains": "沪深300"
+          }
+        },
+        "projection": [
+          "fundcode",
+          "ths_fund_extended_inner_short_name_fund",
+          "ths_fund_scale_fund",
+          "ths_manage_fee_rate_fund"
+        ],
+        "limit": 20,
+        "answer_fields": [
+          {
+            "field": "fundcode",
+            "format": "plain",
+            "label": "基金代码"
+          },
+          {
+            "field": "ths_fund_extended_inner_short_name_fund",
+            "format": "plain",
+            "label": "基金简称"
+          },
+          {
+            "field": "ths_fund_scale_fund",
+            "format": "amount",
+            "label": "基金规模"
+          },
+          {
+            "field": "ths_manage_fee_rate_fund",
+            "format": "percent",
+            "label": "管理费率"
+          }
+        ],
+        "output_style": "list",
+        "sort": [
+          [
+            "ths_fund_scale_fund",
+            -1
+          ],
+          [
+            "fundcode",
+            1
+          ]
+        ]
+      }
+    }
+  },
+  {
+    "question": "找规模大于10亿的ETF",
+    "status": "PASS",
+    "reason": "",
+    "result": {
+      "route": [
+        "filter",
+        "filter"
+      ],
+      "llm_ast_status": "generated",
+      "answer": "| 基金代码 | 基金简称 | 基金规模 | 管理费率 |\n| --- | --- | --- | --- |\n| 510300 | 沪深300ETF | 1777.76 亿元（2026-05-07） | 0.15% |\n| 510310 | 沪深300ETF易方达 | 1367.01 亿元（2026-05-07） | 0.15% |\n| 518880 | 黄金ETF华安 | 1163.19 亿元（2026-05-07） | 0.50% |\n| 511360 | 短融ETF海富通 | 968.65 亿元（2026-05-07） | 0.15% |\n| 510330 | 沪深300ETF华夏 | 915.48 亿元（2026-05-07） | 0.15% |\n| 159919 | 沪深300ETF | 886.02 亿元（2026-05-07） | 0.15% |\n| 511880 | 银华日利ETF | 799.95 亿元（2026-05-07） | 0.30% |\n| 511990 | 华宝添益ETF | 706.63 亿元（2026-05-07） | 0.35% |\n| 588000 | 科创50ETF华夏 | 704.78 亿元（2026-05-07） | 0.15% |\n| 159792 | 港股通互联网ETF富国 | 619.57 亿元（2026-05-07） | 0.15% |",
+      "query_plan": {
+        "collection": "tb_ths_etf_base",
+        "filter": {
+          "ths_fund_scale_fund": {
+            "$gt": 1000000000
+          }
+        },
+        "projection": [
+          "fundcode",
+          "ths_fund_extended_inner_short_name_fund",
+          "ths_fund_scale_fund",
+          "ths_manage_fee_rate_fund"
+        ],
+        "limit": 10,
+        "answer_fields": [
+          {
+            "field": "fundcode",
+            "format": "plain",
+            "label": "基金代码"
+          },
+          {
+            "field": "ths_fund_extended_inner_short_name_fund",
+            "format": "plain",
+            "label": "基金简称"
+          },
+          {
+            "field": "ths_fund_scale_fund",
+            "format": "amount",
+            "label": "基金规模"
+          },
+          {
+            "field": "ths_manage_fee_rate_fund",
+            "format": "percent",
+            "label": "管理费率"
+          }
+        ],
+        "output_style": "list",
+        "sort": [
+          [
+            "ths_fund_scale_fund",
+            -1
+          ],
+          [
+            "fundcode",
+            1
+          ]
+        ]
+      }
+    }
+  },
+  {
+    "question": "哪些ETF管理费率最低",
+    "status": "PASS",
+    "reason": "",
+    "result": {
+      "route": [
+        "filter",
+        "filter"
+      ],
+      "llm_ast_status": "generated",
+      "answer": "| 基金代码 | 基金简称 | 基金规模 | 管理费率 |\n| --- | --- | --- | --- |\n| 510300 | 沪深300ETF | 1777.76 亿元（2026-05-07） | 0.15% |\n| 510310 | 沪深300ETF易方达 | 1367.01 亿元（2026-05-07） | 0.15% |\n| 511360 | 短融ETF海富通 | 968.65 亿元（2026-05-07） | 0.15% |\n| 510330 | 沪深300ETF华夏 | 915.48 亿元（2026-05-07） | 0.15% |\n| 159919 | 沪深300ETF | 886.02 亿元（2026-05-07） | 0.15% |\n| 588000 | 科创50ETF华夏 | 704.78 亿元（2026-05-07） | 0.15% |\n| 159792 | 港股通互联网ETF富国 | 619.57 亿元（2026-05-07） | 0.15% |\n| 511380 | 可转债ETF博时 | 611.42 亿元（2026-05-07） | 0.15% |\n| 510500 | 中证500ETF | 598.28 亿元（2026-05-07） | 0.15% |\n| 511220 | 城投债ETF海富通 | 493.64 亿元（2026-05-07） | 0.15% |",
+      "query_plan": {
+        "collection": "tb_ths_etf_base",
+        "filter": {},
+        "projection": [
+          "fundcode",
+          "ths_fund_extended_inner_short_name_fund",
+          "ths_fund_scale_fund",
+          "ths_manage_fee_rate_fund"
+        ],
+        "limit": 10,
+        "answer_fields": [
+          {
+            "field": "fundcode",
+            "format": "plain",
+            "label": "基金代码"
+          },
+          {
+            "field": "ths_fund_extended_inner_short_name_fund",
+            "format": "plain",
+            "label": "基金简称"
+          },
+          {
+            "field": "ths_fund_scale_fund",
+            "format": "amount",
+            "label": "基金规模"
+          },
+          {
+            "field": "ths_manage_fee_rate_fund",
+            "format": "percent",
+            "label": "管理费率"
+          }
+        ],
+        "output_style": "list",
+        "sort": [
+          [
+            "ths_manage_fee_rate_fund",
+            1
+          ],
+          [
+            "ths_fund_scale_fund",
+            -1
+          ],
+          [
+            "fundcode",
+            1
+          ]
+        ]
+      }
+    }
+  },
+  {
+    "question": "对比510300、510500和159919",
+    "status": "PASS",
+    "reason": "",
+    "result": {
+      "route": [
+        "compare",
+        "compare"
+      ],
+      "llm_ast_status": "generated",
+      "answer": "| 指标 | 510300 | 510500 | 159919 |\n| --- | --- | --- | --- |\n| 基金简称 | 沪深300ETF | 中证500ETF | 沪深300ETF |\n| 基金规模 | 1777.76 亿元（2026-05-07） | 598.28 亿元（2026-05-07） | 886.02 亿元（2026-05-07） |\n| 管理费率 | 0.15% | 0.15% | 0.15% |\n| 托管费率 | 0.05% | 0.05% | 0.05% |\n| 今年以来收益率 | 6.12% | 16.52% | 6.10% |\n| 近1年收益率 | 31.27% | 53.89% | 31.18% |\n| 跟踪指数名称 | 沪深300指数 | 中证小盘500指数 | 沪深300指数 |",
+      "query_plan": {
+        "collection": "tb_ths_etf_base",
+        "filter": {
+          "fundcode": {
+            "$in": [
+              "510300",
+              "510500",
+              "159919"
+            ]
+          }
+        },
+        "projection": [
+          "fundcode",
+          "ths_fund_extended_inner_short_name_fund",
+          "ths_fund_scale_fund",
+          "ths_manage_fee_rate_fund",
+          "ths_mandate_fee_rate_fund",
+          "ths_yeild_ytd_fund",
+          "ths_yeild_1y_fund",
+          "ths_name_of_tracking_index_fund"
+        ],
+        "limit": 10,
+        "answer_fields": [
+          {
+            "field": "fundcode",
+            "format": "plain",
+            "label": "基金代码"
+          },
+          {
+            "field": "ths_fund_extended_inner_short_name_fund",
+            "format": "plain",
+            "label": "基金简称"
+          },
+          {
+            "field": "ths_fund_scale_fund",
+            "format": "amount",
+            "label": "基金规模"
+          },
+          {
+            "field": "ths_manage_fee_rate_fund",
+            "format": "percent",
+            "label": "管理费率"
+          },
+          {
+            "field": "ths_mandate_fee_rate_fund",
+            "format": "percent",
+            "label": "托管费率"
+          },
+          {
+            "field": "ths_yeild_ytd_fund",
+            "format": "percent",
+            "label": "今年以来收益率"
+          },
+          {
+            "field": "ths_yeild_1y_fund",
+            "format": "percent",
+            "label": "近1年收益率"
+          },
+          {
+            "field": "ths_name_of_tracking_index_fund",
+            "format": "plain",
+            "label": "跟踪指数名称"
+          }
+        ],
+        "output_style": "compare"
+      }
+    }
+  },
+  {
+    "question": "股票型ETF里今年收益最高的5只是哪些？对比一下",
+    "status": "PASS",
+    "reason": "",
+    "result": {
+      "route": [
+        "composite",
+        "filter_to_compare"
+      ],
+      "llm_ast_status": "generated",
+      "answer": "| 指标 | 513310 | 588780 | 589210 | 588810 | 588990 |\n| --- | --- | --- | --- | --- | --- |\n| 基金简称 | 中韩半导体ETF华泰柏瑞 | 科创芯片设计ETF国联安 | 科创芯片设计ETF广发 | 科创芯片ETF富国 | 科创芯片ETF博时 |\n| 基金规模 | 97.71 亿元（2026-05-07） | 10.16 亿元（2026-05-07） | 0.73 亿元（2026-05-07） | 6.53 亿元（2026-05-07） | 5.88 亿元（2026-05-07） |\n| 管理费率 | 0.80% | 0.50% | 0.50% | 0.50% | 0.50% |\n| 托管费率 | 0.15% | 0.10% | 0.10% | 0.10% | 0.10% |\n| 今年以来收益率 | 75.49% | 43.99% | 43.66% | 43.26% | 42.61% |\n| 近1年收益率 | 192.71% | 99.45% | 暂无数据 | 111.94% | 109.11% |\n| 跟踪指数名称 | 中证韩交所中韩半导体指数 | 上证科创板芯片设计主题指数 | 上证科创板芯片设计主题指数 | 上证科创板芯片指数 | 上证科创板芯片指数 |",
+      "query_plan": {
+        "steps": [
+          {
+            "collection": "tb_ths_etf_base",
+            "filter": {
+              "ths_fund_invest_type_fund": "股票型"
+            },
+            "projection": [
+              "fundcode",
+              "ths_fund_extended_inner_short_name_fund",
+              "ths_fund_scale_fund",
+              "ths_manage_fee_rate_fund",
+              "ths_fund_listed_exchange_fund",
+              "ths_name_of_tracking_index_fund",
+              "ths_yeild_ytd_fund",
+              "ths_yeild_1m_fund",
+              "ths_yeild_3m_fund",
+              "ths_yeild_6m_fund",
+              "ths_yeild_1y_fund",
+              "ths_yeild_std_fund"
+            ],
+            "limit": 5,
+            "answer_fields": [
+              {
+                "field": "fundcode",
+                "format": "plain",
+                "label": "基金代码"
+              },
+              {
+                "field": "ths_fund_extended_inner_short_name_fund",
+                "format": "plain",
+                "label": "基金简称"
+              },
+              {
+                "field": "ths_fund_scale_fund",
+                "format": "amount",
+                "label": "基金规模"
+              },
+              {
+                "field": "ths_manage_fee_rate_fund",
+                "format": "percent",
+                "label": "管理费率"
+              },
+              {
+                "field": "ths_fund_listed_exchange_fund",
+                "format": "plain",
+                "label": "上市地点"
+              },
+              {
+                "field": "ths_name_of_tracking_index_fund",
+                "format": "plain",
+                "label": "跟踪指数名称"
+              },
+              {
+                "field": "ths_yeild_ytd_fund",
+                "format": "percent",
+                "label": "今年以来收益率"
+              },
+              {
+                "field": "ths_yeild_1m_fund",
+                "format": "percent",
+                "label": "近1月收益率"
+              },
+              {
+                "field": "ths_yeild_3m_fund",
+                "format": "percent",
+                "label": "近3月收益率"
+              },
+              {
+                "field": "ths_yeild_6m_fund",
+                "format": "percent",
+                "label": "近6月收益率"
+              },
+              {
+                "field": "ths_yeild_1y_fund",
+                "format": "percent",
+                "label": "近1年收益率"
+              },
+              {
+                "field": "ths_yeild_std_fund",
+                "format": "percent",
+                "label": "成立以来收益率"
+              }
+            ],
+            "output_style": "list",
+            "sort": [
+              [
+                "ths_yeild_ytd_fund",
+                -1
+              ],
+              [
+                "ths_fund_scale_fund",
+                -1
+              ],
+              [
+                "fundcode",
+                1
+              ]
+            ]
+          },
+          {
+            "collection": "tb_ths_etf_base",
+            "filter": {
+              "fundcode": {
+                "$in": [
+                  "513310",
+                  "588780",
+                  "589210",
+                  "588810",
+                  "588990"
+                ]
+              }
+            },
+            "projection": [
+              "fundcode",
+              "ths_fund_extended_inner_short_name_fund",
+              "ths_fund_scale_fund",
+              "ths_manage_fee_rate_fund",
+              "ths_mandate_fee_rate_fund",
+              "ths_yeild_ytd_fund",
+              "ths_yeild_1y_fund",
+              "ths_name_of_tracking_index_fund"
+            ],
+            "limit": 10,
+            "answer_fields": [
+              {
+                "field": "fundcode",
+                "label": "基金代码",
+                "format": "plain"
+              },
+              {
+                "field": "ths_fund_extended_inner_short_name_fund",
+                "label": "基金简称",
+                "format": "plain"
+              },
+              {
+                "field": "ths_fund_scale_fund",
+                "label": "基金规模",
+                "format": "amount"
+              },
+              {
+                "field": "ths_manage_fee_rate_fund",
+                "label": "管理费率",
+                "format": "percent"
+              },
+              {
+                "field": "ths_mandate_fee_rate_fund",
+                "label": "托管费率",
+                "format": "percent"
+              },
+              {
+                "field": "ths_yeild_ytd_fund",
+                "label": "今年以来收益率",
+                "format": "percent"
+              },
+              {
+                "field": "ths_yeild_1y_fund",
+                "label": "近1年收益率",
+                "format": "percent"
+              },
+              {
+                "field": "ths_name_of_tracking_index_fund",
+                "label": "跟踪指数名称",
+                "format": "plain"
+              }
+            ],
+            "output_style": "compare"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "question": "低成本的沪深300产品都有哪些",
+    "status": "PASS",
+    "reason": "",
+    "result": {
+      "route": [
+        "filter",
+        "filter"
+      ],
+      "llm_ast_status": "generated",
+      "answer": "| 基金代码 | 基金简称 | 基金规模 | 管理费率 |\n| --- | --- | --- | --- |\n| 510300 | 沪深300ETF | 1777.76 亿元（2026-05-07） | 0.15% |\n| 510310 | 沪深300ETF易方达 | 1367.01 亿元（2026-05-07） | 0.15% |\n| 510330 | 沪深300ETF华夏 | 915.48 亿元（2026-05-07） | 0.15% |\n| 159919 | 沪深300ETF | 886.02 亿元（2026-05-07） | 0.15% |\n| 510350 | 沪深300ETF工银 | 35.59 亿元（2026-05-07） | 0.15% |\n| 159925 | 沪深300ETF南方 | 27.73 亿元（2026-05-07） | 0.15% |\n| 159673 | 沪深300ETF鹏华 | 18.98 亿元（2026-05-07） | 0.15% |\n| 515390 | 沪深300ETF华安 | 10.70 亿元（2026-05-07） | 0.15% |\n| 159300 | 沪深300ETF富国 | 10.50 亿元（2026-05-07） | 0.15% |\n| 510320 | 沪深300ETF中金 | 7.66 亿元（2026-05-07） | 0.15% |",
+      "query_plan": {
+        "collection": "tb_ths_etf_base",
+        "filter": {
+          "ths_name_of_tracking_index_fund": "沪深300指数"
+        },
+        "projection": [
+          "fundcode",
+          "ths_fund_extended_inner_short_name_fund",
+          "ths_fund_scale_fund",
+          "ths_manage_fee_rate_fund",
+          "ths_fund_listed_exchange_fund",
+          "ths_fund_invest_type_fund",
+          "ths_name_of_tracking_index_fund"
+        ],
+        "limit": 10,
+        "answer_fields": [
+          {
+            "field": "fundcode",
+            "format": "plain",
+            "label": "基金代码"
+          },
+          {
+            "field": "ths_fund_extended_inner_short_name_fund",
+            "format": "plain",
+            "label": "基金简称"
+          },
+          {
+            "field": "ths_fund_scale_fund",
+            "format": "amount",
+            "label": "基金规模"
+          },
+          {
+            "field": "ths_manage_fee_rate_fund",
+            "format": "percent",
+            "label": "管理费率"
+          }
+        ],
+        "output_style": "list",
+        "sort": [
+          [
+            "ths_manage_fee_rate_fund",
+            1
+          ],
+          [
+            "ths_fund_scale_fund",
+            -1
+          ],
+          [
+            "fundcode",
+            1
+          ]
+        ]
+      }
+    }
+  },
+  {
+    "question": "便宜一点的沪深300产品",
+    "status": "PASS",
+    "reason": "",
+    "result": {
+      "route": [
+        "filter",
+        "filter"
+      ],
+      "llm_ast_status": "generated",
+      "answer": "| 基金代码 | 基金简称 | 基金规模 | 管理费率 |\n| --- | --- | --- | --- |\n| 510300 | 沪深300ETF | 1777.76 亿元（2026-05-07） | 0.15% |\n| 510310 | 沪深300ETF易方达 | 1367.01 亿元（2026-05-07） | 0.15% |\n| 510330 | 沪深300ETF华夏 | 915.48 亿元（2026-05-07） | 0.15% |\n| 159919 | 沪深300ETF | 886.02 亿元（2026-05-07） | 0.15% |\n| 510350 | 沪深300ETF工银 | 35.59 亿元（2026-05-07） | 0.15% |\n| 159925 | 沪深300ETF南方 | 27.73 亿元（2026-05-07） | 0.15% |\n| 159673 | 沪深300ETF鹏华 | 18.98 亿元（2026-05-07） | 0.15% |\n| 515390 | 沪深300ETF华安 | 10.70 亿元（2026-05-07） | 0.15% |\n| 159300 | 沪深300ETF富国 | 10.50 亿元（2026-05-07） | 0.15% |\n| 510320 | 沪深300ETF中金 | 7.66 亿元（2026-05-07） | 0.15% |",
+      "query_plan": {
+        "collection": "tb_ths_etf_base",
+        "filter": {
+          "ths_name_of_tracking_index_fund": "沪深300指数"
+        },
+        "projection": [
+          "fundcode",
+          "ths_fund_extended_inner_short_name_fund",
+          "ths_fund_scale_fund",
+          "ths_manage_fee_rate_fund",
+          "ths_fund_listed_exchange_fund",
+          "ths_fund_invest_type_fund",
+          "ths_name_of_tracking_index_fund"
+        ],
+        "limit": 10,
+        "answer_fields": [
+          {
+            "field": "fundcode",
+            "format": "plain",
+            "label": "基金代码"
+          },
+          {
+            "field": "ths_fund_extended_inner_short_name_fund",
+            "format": "plain",
+            "label": "基金简称"
+          },
+          {
+            "field": "ths_fund_scale_fund",
+            "format": "amount",
+            "label": "基金规模"
+          },
+          {
+            "field": "ths_manage_fee_rate_fund",
+            "format": "percent",
+            "label": "管理费率"
+          }
+        ],
+        "output_style": "list",
+        "sort": [
+          [
+            "ths_manage_fee_rate_fund",
+            1
+          ],
+          [
+            "ths_fund_scale_fund",
+            -1
+          ],
+          [
+            "fundcode",
+            1
+          ]
+        ]
+      }
+    }
+  },
+  {
+    "question": "科创板50相关产品",
+    "status": "PASS",
+    "reason": "",
+    "result": {
+      "route": [
+        "search",
+        "search"
+      ],
+      "llm_ast_status": "generated",
+      "answer": "| 基金代码 | 基金简称 | 基金规模 | 管理费率 |\n| --- | --- | --- | --- |\n| 588000 | 科创50ETF华夏 | 704.78 亿元（2026-05-07） | 0.15% |\n| 588080 | 科创50ETF易方达 | 391.17 亿元（2026-05-07） | 0.15% |\n| 588050 | 科创50ETF工银 | 99.12 亿元（2026-05-07） | 0.30% |\n| 588060 | 科创50ETF广发 | 75.07 亿元（2026-05-07） | 0.50% |\n| 588090 | 科创50ETF华泰柏瑞 | 45.14 亿元（2026-05-07） | 0.50% |\n| 588460 | 科创50增强ETF鹏华 | 15.64 亿元（2026-05-07） | 1.00% |\n| 588180 | 科创50ETF国联安 | 13.21 亿元（2026-05-07） | 0.30% |\n| 588940 | 科创50ETF富国 | 5.53 亿元（2026-05-07） | 0.15% |\n| 588150 | 科创50ETF南方 | 5.00 亿元（2026-05-07） | 0.15% |\n| 589850 | 科创50ETF东财 | 4.75 亿元（2026-05-07） | 0.15% |\n| 588870 | 科创50ETF汇添富 | 4.39 亿元（2026-05-07） | 0.15% |\n| 588280 | 科创50ETF华安 | 3.74 亿元（2026-05-07） | 0.15% |\n| 588950 | 科创50ETF景顺 | 3.34 亿元（2026-05-07） | 0.15% |\n| 588720 | 科创50ETF中银 | 1.85 亿元（2026-05-07） | 0.15% |\n| 588450 | 科创50增强ETF招商 | 1.20 亿元（2026-05-07） | 0.50% |\n| 588370 | 科创50增强ETF南方 | 1.08 亿元（2026-05-07） | 0.50% |\n| 588040 | 科创50ETF鹏华 | 1.06 亿元（2026-05-07） | 0.15% |\n| 589150 | 科创50ETF平安 | 0.78 亿元（2026-05-07） | 0.15% |\n| 588840 | 科创50ETF万家 | 0.53 亿元（2026-05-07） | 0.15% |",
+      "query_plan": {
+        "collection": "tb_ths_etf_base",
+        "filter": {
+          "__search_text__": {
+            "$contains": "科创板50"
+          }
+        },
+        "projection": [
+          "fundcode",
+          "ths_fund_extended_inner_short_name_fund",
+          "ths_fund_scale_fund",
+          "ths_manage_fee_rate_fund"
+        ],
+        "limit": 20,
+        "answer_fields": [
+          {
+            "field": "fundcode",
+            "format": "plain",
+            "label": "基金代码"
+          },
+          {
+            "field": "ths_fund_extended_inner_short_name_fund",
+            "format": "plain",
+            "label": "基金简称"
+          },
+          {
+            "field": "ths_fund_scale_fund",
+            "format": "amount",
+            "label": "基金规模"
+          },
+          {
+            "field": "ths_manage_fee_rate_fund",
+            "format": "percent",
+            "label": "管理费率"
+          }
+        ],
+        "output_style": "list",
+        "sort": [
+          [
+            "ths_fund_scale_fund",
+            -1
+          ],
+          [
+            "fundcode",
+            1
+          ]
+        ]
+      }
+    }
+  },
+  {
+    "question": "偏债的场内基金有哪些",
+    "status": "PASS",
+    "reason": "",
+    "result": {
+      "route": [
+        "filter",
+        "filter"
+      ],
+      "llm_ast_status": "generated",
+      "answer": "| 基金代码 | 基金简称 | 基金规模 | 管理费率 |\n| --- | --- | --- | --- |\n| 511360 | 短融ETF海富通 | 968.65 亿元（2026-05-07） | 0.15% |\n| 511380 | 可转债ETF博时 | 611.42 亿元（2026-05-07） | 0.15% |\n| 511220 | 城投债ETF海富通 | 493.64 亿元（2026-05-07） | 0.15% |\n| 511030 | 公司债ETF平安 | 385.38 亿元（2026-05-07） | 0.15% |\n| 511520 | 政金债ETF富国 | 375.60 亿元（2026-05-07） | 0.15% |\n| 511090 | 30年国债ETF鹏扬 | 265.84 亿元（2026-05-07） | 0.15% |\n| 511110 | 公司债ETF易方达 | 236.04 亿元（2026-05-07） | 0.15% |\n| 159600 | 科创债ETF嘉实 | 219.64 亿元（2026-05-07） | 0.15% |\n| 159112 | 科创债ETF银华 | 205.11 亿元（2026-05-07） | 0.15% |\n| 511070 | 公司债ETF南方 | 191.61 亿元（2026-05-07） | 0.15% |",
+      "query_plan": {
+        "collection": "tb_ths_etf_base",
+        "filter": {
+          "ths_fund_invest_type_fund": "债券型"
+        },
+        "projection": [
+          "fundcode",
+          "ths_fund_extended_inner_short_name_fund",
+          "ths_fund_scale_fund",
+          "ths_manage_fee_rate_fund",
+          "ths_fund_listed_exchange_fund",
+          "ths_fund_invest_type_fund",
+          "ths_name_of_tracking_index_fund"
+        ],
+        "limit": 10,
+        "answer_fields": [
+          {
+            "field": "fundcode",
+            "format": "plain",
+            "label": "基金代码"
+          },
+          {
+            "field": "ths_fund_extended_inner_short_name_fund",
+            "format": "plain",
+            "label": "基金简称"
+          },
+          {
+            "field": "ths_fund_scale_fund",
+            "format": "amount",
+            "label": "基金规模"
+          },
+          {
+            "field": "ths_manage_fee_rate_fund",
+            "format": "percent",
+            "label": "管理费率"
+          }
+        ],
+        "output_style": "list",
+        "sort": [
+          [
+            "ths_fund_scale_fund",
+            -1
+          ],
+          [
+            "fundcode",
+            1
+          ]
+        ]
+      }
+    }
+  },
+  {
+    "question": "510300 510500 159919放一起看看",
+    "status": "PASS",
+    "reason": "",
+    "result": {
+      "route": [
+        "compare",
+        "compare"
+      ],
+      "llm_ast_status": "generated",
+      "answer": "| 指标 | 510300 | 510500 | 159919 |\n| --- | --- | --- | --- |\n| 基金简称 | 沪深300ETF | 中证500ETF | 沪深300ETF |\n| 基金规模 | 1777.76 亿元（2026-05-07） | 598.28 亿元（2026-05-07） | 886.02 亿元（2026-05-07） |\n| 管理费率 | 0.15% | 0.15% | 0.15% |\n| 托管费率 | 0.05% | 0.05% | 0.05% |\n| 今年以来收益率 | 6.12% | 16.52% | 6.10% |\n| 近1年收益率 | 31.27% | 53.89% | 31.18% |\n| 跟踪指数名称 | 沪深300指数 | 中证小盘500指数 | 沪深300指数 |",
+      "query_plan": {
+        "collection": "tb_ths_etf_base",
+        "filter": {
+          "fundcode": {
+            "$in": [
+              "510300",
+              "510500",
+              "159919"
+            ]
+          }
+        },
+        "projection": [
+          "fundcode",
+          "ths_fund_extended_inner_short_name_fund",
+          "ths_fund_scale_fund",
+          "ths_manage_fee_rate_fund",
+          "ths_mandate_fee_rate_fund",
+          "ths_yeild_ytd_fund",
+          "ths_yeild_1y_fund",
+          "ths_name_of_tracking_index_fund"
+        ],
+        "limit": 10,
+        "answer_fields": [
+          {
+            "field": "fundcode",
+            "format": "plain",
+            "label": "基金代码"
+          },
+          {
+            "field": "ths_fund_extended_inner_short_name_fund",
+            "format": "plain",
+            "label": "基金简称"
+          },
+          {
+            "field": "ths_fund_scale_fund",
+            "format": "amount",
+            "label": "基金规模"
+          },
+          {
+            "field": "ths_manage_fee_rate_fund",
+            "format": "percent",
+            "label": "管理费率"
+          },
+          {
+            "field": "ths_mandate_fee_rate_fund",
+            "format": "percent",
+            "label": "托管费率"
+          },
+          {
+            "field": "ths_yeild_ytd_fund",
+            "format": "percent",
+            "label": "今年以来收益率"
+          },
+          {
+            "field": "ths_yeild_1y_fund",
+            "format": "percent",
+            "label": "近1年收益率"
+          },
+          {
+            "field": "ths_name_of_tracking_index_fund",
+            "format": "plain",
+            "label": "跟踪指数名称"
+          }
+        ],
+        "output_style": "compare"
+      }
+    }
+  },
+  {
+    "question": "512880和510300谁费用更省",
+    "status": "PASS",
+    "reason": "",
+    "result": {
+      "route": [
+        "compare",
+        "compare"
+      ],
+      "llm_ast_status": "generated",
+      "answer": "| 指标 | 512880 | 510300 |\n| --- | --- | --- |\n| 基金简称 | 证券ETF国泰 | 沪深300ETF |\n| 管理费率 | 0.50% | 0.15% |\n| 托管费率 | 0.10% | 0.05% |\n| 基金规模 | 554.41 亿元（2026-05-07） | 1777.76 亿元（2026-05-07） |\n| 今年以来收益率 | -10.26% | 6.12% |\n| 近1年收益率 | 3.22% | 31.27% |\n| 跟踪指数名称 | 中证全指证券公司指数 | 沪深300指数 |",
+      "query_plan": {
+        "collection": "tb_ths_etf_base",
+        "filter": {
+          "fundcode": {
+            "$in": [
+              "512880",
+              "510300"
+            ]
+          }
+        },
+        "projection": [
+          "fundcode",
+          "ths_fund_extended_inner_short_name_fund",
+          "ths_manage_fee_rate_fund",
+          "ths_mandate_fee_rate_fund",
+          "ths_fund_scale_fund",
+          "ths_yeild_ytd_fund",
+          "ths_yeild_1y_fund",
+          "ths_name_of_tracking_index_fund"
+        ],
+        "limit": 10,
+        "answer_fields": [
+          {
+            "field": "fundcode",
+            "format": "plain",
+            "label": "基金代码"
+          },
+          {
+            "field": "ths_fund_extended_inner_short_name_fund",
+            "format": "plain",
+            "label": "基金简称"
+          },
+          {
+            "field": "ths_manage_fee_rate_fund",
+            "format": "percent",
+            "label": "管理费率"
+          },
+          {
+            "field": "ths_mandate_fee_rate_fund",
+            "format": "percent",
+            "label": "托管费率"
+          },
+          {
+            "field": "ths_fund_scale_fund",
+            "label": "基金规模",
+            "format": "amount"
+          },
+          {
+            "field": "ths_yeild_ytd_fund",
+            "label": "今年以来收益率",
+            "format": "percent"
+          },
+          {
+            "field": "ths_yeild_1y_fund",
+            "label": "近1年收益率",
+            "format": "percent"
+          },
+          {
+            "field": "ths_name_of_tracking_index_fund",
+            "label": "跟踪指数名称",
+            "format": "plain"
+          }
+        ],
+        "output_style": "compare"
+      }
+    }
+  },
+  {
+    "question": "沪深300产品里回报靠前的",
+    "status": "PASS",
+    "reason": "",
+    "result": {
+      "route": [
+        "filter",
+        "filter"
+      ],
+      "llm_ast_status": "generated",
+      "answer": "| 基金代码 | 基金简称 | 基金规模 | 管理费率 | 近1年收益率 |\n| --- | --- | --- | --- | --- |\n| 515360 | 沪深300ETF方正富邦 | 2.60 亿元（2026-05-07） | 0.15% | 34.53% |\n| 159393 | 沪深300ETF万家 | 2.58 亿元（2026-05-07） | 0.15% | 34.16% |\n| 561930 | 沪深300ETF招商 | 1.92 亿元（2026-05-07） | 0.15% | 33.75% |\n| 159300 | 沪深300ETF富国 | 10.50 亿元（2026-05-07） | 0.15% | 32.89% |\n| 515130 | 沪深300ETF博时 | 1.14 亿元（2026-05-07） | 0.15% | 32.57% |\n| 510350 | 沪深300ETF工银 | 35.59 亿元（2026-05-07） | 0.15% | 32.08% |\n| 510390 | 沪深300ETF平安 | 6.04 亿元（2026-05-07） | 0.50% | 32.02% |\n| 510380 | 沪深300ETF国寿 | 18.02 亿元（2026-05-07） | 0.50% | 31.61% |\n| 159925 | 沪深300ETF南方 | 27.73 亿元（2026-05-07） | 0.15% | 31.60% |\n| 159330 | 沪深300ETF东财 | 4.62 亿元（2026-05-07） | 0.50% | 31.49% |",
+      "query_plan": {
+        "collection": "tb_ths_etf_base",
+        "filter": {
+          "ths_name_of_tracking_index_fund": "沪深300指数"
+        },
+        "projection": [
+          "fundcode",
+          "ths_fund_extended_inner_short_name_fund",
+          "ths_fund_scale_fund",
+          "ths_manage_fee_rate_fund",
+          "ths_yeild_1y_fund"
+        ],
+        "limit": 10,
+        "answer_fields": [
+          {
+            "field": "fundcode",
+            "format": "plain",
+            "label": "基金代码"
+          },
+          {
+            "field": "ths_fund_extended_inner_short_name_fund",
+            "format": "plain",
+            "label": "基金简称"
+          },
+          {
+            "field": "ths_fund_scale_fund",
+            "format": "amount",
+            "label": "基金规模"
+          },
+          {
+            "field": "ths_manage_fee_rate_fund",
+            "format": "percent",
+            "label": "管理费率"
+          },
+          {
+            "field": "ths_yeild_1y_fund",
+            "format": "percent",
+            "label": "近1年收益率"
+          }
+        ],
+        "output_style": "list",
+        "sort": [
+          [
+            "ths_yeild_1y_fund",
+            -1
+          ],
+          [
+            "ths_fund_scale_fund",
+            -1
+          ],
+          [
+            "fundcode",
+            1
+          ]
+        ]
+      }
+    }
+  },
+  {
+    "question": "规模不小于100亿的产品",
+    "status": "PASS",
+    "reason": "",
+    "result": {
+      "route": [
+        "filter",
+        "filter"
+      ],
+      "llm_ast_status": "generated",
+      "answer": "| 基金代码 | 基金简称 | 基金规模 | 管理费率 |\n| --- | --- | --- | --- |\n| 510300 | 沪深300ETF | 1777.76 亿元（2026-05-07） | 0.15% |\n| 510310 | 沪深300ETF易方达 | 1367.01 亿元（2026-05-07） | 0.15% |\n| 518880 | 黄金ETF华安 | 1163.19 亿元（2026-05-07） | 0.50% |\n| 511360 | 短融ETF海富通 | 968.65 亿元（2026-05-07） | 0.15% |\n| 510330 | 沪深300ETF华夏 | 915.48 亿元（2026-05-07） | 0.15% |\n| 159919 | 沪深300ETF | 886.02 亿元（2026-05-07） | 0.15% |\n| 511880 | 银华日利ETF | 799.95 亿元（2026-05-07） | 0.30% |\n| 511990 | 华宝添益ETF | 706.63 亿元（2026-05-07） | 0.35% |\n| 588000 | 科创50ETF华夏 | 704.78 亿元（2026-05-07） | 0.15% |\n| 159792 | 港股通互联网ETF富国 | 619.57 亿元（2026-05-07） | 0.15% |",
+      "query_plan": {
+        "collection": "tb_ths_etf_base",
+        "filter": {
+          "ths_fund_scale_fund": {
+            "$gte": 10000000000
+          }
+        },
+        "projection": [
+          "fundcode",
+          "ths_fund_extended_inner_short_name_fund",
+          "ths_fund_scale_fund",
+          "ths_manage_fee_rate_fund"
+        ],
+        "limit": 10,
+        "answer_fields": [
+          {
+            "field": "fundcode",
+            "format": "plain",
+            "label": "基金代码"
+          },
+          {
+            "field": "ths_fund_extended_inner_short_name_fund",
+            "format": "plain",
+            "label": "基金简称"
+          },
+          {
+            "field": "ths_fund_scale_fund",
+            "format": "amount",
+            "label": "基金规模"
+          },
+          {
+            "field": "ths_manage_fee_rate_fund",
+            "format": "percent",
+            "label": "管理费率"
+          }
+        ],
+        "output_style": "list",
+        "sort": [
+          [
+            "ths_fund_scale_fund",
+            -1
+          ],
+          [
+            "fundcode",
+            1
+          ]
+        ]
+      }
+    }
+  },
+  {
+    "question": "510300近半年和同类比怎么样",
+    "status": "PASS",
+    "reason": "",
+    "result": {
+      "route": [
+        "unsupported",
+        null
+      ],
+      "llm_ast_status": "skipped",
+      "answer": "当前版本暂不支持该查询类型。",
+      "query_plan": null
+    }
+  },
+  {
+    "question": "沪深300里面哪只更值得买",
+    "status": "PASS",
+    "reason": "",
+    "result": {
+      "route": [
+        "deny",
+        null
+      ],
+      "llm_ast_status": "skipped",
+      "answer": "抱歉，该问题涉及实时行情、交易指标或投资建议，超出当前 ETF 数据查询能力范围。",
+      "query_plan": null
+    }
+  },
+  {
+    "question": "2024年成立的ETF有哪些",
+    "status": "PASS",
+    "reason": "",
+    "result": {
+      "route": [
+        "unsupported",
+        null
+      ],
+      "llm_ast_status": "skipped",
+      "answer": "当前版本暂不支持该查询类型。",
+      "query_plan": null
+    }
+  }
+]

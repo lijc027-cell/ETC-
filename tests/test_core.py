@@ -844,6 +844,29 @@ def test_v3_1_classification_recognizes_agent_paraphrases(question, expected_mod
     assert result["recognized_query_mode"] == expected_mode
 
 
+@pytest.mark.parametrize(
+    "question",
+    [
+        "510300和159919摆一起",
+        "510300 510500 159919",
+        "510300与510500一起看",
+        "512880和510300谁费用更省",
+        "对比510300、510500和159919",
+    ],
+)
+def test_v3_1_multiple_fundcodes_force_compare(question):
+    result = classify_v3_query(question, {}, [])
+
+    assert result["recognized_query_mode"] == "compare"
+    assert result["intent"] == "compare"
+
+
+def test_v3_1_entity_hints_deduplicate_fundcodes_preserving_order():
+    hints = extract_v3_1_entity_hints("510300和510300与159919一起看")
+
+    assert hints["fundcodes"] == ["510300", "159919"]
+
+
 def test_v3_1_agent_paraphrase_entity_hints():
     low_cost = extract_v3_1_entity_hints("低成本的沪深300产品都有哪些")
     bond = extract_v3_1_entity_hints("偏债的场内基金有哪些")
@@ -1130,6 +1153,27 @@ def test_audit_v3_reference_comparison_detects_empty_model_result():
     assert "model returned empty" in audited["reason"]
 
 
+def test_audit_v3_reference_comparison_rejects_forbidden_fields():
+    from scripts.audit_v3_results import compare_audit_case
+
+    model = {
+        "answer": "ok",
+        "v3": {"recognized_query_mode": "filter", "intent": "filter"},
+        "query_plan": {"collection": "tb_ths_etf_base", "filter": {}, "projection": ["fundcode", "made_up_field"]},
+        "result": {"success": True, "data": [{"fundcode": "510300"}]},
+    }
+
+    audited = compare_audit_case(
+        question="找规模大于10亿的ETF",
+        expected={"route": ("filter", "filter")},
+        model=model,
+        reference={"success": True, "data": [{"fundcode": "510300"}]},
+    )
+
+    assert audited["status"] == "FAIL"
+    assert audited["reason"] == "forbidden field: made_up_field"
+
+
 def test_agent_result_evaluator_rejects_forbidden_fields():
     from scripts.generate_v3_1_agent_results import evaluate_agent_result
 
@@ -1146,11 +1190,189 @@ def test_agent_result_evaluator_rejects_forbidden_fields():
     assert "forbidden field" in reason
 
 
+def test_result_scripts_write_machine_json_under_answer_raw():
+    result_script = (ROOT / "scripts" / "generate_v3_1_results.py").read_text(encoding="utf-8")
+    agent_script = (ROOT / "scripts" / "generate_v3_1_agent_results.py").read_text(encoding="utf-8")
+    audit_script = (ROOT / "scripts" / "audit_v3_results.py").read_text(encoding="utf-8")
+
+    assert 'OUT_JSON = ROOT / "answer" / "raw" / "test3.1-results.json"' in result_script
+    assert 'OUT_JSON = ROOT / "answer" / "raw" / "test3.1-agent-results.json"' in agent_script
+    assert 'OUT_JSON = ROOT / "answer" / "raw" / "audit-v3.1-results.json"' in audit_script
+
+
 def test_answer_directory_keeps_only_result_markdown_files():
     files = sorted(path.name for path in (ROOT / "answer").iterdir() if path.is_file())
 
     assert files == [
+        "audit-v3.1-results.md",
         "test3.0-results.md",
         "test3.1-agent-results.md",
         "test3.1-results.md",
     ]
+
+
+def test_answer_raw_directory_keeps_machine_readable_json_files():
+    files = sorted(path.name for path in (ROOT / "answer" / "raw").iterdir() if path.is_file())
+
+    assert files == [
+        "audit-v3.1-results.json",
+        "test3.1-agent-results.json",
+        "test3.1-results.json",
+    ]
+
+
+def test_capability_registry_exposes_v3_1_filter_context():
+    from etf_agent.capability_registry import get_selection_context
+
+    context = get_selection_context("filter", "filter", phase="v3.1")
+
+    assert "ths_yeild_1y_fund" in context["filterable_fields"]
+    assert "ths_manage_fee_rate_fund" in context["sortable_fields"]
+    assert context["baseline_answer_fields"] == [
+        "fundcode",
+        "ths_fund_extended_inner_short_name_fund",
+        "ths_fund_scale_fund",
+        "ths_manage_fee_rate_fund",
+    ]
+
+
+def test_validator_rejects_unknown_field():
+    from etf_agent.ast_validator import validate_v3_ast
+    from etf_agent.capability_registry import get_selection_context
+
+    ast = build_v3_1_ast("search", extract_v3_1_entity_hints("搜索中证500"), "搜索中证500")
+    ast["select"].append("made_up_field")
+
+    with pytest.raises(ValueError, match="select contains unsupported field"):
+        validate_v3_ast(
+            ast,
+            query_mode="search",
+            entity_hints=extract_v3_1_entity_hints("搜索中证500"),
+            selection_context=get_selection_context("search", "search"),
+        )
+
+
+def test_validator_rejects_v3_2_field_in_v3_1():
+    from etf_agent.ast_validator import validate_v3_ast
+    from etf_agent.capability_registry import get_selection_context
+
+    ast = build_v3_ast("basic_info", {"fundcode": "510300"})
+    ast["select"].append("ths_fund_establishment_date_fund")
+
+    with pytest.raises(ValueError, match="blocked in v3.1"):
+        validate_v3_ast(
+            ast,
+            query_mode="single",
+            entity_hints={"fundcodes": ["510300"]},
+            selection_context=get_selection_context("single", "basic_info"),
+        )
+
+
+def test_validator_rejects_bad_operator():
+    from etf_agent.ast_validator import validate_v3_ast
+    from etf_agent.capability_registry import get_selection_context
+
+    hints = extract_v3_1_entity_hints("搜索中证500")
+    ast = build_v3_1_ast("search", hints, "搜索中证500")
+    ast["where"][0]["op"] = "regex"
+
+    with pytest.raises(ValueError, match="unsupported operator"):
+        validate_v3_ast(
+            ast,
+            query_mode="search",
+            entity_hints=hints,
+            selection_context=get_selection_context("search", "search"),
+        )
+
+
+def test_validator_rejects_limit_over_50():
+    from etf_agent.ast_validator import validate_v3_ast
+    from etf_agent.capability_registry import get_selection_context
+
+    hints = extract_v3_1_entity_hints("搜索中证500")
+    ast = build_v3_1_ast("search", hints, "搜索中证500")
+    ast["limit"] = 51
+
+    with pytest.raises(ValueError, match="limit must be between 1 and 50"):
+        validate_v3_ast(
+            ast,
+            query_mode="search",
+            entity_hints=hints,
+            selection_context=get_selection_context("search", "search"),
+        )
+
+
+def test_validator_rejects_compare_without_multiple_fundcodes():
+    from etf_agent.ast_validator import validate_v3_ast
+    from etf_agent.capability_registry import get_selection_context
+
+    hints = {"fundcodes": ["510300"], "filters": [], "search_keyword": ""}
+    ast = build_v3_1_ast("compare", hints, "对比510300")
+
+    with pytest.raises(ValueError, match="compare requires at least two fundcodes"):
+        validate_v3_ast(
+            ast,
+            query_mode="compare",
+            entity_hints=hints,
+            selection_context=get_selection_context("compare", "compare"),
+        )
+
+
+def test_validator_allows_search_baseline_ast():
+    from etf_agent.ast_validator import validate_v3_ast
+    from etf_agent.capability_registry import get_selection_context
+
+    hints = extract_v3_1_entity_hints("搜索中证500")
+    ast = build_v3_1_ast("search", hints, "搜索中证500")
+
+    validated = validate_v3_ast(
+        ast,
+        query_mode="search",
+        entity_hints=hints,
+        selection_context=get_selection_context("search", "search"),
+    )
+
+    assert validated["where"] == [{"field": "__search_text__", "op": "contains", "value": "中证500"}]
+
+
+def test_validator_allows_filter_yield_gt_ast():
+    from etf_agent.ast_validator import validate_v3_ast
+    from etf_agent.capability_registry import get_selection_context
+
+    hints = extract_v3_1_entity_hints("近1年收益率超过20%的ETF")
+    ast = build_v3_1_ast("filter", hints, "近1年收益率超过20%的ETF")
+
+    validated = validate_v3_ast(
+        ast,
+        query_mode="filter",
+        entity_hints=hints,
+        selection_context=get_selection_context("filter", "filter"),
+    )
+
+    assert {"field": "ths_yeild_1y_fund", "op": "gt", "value": 20} in validated["where"]
+
+
+def test_validator_fills_missing_answer_field_label_and_format():
+    from etf_agent.ast_validator import validate_v3_ast
+    from etf_agent.capability_registry import get_selection_context
+
+    hints = extract_v3_1_entity_hints("搜索中证500")
+    ast = build_v3_1_ast("search", hints, "搜索中证500")
+    ast["answer_fields"] = [{"field": "fundcode"}]
+
+    validated = validate_v3_ast(
+        ast,
+        query_mode="search",
+        entity_hints=hints,
+        selection_context=get_selection_context("search", "search"),
+    )
+
+    assert validated["answer_fields"][0] == {"field": "fundcode", "label": "基金代码", "format": "plain"}
+
+
+def test_semantic_query_v3_agent_mode_marks_llm_ast_status_in_dry_run():
+    from etf_agent import semantic_query_v3
+
+    result = semantic_query_v3("搜索中证500", root=ROOT, dry_run=True, no_llm=False)
+
+    assert result["v3"]["llm_ast_status"] == "skipped"

@@ -11,11 +11,13 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from etf_agent import semantic_query_v3
+from etf_agent.capability_registry import all_v3_1_allowed_fields
 from etf_agent.config import load_config
 from etf_agent.remote import execute_remote_query
 
-OUT_JSON = ROOT / "answer" / "audit-v3.1-results.json"
 OUT_MD = ROOT / "answer" / "audit-v3.1-results.md"
+OUT_JSON = ROOT / "answer" / "raw" / "audit-v3.1-results.json"
+ALLOWED_FIELDS = all_v3_1_allowed_fields()
 
 AUDIT_CASES: dict[str, dict[str, Any]] = {
     "510300是什么": {
@@ -136,6 +138,7 @@ def main() -> int:
         rows.append(compare_audit_case(question=question, expected=expected, model=model, reference=reference))
 
     OUT_JSON.parent.mkdir(parents=True, exist_ok=True)
+    OUT_MD.parent.mkdir(parents=True, exist_ok=True)
     OUT_JSON.write_text(json.dumps(rows, ensure_ascii=False, indent=2), encoding="utf-8")
     OUT_MD.write_text(_markdown(rows), encoding="utf-8")
     print(OUT_JSON)
@@ -149,11 +152,14 @@ def compare_audit_case(question: str, expected: dict[str, Any], model: dict[str,
     model_plan = _first_plan(model.get("query_plan") or {})
     model_data = _first_result_data(model.get("result"))
     reference_data = [] if reference is None else _rows(reference.get("data"))
+    forbidden = _forbidden_fields(model.get("query_plan"))
 
     status = "PASS"
     reason = ""
     if expected_route and model_route != expected_route:
         status, reason = "FAIL", f"route mismatch: expected {expected_route}, got {model_route}"
+    elif forbidden:
+        status, reason = "FAIL", f"forbidden field: {forbidden[0]}"
     elif expected.get("filter") is not None and model_plan.get("filter") != expected["filter"]:
         status, reason = "FAIL", "filter mismatch"
     elif expected.get("sort") is not None and model_plan.get("sort") != expected["sort"]:
@@ -205,6 +211,23 @@ def _first_plan(plan: dict[str, Any]) -> dict[str, Any]:
     if "steps" in plan:
         return plan["steps"][0]
     return plan
+
+
+def _plans(plan: Any) -> list[dict[str, Any]]:
+    if not isinstance(plan, dict):
+        return []
+    if "steps" in plan:
+        return [item for item in plan["steps"] if isinstance(item, dict)]
+    return [plan]
+
+
+def _forbidden_fields(plan: Any) -> list[str]:
+    fields: list[str] = []
+    for item in _plans(plan):
+        fields.extend(str(field) for field in item.get("projection", []))
+        fields.extend(str(field) for field in item.get("filter", {}) if field != "__search_text__")
+        fields.extend(str(field) for field, _direction in item.get("sort", []))
+    return [field for field in fields if field not in ALLOWED_FIELDS]
 
 
 def _first_result_data(result: Any) -> list[dict[str, Any]]:

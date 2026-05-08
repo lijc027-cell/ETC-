@@ -6,6 +6,9 @@ from pathlib import Path
 from typing import Any
 
 from .candidates import PERIOD_FIELDS
+from .capability_registry import COMPARE_FIELDS as REGISTRY_COMPARE_FIELDS
+from .capability_registry import LIST_BASELINE_FIELDS as REGISTRY_LIST_BASELINE_FIELDS
+from .capability_registry import field_meta, get_selection_context
 from .entities import PERIOD_PATTERNS
 
 SUPPORTED_INTENTS = {
@@ -20,38 +23,30 @@ SUPPORTED_INTENTS = {
 }
 
 V3_1_QUERY_MODES = {"search", "filter", "compare"}
+COMPARE_SIGNAL_WORDS = (
+    "对比",
+    "比较",
+    "vs",
+    "比一下",
+    "放一起",
+    "一起看",
+    "一起看看",
+    "摆一起",
+    "放一块",
+    "费用更省",
+    "谁更低",
+    "谁更高",
+    "谁更大",
+    "哪个更低",
+    "哪个更高",
+    "哪个更大",
+)
 
-LIST_BASELINE_FIELDS = [
-    "fundcode",
-    "ths_fund_extended_inner_short_name_fund",
-    "ths_fund_scale_fund",
-    "ths_manage_fee_rate_fund",
-]
+LIST_BASELINE_FIELDS = list(REGISTRY_LIST_BASELINE_FIELDS)
 
-COMPARE_FIELDS = [
-    "fundcode",
-    "ths_fund_extended_inner_short_name_fund",
-    "ths_fund_scale_fund",
-    "ths_manage_fee_rate_fund",
-    "ths_mandate_fee_rate_fund",
-    "ths_yeild_ytd_fund",
-    "ths_yeild_1y_fund",
-    "ths_name_of_tracking_index_fund",
-]
+COMPARE_FIELDS = list(REGISTRY_COMPARE_FIELDS)
 
-FIELD_META = {
-    "fundcode": ("基金代码", "plain"),
-    "ths_fund_extended_inner_short_name_fund": ("基金简称", "plain"),
-    "ths_fund_scale_fund": ("基金规模", "amount"),
-    "ths_manage_fee_rate_fund": ("管理费率", "percent"),
-    "ths_mandate_fee_rate_fund": ("托管费率", "percent"),
-    "ths_yeild_ytd_fund": ("今年以来收益率", "percent"),
-    "ths_yeild_1y_fund": ("近1年收益率", "percent"),
-    "ths_yeild_std_fund": ("成立以来收益率", "percent"),
-    "ths_name_of_tracking_index_fund": ("跟踪指数名称", "plain"),
-    "ths_fund_listed_exchange_fund": ("上市地点", "plain"),
-    "ths_fund_invest_type_fund": ("基金投资类型", "plain"),
-}
+FIELD_META = {field: field_meta(field) for field in set(LIST_BASELINE_FIELDS + COMPARE_FIELDS)}
 
 # Semantic descriptions for embedding matching — NOT exhaustive keyword lists.
 # The embedding model maps user questions to the closest intent by meaning, not by substring.
@@ -338,7 +333,7 @@ def _classify_v3_1_query(question: str) -> dict[str, Any] | None:
     hints = extract_v3_1_entity_hints(question)
     fundcodes = hints["fundcodes"]
 
-    if len(fundcodes) >= 2 and _has_compare_signal(question):
+    if len(fundcodes) >= 2:
         return _v3_1_classification("compare", hints)
     if len(fundcodes) == 1:
         return None
@@ -378,7 +373,8 @@ def _v3_1_classification(mode: str, hints: dict[str, Any]) -> dict[str, Any]:
 
 
 def _has_compare_signal(question: str) -> bool:
-    return any(word in question.lower() for word in ("对比", "比较", "vs", "比一下", "放一起", "一起看", "费用更省"))
+    lowered = question.lower()
+    return any(word in lowered for word in COMPARE_SIGNAL_WORDS)
 
 
 def _has_search_signal(question: str) -> bool:
@@ -439,7 +435,7 @@ def extract_v3_1_entity_hints(question: str) -> dict[str, Any]:
     filters = _extract_filters(question)
     order_by = _extract_order_by(question)
     return {
-        "fundcodes": re.findall(r"(?<!\d)(\d{6})(?!\d)", question),
+        "fundcodes": _extract_fundcodes(question),
         "filters": filters,
         "limit_hint": _extract_limit(question),
         "order_by": order_by,
@@ -447,6 +443,17 @@ def extract_v3_1_entity_hints(question: str) -> dict[str, Any]:
         "period": _period_from_question(question),
         "wants_compare": _has_compare_signal(question),
     }
+
+
+def _extract_fundcodes(question: str) -> list[str]:
+    seen = set()
+    result = []
+    for code in re.findall(r"(?<!\d)(\d{6})(?!\d)", question):
+        if code in seen:
+            continue
+        seen.add(code)
+        result.append(code)
+    return result
 
 
 def _resolve_v3_1_index_filters(entity_hints: dict[str, Any], config_obj, *, dry_run: bool) -> dict[str, Any]:
@@ -757,9 +764,78 @@ def _ast_clause(clause: dict[str, Any]) -> dict[str, Any]:
 
 def _field_metas(fields: list[str]) -> list[dict[str, str]]:
     return [
-        {"field": field, "label": FIELD_META.get(field, (field, "plain"))[0], "format": FIELD_META.get(field, (field, "plain"))[1]}
+        {"field": field, "label": field_meta(field)[0], "format": field_meta(field)[1]}
         for field in fields
     ]
+
+
+def _validate_ast_for_compile(
+    ast: dict[str, Any],
+    *,
+    query_mode: str,
+    entity_hints: dict[str, Any],
+    phase: str = "v3.1",
+) -> dict[str, Any]:
+    from .ast_validator import validate_v3_ast
+
+    selection_context = get_selection_context(query_mode, ast["intent"], phase=phase)
+    return validate_v3_ast(
+        ast,
+        query_mode=query_mode,
+        entity_hints=entity_hints,
+        selection_context=selection_context,
+        phase=phase,
+    )
+
+
+def _maybe_apply_llm_ast_fields(
+    ast: dict[str, Any],
+    *,
+    question: str,
+    classification: dict[str, Any],
+    entity_hints: dict[str, Any],
+    selection_context: dict[str, Any],
+    config_obj,
+    dry_run: bool,
+    no_llm: bool,
+) -> tuple[dict[str, Any], str]:
+    if no_llm:
+        return ast, "skipped"
+    if dry_run or not config_obj.dashscope_api_key:
+        return ast, "skipped"
+    try:
+        from .ast_generator import generate_ast_fields_with_llm
+
+        generated = generate_ast_fields_with_llm(
+            question,
+            classification=classification,
+            entity_hints=entity_hints,
+            selection_context=selection_context,
+            config=config_obj,
+        )
+        ast = {**ast, "select": generated["select"], "answer_fields": generated["answer_fields"]}
+        return ast, "generated"
+    except Exception:
+        return ast, "fallback_to_deterministic"
+
+
+def _validate_with_llm_fallback(
+    ast: dict[str, Any],
+    deterministic_ast: dict[str, Any],
+    *,
+    query_mode: str,
+    entity_hints: dict[str, Any],
+    llm_ast_status: str,
+) -> tuple[dict[str, Any], str]:
+    try:
+        return _validate_ast_for_compile(ast, query_mode=query_mode, entity_hints=entity_hints), llm_ast_status
+    except ValueError:
+        if llm_ast_status == "generated":
+            return (
+                _validate_ast_for_compile(deterministic_ast, query_mode=query_mode, entity_hints=entity_hints),
+                "fallback_to_deterministic",
+            )
+        raise
 
 
 def _compile_ast_to_plan(ast: dict[str, Any]) -> dict[str, Any]:
@@ -861,19 +937,19 @@ def semantic_query_v3(question: str, *, root=None, dry_run: bool = False, no_llm
         return {
             "question": question,
             "answer": "抱歉，该问题涉及实时行情、交易指标或投资建议，超出当前 ETF 数据查询能力范围。",
-            "v3": classification,
+            "v3": {**classification, "llm_ast_status": "skipped"},
         }
     if mode == "unsupported":
         return {
             "question": question,
             "answer": "当前版本暂不支持该查询类型。",
-            "v3": classification,
+            "v3": {**classification, "llm_ast_status": "skipped"},
         }
     if mode == "clarify":
         return {
             "question": question,
             "answer": "查询条件还不够明确，请补充后重试。",
-            "v3": classification,
+            "v3": {**classification, "llm_ast_status": "skipped"},
         }
 
     if mode in V3_1_QUERY_MODES:
@@ -885,24 +961,43 @@ def semantic_query_v3(question: str, *, root=None, dry_run: bool = False, no_llm
             return {
                 "question": question,
                 "answer": f"匹配到多个跟踪指数，请补充更具体的指数名称：{names}",
-                "v3": {**classification, "recognized_query_mode": "clarify"},
+                "v3": {**classification, "recognized_query_mode": "clarify", "llm_ast_status": "skipped"},
                 "entities": {"question": question, **hints},
             }
         if (hints.get("index_resolution") or {}).get("status") == "not_found":
             return {
                 "question": question,
                 "answer": "未匹配到对应的跟踪指数，请补充更具体的指数名称。",
-                "v3": {**classification, "recognized_query_mode": "clarify"},
+                "v3": {**classification, "recognized_query_mode": "clarify", "llm_ast_status": "skipped"},
                 "entities": {"question": question, **hints},
             }
-        ast = build_v3_1_ast(mode, hints, question)
+        deterministic_ast = build_v3_1_ast(mode, hints, question)
+        ast = deterministic_ast
+        selection_context = get_selection_context(mode, ast["intent"])
+        ast, llm_ast_status = _maybe_apply_llm_ast_fields(
+            ast,
+            question=question,
+            classification=classification,
+            entity_hints=hints,
+            selection_context=selection_context,
+            config_obj=config_obj,
+            dry_run=dry_run,
+            no_llm=no_llm,
+        )
+        ast, llm_ast_status = _validate_with_llm_fallback(
+            ast,
+            deterministic_ast,
+            query_mode=mode,
+            entity_hints=hints,
+            llm_ast_status=llm_ast_status,
+        )
         plan = _compile_ast_to_plan(ast)
         result = _execute_v3_plan(plan, config_obj, dry_run=dry_run, no_llm=no_llm)
         if isinstance(result, dict) and not result.get("success", True):
             return {
                 "question": question,
                 "answer": f"远端查询失败：{result.get('error')}",
-                "v3": classification,
+                "v3": {**classification, "llm_ast_status": llm_ast_status},
                 "v3_ast": ast,
                 "entities": {"question": question, **hints},
                 "query_plan": plan,
@@ -910,12 +1005,13 @@ def semantic_query_v3(question: str, *, root=None, dry_run: bool = False, no_llm
         from .formatter import format_answer
 
         answer = format_answer(plan, result)
-        output_v3 = classification
+        output_v3 = {**classification, "llm_ast_status": llm_ast_status}
         if mode == "filter" and hints.get("wants_compare") and _has_compare_signal(question):
             compare_codes = _fundcodes_from_result(result)[:5]
             if len(compare_codes) >= 2:
                 compare_hints = {**hints, "fundcodes": compare_codes}
                 compare_ast = build_v3_1_ast("compare", compare_hints, question)
+                compare_ast = _validate_ast_for_compile(compare_ast, query_mode="compare", entity_hints=compare_hints)
                 compare_plan = _compile_ast_to_plan(compare_ast)
                 compare_result = _execute_v3_plan(compare_plan, config_obj, dry_run=dry_run, no_llm=no_llm)
                 answer = format_answer(compare_plan, compare_result)
@@ -927,6 +1023,7 @@ def semantic_query_v3(question: str, *, root=None, dry_run: bool = False, no_llm
                     "recognized_query_mode": "composite",
                     "intent": "filter_to_compare",
                     "intent_candidates": ["filter_to_compare"],
+                    "llm_ast_status": llm_ast_status,
                     "steps": [
                         {"recognized_query_mode": "filter", "intent": "filter"},
                         {"recognized_query_mode": "compare", "intent": "compare"},
@@ -964,13 +1061,33 @@ def semantic_query_v3(question: str, *, root=None, dry_run: bool = False, no_llm
             return {
                 "question": question,
                 "answer": "未在问题中识别到 ETF 基金代码或名称，请补充后重试。",
-                "v3": classification,
+                "v3": {**classification, "llm_ast_status": "skipped"},
             }
     entities["question"] = question
 
     # ---- Step 3: build v3 AST (no re-classification) ----
     intent = classification["intent"]
-    ast = build_v3_ast(intent, entities)
+    deterministic_ast = build_v3_ast(intent, entities)
+    ast = deterministic_ast
+    single_hints = {"fundcodes": [entities["fundcode"]]}
+    selection_context = get_selection_context("single", intent)
+    ast, llm_ast_status = _maybe_apply_llm_ast_fields(
+        ast,
+        question=question,
+        classification=classification,
+        entity_hints=single_hints,
+        selection_context=selection_context,
+        config_obj=config_obj,
+        dry_run=dry_run,
+            no_llm=no_llm,
+    )
+    ast, llm_ast_status = _validate_with_llm_fallback(
+        ast,
+        deterministic_ast,
+        query_mode="single",
+        entity_hints=single_hints,
+        llm_ast_status=llm_ast_status,
+    )
     plan = _compile_ast_to_plan(ast)
 
     # ---- Step 4: execute query ----
@@ -980,7 +1097,7 @@ def semantic_query_v3(question: str, *, root=None, dry_run: bool = False, no_llm
         return {
             "question": question,
             "answer": f"远端查询失败：{exc}",
-            "v3": classification,
+            "v3": {**classification, "llm_ast_status": llm_ast_status},
             "v3_ast": ast,
             "entities": entities,
             "query_plan": plan,
@@ -993,7 +1110,7 @@ def semantic_query_v3(question: str, *, root=None, dry_run: bool = False, no_llm
     return {
         "question": question,
         "answer": answer,
-        "v3": classification,
+        "v3": {**classification, "llm_ast_status": llm_ast_status},
         "v3_ast": ast,
         "entities": entities,
         "query_plan": plan,

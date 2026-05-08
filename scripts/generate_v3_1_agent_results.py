@@ -11,10 +11,10 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from etf_agent import semantic_query_v3
-from etf_agent.v3 import COMPARE_FIELDS, LIST_BASELINE_FIELDS
+from etf_agent.capability_registry import all_v3_1_allowed_fields
 
 OUT_MD = ROOT / "answer" / "test3.1-agent-results.md"
-OUT_JSON = ROOT / "answer" / "test3.1-agent-results.json"
+OUT_JSON = ROOT / "answer" / "raw" / "test3.1-agent-results.json"
 
 AGENT_CASES: dict[str, dict[str, Any]] = {
     "帮我找沪深300相关的ETF": {"group": "standard", "route": ("search", "search"), "must_contain": ["基金代码"]},
@@ -35,22 +35,7 @@ AGENT_CASES: dict[str, dict[str, Any]] = {
     "2024年成立的ETF有哪些": {"group": "boundary", "route": ("unsupported", None)},
 }
 
-ALLOWED_FIELDS = {
-    "fundcode",
-    *LIST_BASELINE_FIELDS,
-    *COMPARE_FIELDS,
-    "ths_fund_listed_exchange_fund",
-    "ths_fund_invest_type_fund",
-    "ths_yeild_ytd_fund",
-    "ths_yeild_1y_fund",
-    "ths_yeild_1m_fund",
-    "ths_yeild_3m_fund",
-    "ths_yeild_6m_fund",
-    "ths_yeild_2y_fund",
-    "ths_yeild_3y_fund",
-    "ths_yeild_5y_fund",
-    "ths_yeild_std_fund",
-}
+ALLOWED_FIELDS = all_v3_1_allowed_fields()
 
 
 def main() -> int:
@@ -61,6 +46,7 @@ def main() -> int:
         rows.append({"question": question, "status": status, "reason": reason, "result": _compact_result(result)})
 
     OUT_JSON.parent.mkdir(parents=True, exist_ok=True)
+    OUT_MD.parent.mkdir(parents=True, exist_ok=True)
     OUT_JSON.write_text(json.dumps(rows, ensure_ascii=False, indent=2), encoding="utf-8")
     OUT_MD.write_text(_markdown(rows), encoding="utf-8")
     print(OUT_MD)
@@ -116,6 +102,7 @@ def _has_result_data(result: Any) -> bool:
 def _compact_result(result: dict[str, Any]) -> dict[str, Any]:
     return {
         "route": [result["v3"].get("recognized_query_mode"), result["v3"].get("intent")],
+        "llm_ast_status": result["v3"].get("llm_ast_status"),
         "answer": result.get("answer", ""),
         "query_plan": result.get("query_plan"),
     }
@@ -131,6 +118,9 @@ def _markdown(rows: list[dict[str, Any]]) -> str:
         "",
         f"- PASS：{pass_count}",
         f"- FAIL：{fail_count}",
+        f"- LLM AST generated：{sum(1 for row in rows if row['result'].get('llm_ast_status') == 'generated')}",
+        f"- LLM AST fallback：{sum(1 for row in rows if row['result'].get('llm_ast_status') == 'fallback_to_deterministic')}",
+        f"- LLM AST skipped：{sum(1 for row in rows if row['result'].get('llm_ast_status') == 'skipped')}",
         "",
         "| 问句 | 路由 | 判定 | 原因 |",
         "| --- | --- | --- | --- |",

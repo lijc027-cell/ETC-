@@ -4,6 +4,9 @@
 
 - PASS：16
 - FAIL：0
+- LLM AST generated：13
+- LLM AST fallback：0
+- LLM AST skipped：3
 
 | 问句 | 路由 | 判定 | 原因 |
 | --- | --- | --- | --- |

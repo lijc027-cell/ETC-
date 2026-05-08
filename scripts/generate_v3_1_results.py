@@ -14,7 +14,7 @@ from etf_agent.v3 import extract_v3_test_questions
 
 SOURCE = ROOT / "etf-query-test-questions.md"
 OUT = ROOT / "answer" / "test3.1-results.md"
-OUT_JSON = ROOT / "answer" / "test3.1-results.json"
+OUT_JSON = ROOT / "answer" / "raw" / "test3.1-results.json"
 
 EXPECTED = {
     "近1年收益率超过20%的ETF": {
@@ -89,6 +89,7 @@ def main() -> int:
         ]
     )
     OUT.parent.mkdir(parents=True, exist_ok=True)
+    OUT_JSON.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text("\n".join(lines), encoding="utf-8")
     OUT_JSON.write_text(json.dumps(records, ensure_ascii=False, indent=2), encoding="utf-8")
     print(OUT)
