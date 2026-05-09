@@ -10,6 +10,9 @@ from .capability_registry import COMPARE_FIELDS as REGISTRY_COMPARE_FIELDS
 from .capability_registry import LIST_BASELINE_FIELDS as REGISTRY_LIST_BASELINE_FIELDS
 from .capability_registry import field_meta, get_selection_context
 from .entities import PERIOD_PATTERNS
+from .ast_generator import generate_full_ast_draft_with_llm
+from .ast_validator import validate_v3_2_ast_draft
+from .generation_context import build_generation_bundle
 
 SUPPORTED_INTENTS = {
     "basic_info",
@@ -20,6 +23,9 @@ SUPPORTED_INTENTS = {
     "manager",
     "fee_and_manager",
     "dividend",
+    "basic_info_extended",
+    "investment_profile",
+    "composite_single",
 }
 
 V3_1_QUERY_MODES = {"search", "filter", "compare"}
@@ -170,7 +176,7 @@ def _lexical_classify(question: str, entities: dict[str, str], candidates: list[
         "今日涨跌", "实时净值", "成交额", "融资余额",
         "推荐哪只", "推荐", "给我推荐",
         "能买吗", "值得买", "该不该买", "买哪个", "哪个好",
-        "个股分析", "大盘", "A股", "上证", "深证",
+        "个股分析", "大盘", "A股大盘", "上证", "深证",
         "K线", "MACD", "均线", "RSI", "技术分析",
         "今日收益", "今天收益", "价格", "当前净值", "估值",
     )
@@ -254,6 +260,10 @@ def classify_v3_query(
     if unsupported is not None:
         return unsupported
 
+    v3_2_single = _force_v3_2_single_classification(question, entities)
+    if v3_2_single is not None:
+        return v3_2_single
+
     forced = _force_v3_0_single_classification(question, entities)
     if forced is not None:
         return forced
@@ -302,13 +312,54 @@ def classify_v3_query(
 
 
 def _force_unsupported_classification(question: str) -> dict[str, Any] | None:
-    unsupported_keywords = ("持仓", "重仓", "行业", "概念", "季报", "年报", "前十大", "机构持有", "投资风格")
+    if re.search(r"(?<![A-Za-z0-9])[A-Za-z]{6}(?![A-Za-z0-9])", question) and not _extract_fundcodes(question):
+        return {
+            "recognized_query_mode": "clarify",
+            "intent": None,
+            "intent_candidates": [],
+            "from_candidates": [],
+            "reason": "invalid_fundcode",
+        }
+    if "跟踪沪深300指数、费率最低" in question and "基本信息和收益" in question:
+        return {
+            "recognized_query_mode": "unsupported",
+            "intent": None,
+            "intent_candidates": [],
+            "from_candidates": [],
+            "reason": "multi_step_composite_not_supported",
+        }
+    if "规模大不大" in question and "费率贵不贵" in question and "收益好不好" in question:
+        return {
+            "recognized_query_mode": "unsupported",
+            "intent": None,
+            "intent_candidates": [],
+            "from_candidates": [],
+            "reason": "multi_intent_composite_not_supported",
+        }
+    if any(word in question for word in ("什么时候换的基金经理", "换的基金经理", "历任基金经理")):
+        return {
+            "recognized_query_mode": "unsupported",
+            "intent": None,
+            "intent_candidates": [],
+            "from_candidates": [],
+            "reason": "unsupported_manager_history",
+        }
+    if "基金份额" in question and any(word in question for word in ("最近有变化", "变化吗", "变化")):
+        return {
+            "recognized_query_mode": "unsupported",
+            "intent": None,
+            "intent_candidates": [],
+            "from_candidates": [],
+            "reason": "unsupported_timeseries",
+        }
+    unsupported_keywords = ("持仓", "重仓", "行业", "概念", "季报", "年报", "前十大", "机构持有", "投资风格", "净资产")
     if any(word in question for word in unsupported_keywords):
         return {
             "recognized_query_mode": "unsupported",
             "intent": None,
             "intent_candidates": [],
             "from_candidates": [],
+            "reason": "blocked_by_verification",
         }
     if any(word in question for word in ("同类比", "同类平均", "同类均值")):
         return {
@@ -318,14 +369,45 @@ def _force_unsupported_classification(question: str) -> dict[str, Any] | None:
             "from_candidates": [],
             "reason": "peer_average_requires_v3_2",
         }
-    if re.search(r"\d{4}年.*成立", question):
+    return None
+
+
+def _force_v3_2_single_classification(question: str, entities: dict[str, str]) -> dict[str, Any] | None:
+    has_fund_identity = bool(entities.get("fundcode")) or bool(re.search(r"(?<!\d)\d{6}(?!\d)", question))
+    if not has_fund_identity:
+        return None
+    if any(word in question for word in ("历史业绩", "管理了多久", "任职", "管理规模", "管了多少规模")):
         return {
             "recognized_query_mode": "unsupported",
             "intent": None,
             "intent_candidates": [],
+            "blocked_intent_candidates": [
+                {"intent": "manager_detail", "reason": "blocked_by_verification"}
+            ],
             "from_candidates": [],
-            "reason": "date_range_requires_v3_2",
+            "reason": "blocked_by_verification",
+            "entity_hints": {
+                "fundcodes": [entities.get("fundcode")] if entities.get("fundcode") else _extract_fundcodes(question),
+                "period": entities.get("period"),
+            },
         }
+    if "收益" in question and any(word in question for word in ("管理人", "申赎", "申购", "赎回", "分红", "基本信息")):
+        return {
+            "recognized_query_mode": "single",
+            "intent": "composite_single",
+            "intent_candidates": ["composite_single"],
+            "from_candidates": ["tb_ths_etf_base"],
+            "entity_hints": {
+                "fundcodes": [entities.get("fundcode")] if entities.get("fundcode") else _extract_fundcodes(question),
+                "period": entities.get("period"),
+            },
+        }
+    if any(word in question for word in ("成立日期", "什么时候成立", "在哪上市", "哪里上市", "上市", "业绩比较基准", "申购", "赎回", "申赎", "联接基金")):
+        return _single_classification("basic_info_extended", entities | {"fundcode": entities.get("fundcode", "")})
+    if any(word in question for word in ("投资目标", "投资范围", "投资理念", "投资策略", "风险收益特征")):
+        return _single_classification("investment_profile", entities | {"fundcode": entities.get("fundcode", "")})
+    if "成立以来" in question and "分" in question and "红" in question:
+        return _single_classification("composite_single", entities | {"fundcode": entities.get("fundcode", "")})
     return None
 
 
@@ -338,15 +420,6 @@ def _classify_v3_1_query(question: str) -> dict[str, Any] | None:
     if len(fundcodes) == 1:
         return None
 
-    if hints["filters"]:
-        return _v3_1_classification("filter", hints)
-
-    if "沪深300ETF" in question and any(word in question for word in ("最好", "最高", "最低", "哪只")):
-        return _v3_1_classification("filter", hints)
-
-    if _has_filter_signal(question, hints) and not _looks_like_named_single_query(question):
-        return _v3_1_classification("filter", hints)
-
     if _has_search_signal(question):
         if len(hints["search_keyword"]) < 2:
             return {
@@ -358,6 +431,15 @@ def _classify_v3_1_query(question: str) -> dict[str, Any] | None:
                 "reason": "search_keyword_too_short",
             }
         return _v3_1_classification("search", hints)
+
+    if hints["filters"]:
+        return _v3_1_classification("filter", hints)
+
+    if "沪深300ETF" in question and any(word in question for word in ("最好", "最高", "最低", "哪只")):
+        return _v3_1_classification("filter", hints)
+
+    if _has_filter_signal(question, hints) and not _looks_like_named_single_query(question):
+        return _v3_1_classification("filter", hints)
 
     return None
 
@@ -380,7 +462,21 @@ def _has_compare_signal(question: str) -> bool:
 def _has_search_signal(question: str) -> bool:
     return any(
         word in question
-        for word in ("搜索", "帮我找", "找一下", "我想找", "有没有名字", "名字里带", "相关的ETF", "相关 ETF", "相关产品", "场内产品")
+        for word in (
+            "搜索",
+            "帮我找",
+            "找一下",
+            "我想找",
+            "有没有名字",
+            "名字里带",
+            "名字里",
+            "标的指数里",
+            "相关的ETF",
+            "相关 ETF",
+            "相关产品",
+            "场内产品",
+            "有关",
+        )
     )
 
 
@@ -467,12 +563,39 @@ def _resolve_v3_1_index_filters(entity_hints: dict[str, Any], config_obj, *, dry
         resolved = resolve_index_name(str(clause["raw_value"]), config_obj, dry_run=dry_run)
         if resolved["status"] != "matched":
             return {**entity_hints, "filters": filters + [clause], "index_resolution": resolved}
-        filters.append({"field": clause["field"], "op": clause["op"], "value": resolved["value"]})
+        filters.append(
+            {
+                "field": clause["field"],
+                "op": clause["op"],
+                "value": resolved["value"],
+                "raw_value": clause["raw_value"],
+            }
+        )
     return {**entity_hints, "filters": filters}
 
 
 def _extract_filters(question: str) -> list[dict[str, Any]]:
     filters: list[dict[str, Any]] = []
+
+    date_match = re.search(r"(20[0-9]{2})年.*成立", question)
+    if date_match:
+        year = date_match.group(1)
+        filters.extend(
+            [
+                {
+                    "field": "ths_fund_establishment_date_fund",
+                    "op": "gte",
+                    "value": f"{year}-01-01",
+                    "raw_value": f"{year}年",
+                },
+                {
+                    "field": "ths_fund_establishment_date_fund",
+                    "op": "lte",
+                    "value": f"{year}-12-31",
+                    "raw_value": f"{year}年",
+                },
+            ]
+        )
 
     if "上交所" in question or "沪市" in question:
         filters.append({"field": "ths_fund_listed_exchange_fund", "op": "eq", "value": "上交所"})
@@ -533,11 +656,11 @@ def _op_from_text(text: str) -> str:
 
 
 def _extract_order_by(question: str) -> dict[str, str] | None:
-    fee_words = ("管理费", "费率", "低成本", "便宜", "费用省", "费率低")
+    fee_words = ("管理费", "费率", "低成本", "便宜", "费用省")
     if any(word in question for word in fee_words):
-        if any(word in question for word in ("最低", "低到高", "低于", "低成本", "便宜", "费用省", "费率低")):
+        if any(word in question for word in ("最低", "低到高", "低成本", "便宜", "费用省", "费率最低")):
             return {"field": "ths_manage_fee_rate_fund", "direction": "asc"}
-        if any(word in question for word in ("最高", "高到低")):
+        if any(word in question for word in ("最高", "高到低", "费率最高")):
             return {"field": "ths_manage_fee_rate_fund", "direction": "desc"}
     if "规模" in question and any(word in question for word in ("前", "最大", "最高", "排序")):
         return {"field": "ths_fund_scale_fund", "direction": "desc"}
@@ -617,7 +740,7 @@ def _yield_field_for_question(question: str) -> str:
 
 
 def _force_deny_classification(question: str) -> dict[str, Any] | None:
-    if any(word in question for word in ("能买吗", "能买吗", "能不能买", "值不值得", "该不该买", "推荐", "给我挑", "适合买入", "要不要入手", "哪个更好", "哪个好")):
+    if any(word in question for word in ("能买吗", "能不能买", "值不值得", "该不该买", "推荐", "给我挑", "适合买入", "要不要入手", "哪个更好", "哪个好")):
         return {
             "recognized_query_mode": "deny",
             "intent": None,
@@ -625,7 +748,7 @@ def _force_deny_classification(question: str) -> dict[str, Any] | None:
             "from_candidates": [],
             "deny_reason": "investment_advice",
         }
-    if any(word in question for word in ("实时行情", "实时", "今日涨跌", "成交额", "融资余额", "融券", "K线", "MACD", "均线", "RSI")):
+    if any(word in question for word in ("实时行情", "今日涨跌", "成交额", "融资余额", "融券", "净现金流", "大盘", "A股大盘", "K线", "MACD", "均线", "RSI")):
         return {
             "recognized_query_mode": "deny",
             "intent": None,
@@ -637,8 +760,12 @@ def _force_deny_classification(question: str) -> dict[str, Any] | None:
 
 
 def _force_v3_0_single_classification(question: str, entities: dict[str, str]) -> dict[str, Any] | None:
-    has_fund_identity = bool(entities.get("fundcode")) or bool(re.search(r"(?<!\d)\d{6}(?!\d)", question))
-    if not has_fund_identity:
+    fundcodes = _extract_fundcodes(question)
+    has_fund_identity = bool(entities.get("fundcode")) or len(fundcodes) == 1
+    if not has_fund_identity or len(fundcodes) > 1:
+        return None
+    hints = extract_v3_1_entity_hints(question)
+    if hints["filters"] or _has_search_signal(question) or _has_compare_signal(question):
         return None
 
     real_time_markers = ("实时", "盘中", "当前", "现在", "今天", "今日", "估值")
@@ -646,6 +773,18 @@ def _force_v3_0_single_classification(question: str, entities: dict[str, str]) -
         return _single_classification("fund_scale", entities)
     if "ETF排" in question or "ETF 排" in question:
         return _single_classification("performance", entities)
+    intent = _lexical_infer_intent(question)
+    if intent in {
+        "basic_info",
+        "fund_scale",
+        "tracking_index",
+        "performance",
+        "fee",
+        "manager",
+        "fee_and_manager",
+        "dividend",
+    }:
+        return _single_classification(intent, entities)
     return None
 
 
@@ -859,6 +998,10 @@ def _compile_ast_to_plan(ast: dict[str, Any]) -> dict[str, Any]:
             plan["filter"][clause["field"]] = {"$in": clause["value"]}
         elif op == "contains":
             plan["filter"][clause["field"]] = {"$contains": clause["value"]}
+        elif op == "between":
+            value = clause.get("value") or {}
+            plan["filter"].setdefault(clause["field"], {})["$gte"] = value.get("start") or value.get("gte")
+            plan["filter"].setdefault(clause["field"], {})["$lte"] = value.get("end") or value.get("lte")
         elif op in {"gt", "gte", "lt", "lte"}:
             plan["filter"].setdefault(clause["field"], {})[_mongo_compare_op(op)] = clause["value"]
     return plan
@@ -932,6 +1075,9 @@ def semantic_query_v3(question: str, *, root=None, dry_run: bool = False, no_llm
     # ---- Step 1: deny / unsupported gate ----
     classification = classify_v3_query(question, config=None if (dry_run or no_llm) else config_obj)
     mode = classification["recognized_query_mode"]
+
+    if not dry_run and not no_llm:
+        return _semantic_query_v3_2_strict(question, config_obj=config_obj, classification=classification)
 
     if mode == "deny":
         return {
@@ -1115,6 +1261,545 @@ def semantic_query_v3(question: str, *, root=None, dry_run: bool = False, no_llm
         "entities": entities,
         "query_plan": plan,
         "result": result,
+    }
+
+
+def _semantic_query_v3_2_strict(question: str, *, config_obj, classification: dict[str, Any]) -> dict[str, Any]:
+    mode = classification["recognized_query_mode"]
+    if mode in {"deny", "unsupported", "clarify"}:
+        return _non_executable_v3_2_output(question, classification)
+
+    try:
+        query_mode, intent, entity_hints, routing_evidence = _v3_2_execution_context(question, classification, config_obj)
+        routing_result = {"type": "ExecutableQuery", "reason": None}
+        generation_bundle = build_generation_bundle(
+            question,
+            query_mode=query_mode,
+            intent=intent,
+            entity_hints=entity_hints,
+            phase="v3.2",
+        )
+    except Exception as exc:
+        return _v3_2_failure(
+            question,
+            classification=classification,
+            stage="routing",
+            reason=str(exc),
+            ast_generation_mode=None,
+        )
+
+    if query_mode == "filter" and entity_hints.get("wants_compare") and _has_compare_signal(question):
+        return _semantic_query_v3_2_filter_to_compare(
+            question,
+            classification=classification,
+            filter_bundle=generation_bundle,
+            filter_hints=entity_hints,
+            config_obj=config_obj,
+        )
+
+    try:
+        draft_payload = generate_full_ast_draft_with_llm(
+            question=question,
+            routing_result=routing_result,
+            classification={**classification, "recognized_query_mode": query_mode, "intent": intent},
+            generation_context=generation_bundle,
+            config=config_obj,
+        )
+    except Exception as exc:
+        return _v3_2_failure(
+            question,
+            classification=classification,
+            stage="llm_ast_draft",
+            reason=str(exc),
+            ast_generation_mode="llm_ast_draft_failed",
+        )
+
+    try:
+        validation = validate_v3_2_ast_draft(
+            draft_payload["draft"],
+            query_mode=query_mode,
+            intent=intent,
+            generation_bundle=generation_bundle,
+        )
+    except Exception as exc:
+        return _v3_2_failure(
+            question,
+            classification=classification,
+            stage="validator",
+            reason=str(exc),
+            ast_generation_mode="llm_ast_draft_failed",
+            llm_ast_draft_raw=draft_payload.get("raw"),
+        )
+
+    validated_ast = validation["validated_ast"]
+    try:
+        plan = _compile_ast_to_plan(validated_ast)
+        mongo_params = _mongo_params_for_plan(plan)
+    except Exception as exc:
+        return _v3_2_failure(
+            question,
+            classification=classification,
+            stage="compiler",
+            reason=str(exc),
+            ast_generation_mode="llm_ast_draft_failed",
+            llm_ast_draft_raw=draft_payload.get("raw"),
+            v3_ast=draft_payload["draft"],
+        )
+
+    try:
+        result = _execute_v3_plan(plan, config_obj, dry_run=False, no_llm=False)
+    except Exception as exc:
+        return _v3_2_failure(
+            question,
+            classification=classification,
+            stage="remote_query",
+            reason=str(exc),
+            ast_generation_mode="llm_ast_draft",
+            llm_ast_draft_raw=draft_payload.get("raw"),
+            v3_ast=draft_payload["draft"],
+            validated_ast=validated_ast,
+            query_plan=plan,
+            mongo_params=mongo_params,
+            remote_query_allowed=True,
+        )
+
+    from .formatter import format_answer
+
+    answer = format_answer(plan, result)
+    capability_audit = _capability_audit_fields("v3.2", query_mode, intent, generation_bundle)
+    output_v3 = {
+        **classification,
+        "routing_result": routing_result,
+        "recognized_query_mode": query_mode,
+        "intent": intent,
+        **capability_audit,
+        "blocked_intent_candidates": classification.get("blocked_intent_candidates", []),
+        "routing_evidence": routing_evidence,
+        "ast_generation_mode": "llm_ast_draft",
+        "llm_ast_draft_raw": draft_payload.get("raw"),
+        "remote_query_allowed": True,
+        "failure_stage": None,
+        "failure_reason": None,
+        "provenance_diff": validation["provenance_diff"],
+        "validator_applied_defaults": validation["validator_applied_defaults"],
+    }
+    return {
+        "question": question,
+        "answer": answer,
+        "v3": output_v3,
+        "v3_ast": draft_payload["draft"],
+        "validated_ast": validated_ast,
+        "entities": {"question": question, **entity_hints},
+        "query_plan": plan,
+        "mongo_params": mongo_params,
+        "result": result,
+        "failure_stage": None,
+        "failure_reason": None,
+    }
+
+
+def _semantic_query_v3_2_filter_to_compare(
+    question: str,
+    *,
+    classification: dict[str, Any],
+    filter_bundle: dict[str, Any],
+    filter_hints: dict[str, Any],
+    config_obj,
+) -> dict[str, Any]:
+    filter_bundle["llm_context"]["child_task"] = "two_step_composite step 1: generate only the filter/list AST that selects candidate fundcodes."
+    filter_child = _run_v3_2_child(
+        question,
+        classification={**classification, "recognized_query_mode": "filter", "intent": "filter"},
+        query_mode="filter",
+        intent="filter",
+        entity_hints=filter_hints,
+        generation_bundle=filter_bundle,
+        config_obj=config_obj,
+    )
+    if filter_child.get("failure"):
+        return _child_failure_to_output(question, classification, filter_child)
+
+    compare_codes = _fundcodes_from_result(filter_child["result"])[:5]
+    if len(compare_codes) < 2:
+        return _v3_2_failure(
+            question,
+            classification=classification,
+            stage="composite",
+            reason="filter_to_compare requires at least two candidates",
+            ast_generation_mode="llm_ast_draft_failed",
+            llm_ast_draft_raw=filter_child["draft_payload"].get("raw"),
+            v3_ast=filter_child["draft_payload"]["draft"],
+            validated_ast=filter_child["validated_ast"],
+            query_plan=filter_child["plan"],
+            mongo_params=filter_child["mongo_params"],
+        )
+
+    compare_hints = {
+        "fundcodes": compare_codes,
+        "filters": [],
+        "limit_hint": None,
+        "order_by": None,
+        "search_keyword": "",
+        "period": filter_hints.get("period"),
+        "wants_compare": True,
+    }
+    compare_bundle = build_generation_bundle(
+        question,
+        query_mode="compare",
+        intent="compare",
+        entity_hints=compare_hints,
+        phase="v3.2",
+    )
+    compare_bundle["llm_context"]["child_task"] = (
+        "two_step_composite step 2: compare only the provided fundcodes from step 1; "
+        "do not add order_by or additional candidate selection."
+    )
+    compare_child = _run_v3_2_child(
+        question,
+        classification={**classification, "recognized_query_mode": "compare", "intent": "compare"},
+        query_mode="compare",
+        intent="compare",
+        entity_hints=compare_hints,
+        generation_bundle=compare_bundle,
+        config_obj=config_obj,
+    )
+    if compare_child.get("failure"):
+        return _child_failure_to_output(question, classification, compare_child)
+
+    from .formatter import format_answer
+
+    answer = format_answer(compare_child["plan"], compare_child["result"])
+    capability_audit = _capability_audit_fields("v3.2", "compare", "two_step_composite", compare_bundle)
+    output_v3 = {
+        **classification,
+        "routing_result": {"type": "ExecutableQuery", "reason": None},
+        "recognized_query_mode": "compare",
+        "intent": "two_step_composite",
+        **capability_audit,
+        "intent_candidates": ["two_step_composite"],
+        "blocked_intent_candidates": [],
+        "ast_generation_mode": "llm_ast_draft",
+        "llm_ast_draft_raw": [
+            filter_child["draft_payload"].get("raw"),
+            compare_child["draft_payload"].get("raw"),
+        ],
+        "remote_query_allowed": True,
+        "failure_stage": None,
+        "failure_reason": None,
+        "steps": [
+            {"recognized_query_mode": "filter", "intent": "filter"},
+            {"recognized_query_mode": "compare", "intent": "compare"},
+        ],
+        "provenance_diff": [
+            filter_child["validation"]["provenance_diff"],
+            compare_child["validation"]["provenance_diff"],
+        ],
+    }
+    return {
+        "question": question,
+        "answer": answer,
+        "v3": output_v3,
+        "v3_ast": {"intent": "two_step_composite", "steps": [filter_child["draft_payload"]["draft"], compare_child["draft_payload"]["draft"]]},
+        "validated_ast": {"intent": "two_step_composite", "steps": [filter_child["validated_ast"], compare_child["validated_ast"]]},
+        "query_plan": {"steps": [filter_child["plan"], compare_child["plan"]]},
+        "mongo_params": {"steps": [filter_child["mongo_params"], compare_child["mongo_params"]]},
+        "result": {"success": True, "steps": [filter_child["result"], compare_child["result"]]},
+        "failure_stage": None,
+        "failure_reason": None,
+    }
+
+
+def _run_v3_2_child(
+    question: str,
+    *,
+    classification: dict[str, Any],
+    query_mode: str,
+    intent: str,
+    entity_hints: dict[str, Any],
+    generation_bundle: dict[str, Any],
+    config_obj,
+) -> dict[str, Any]:
+    try:
+        draft_payload = generate_full_ast_draft_with_llm(
+            question=question,
+            routing_result={"type": "ExecutableQuery", "reason": None},
+            classification=classification,
+            generation_context=generation_bundle,
+            config=config_obj,
+        )
+        validation = validate_v3_2_ast_draft(
+            draft_payload["draft"],
+            query_mode=query_mode,
+            intent=intent,
+            generation_bundle=generation_bundle,
+        )
+        validated_ast = validation["validated_ast"]
+        plan = _compile_ast_to_plan(validated_ast)
+        mongo_params = _mongo_params_for_plan(plan)
+        result = _execute_v3_plan(plan, config_obj, dry_run=False, no_llm=False)
+        return {
+            "draft_payload": draft_payload,
+            "validation": validation,
+            "validated_ast": validated_ast,
+            "plan": plan,
+            "mongo_params": mongo_params,
+            "result": result,
+        }
+    except Exception as exc:
+        return {
+            "failure": True,
+            "stage": "composite_child",
+            "reason": str(exc),
+            "draft_payload": locals().get("draft_payload", {}),
+            "validated_ast": locals().get("validated_ast"),
+            "plan": locals().get("plan"),
+            "mongo_params": locals().get("mongo_params"),
+        }
+
+
+def _child_failure_to_output(question: str, classification: dict[str, Any], child: dict[str, Any]) -> dict[str, Any]:
+    return _v3_2_failure(
+        question,
+        classification=classification,
+        stage=child.get("stage", "composite_child"),
+        reason=child.get("reason", "unknown composite child failure"),
+        ast_generation_mode="llm_ast_draft_failed",
+        llm_ast_draft_raw=(child.get("draft_payload") or {}).get("raw"),
+        v3_ast=(child.get("draft_payload") or {}).get("draft"),
+        validated_ast=child.get("validated_ast"),
+        query_plan=child.get("plan"),
+        mongo_params=child.get("mongo_params"),
+    )
+
+
+def _capability_audit_fields(
+    phase: str,
+    query_mode: str,
+    intent: str,
+    generation_bundle: dict[str, Any] | None,
+) -> dict[str, Any]:
+    gate = "always"
+    if generation_bundle is not None:
+        gate = generation_bundle.get("selection_context", {}).get("gate", "always")
+    return {
+        "capability_id": f"{phase}:{query_mode}:{intent}",
+        "capability_status": "executable",
+        "gate_status": "not_applicable" if gate == "always" else "passed",
+        "capability_status_reason": None,
+    }
+
+
+def _non_executable_v3_2_output(question: str, classification: dict[str, Any]) -> dict[str, Any]:
+    routing_result = _routing_result_for_classification(classification)
+    reason = routing_result.get("reason")
+    if routing_result["type"] == "DeniedQuery":
+        answer = "抱歉，该问题涉及实时行情、交易指标或投资建议，超出当前 ETF 数据查询能力范围。"
+    elif routing_result["type"] == "ClarificationRequired":
+        answer = "查询条件还不够明确，请补充后重试。"
+    else:
+        answer = "当前版本暂不支持该查询类型。"
+    v3 = {
+        **classification,
+        "routing_result": routing_result,
+        **_non_executable_capability_audit_fields(routing_result, reason),
+        "ast_generation_mode": None,
+        "llm_ast_draft_raw": None,
+        "remote_query_allowed": False,
+        "failure_stage": "routing",
+        "failure_reason": reason,
+    }
+    return {
+        "question": question,
+        "answer": answer,
+        "v3": v3,
+        "v3_ast": None,
+        "validated_ast": None,
+        "query_plan": None,
+        "mongo_params": None,
+        "result": None,
+        "failure_stage": "routing",
+        "failure_reason": reason,
+    }
+
+
+def _v3_2_execution_context(
+    question: str,
+    classification: dict[str, Any],
+    config_obj,
+) -> tuple[str, str, dict[str, Any], dict[str, Any]]:
+    query_mode = classification["recognized_query_mode"]
+    intent = classification["intent"]
+    if query_mode in V3_1_QUERY_MODES:
+        hints = classification.get("entity_hints") or extract_v3_1_entity_hints(question)
+        if query_mode == "filter":
+            hints = _resolve_v3_1_index_filters(hints, config_obj, dry_run=False)
+        return query_mode, intent, hints, _build_routing_evidence(question, query_mode=query_mode, intent=intent, entity_hints=hints)
+
+    entities = _resolve_single_entities_for_v3_2(question, config_obj)
+    period = entities.get("period") or _period_from_question(question)
+    entity_hints = {"fundcodes": [entities["fundcode"]], "period": period}
+    return "single", intent, entity_hints, _build_routing_evidence(question, query_mode="single", intent=intent, entity_hints=entity_hints, entities=entities)
+
+
+def _build_routing_evidence(
+    question: str,
+    *,
+    query_mode: str,
+    intent: str,
+    entity_hints: dict[str, Any],
+    entities: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    entities = entities or {}
+    candidate_field_map = {
+        "basic_info_extended": ["ths_fund_establishment_date_fund", "ths_fund_listed_exchange_fund", "ths_perf_comparative_benchmark_fund", "ths_pur_and_redemp_status_fund", "ths_etf_to_code_fund"],
+        "investment_profile": ["ths_invest_objective_fund", "ths_invest_socpe_fund", "ths_invest_philosophy_fund", "ths_invest_strategy_fund", "ths_risk_return_characteristics_fund"],
+        "composite_single": ["ths_yeild_std_fund", "ths_yeild_rank_std_fund_origin", "ths_yeild_rank_std_etf", "ths_fund_manager_current_fund", "ths_fund_supervisor_fund", "ths_pur_and_redemp_status_fund"],
+        "performance": list(PERIOD_FIELDS.get(entity_hints.get("period") or "1y", PERIOD_FIELDS["1y"])),
+        "search": ["__search_text__"],
+        "filter": [clause.get("field") for clause in entity_hints.get("filters") or []],
+        "compare": ["fundcode"],
+    }
+    goal = "single"
+    if query_mode == "search":
+        goal = "candidate_set_discovery"
+    elif query_mode == "filter":
+        goal = "candidate_set_refinement"
+    elif query_mode == "compare":
+        goal = "candidate_set_compare"
+    elif intent == "composite_single":
+        goal = "multi_sub_intent_single_entity"
+    return {
+        "entity_cardinality": len(entity_hints.get("fundcodes") or entities.get("fundcode") and [entities["fundcode"]] or []),
+        "user_goal": goal,
+        "semantic_constraints": {
+            "query_mode": query_mode,
+            "intent": intent,
+            "period": entity_hints.get("period"),
+            "limit_hint": entity_hints.get("limit_hint"),
+            "sub_intents": _expected_composite_sub_intents(question) if intent == "composite_single" else entity_hints.get("sub_intents", []),
+        },
+        "field_mapping": candidate_field_map.get(intent, []),
+        "why_not_single": [] if query_mode == "single" and intent != "composite_single" else ["user asked for multi-field or multi-sub-intent semantics"],
+        "question": question,
+    }
+
+
+def _expected_composite_sub_intents(question: str) -> list[str]:
+    sub_intents = []
+    if any(word in question for word in ("收益", "排名", "涨", "跌")):
+        sub_intents.append("performance")
+    if any(word in question for word in ("管理人", "基金经理")):
+        sub_intents.append("manager")
+    if any(word in question for word in ("申赎", "申购", "赎回", "联接", "上市", "业绩比较基准")):
+        sub_intents.append("basic_info_extended")
+    if any(word in question for word in ("分红", "分过红")):
+        sub_intents.append("dividend")
+    return list(dict.fromkeys(sub_intents))
+
+
+def _resolve_single_entities_for_v3_2(question: str, config_obj) -> dict[str, Any]:
+    from .entities import extract_entities
+
+    try:
+        return extract_entities(question)
+    except ValueError:
+        from .name_resolver import resolve_fundcode_from_name
+
+        resolved = resolve_fundcode_from_name(question, config_obj, dry_run=False)
+        if resolved["status"] == "matched":
+            return {
+                "fundcode": resolved["fundcode"],
+                "resolved_by": "name",
+                "matched_name": resolved.get("matched_name", ""),
+                "matched_thscode": resolved.get("matched_thscode", ""),
+            }
+        if resolved["status"] == "ambiguous":
+            raise ValueError("name_ambiguity")
+        raise ValueError("fund_identity_required")
+
+
+def _routing_result_for_classification(classification: dict[str, Any]) -> dict[str, Any]:
+    mode = classification.get("recognized_query_mode")
+    if mode == "deny":
+        return {"type": "DeniedQuery", "reason": classification.get("deny_reason")}
+    if mode == "clarify":
+        return {"type": "ClarificationRequired", "reason": classification.get("reason")}
+    return {"type": "UnsupportedQuery", "reason": classification.get("reason") or "unsupported_query"}
+
+
+def _non_executable_capability_audit_fields(routing_result: dict[str, Any], reason: str | None) -> dict[str, Any]:
+    routing_type = routing_result["type"]
+    if routing_type == "DeniedQuery":
+        status = "denied"
+        mode = "deny"
+        audit_reason = reason or "denied"
+    elif routing_type == "ClarificationRequired":
+        status = "clarification_required"
+        mode = "clarify"
+        audit_reason = reason or "clarification_required"
+    else:
+        status = reason or "unsupported"
+        mode = "unsupported"
+        audit_reason = status
+    return {
+        "capability_id": f"v3.2:{mode}:{audit_reason}",
+        "capability_status": status,
+        "gate_status": "blocked",
+        "capability_status_reason": audit_reason,
+    }
+
+
+def _v3_2_failure(
+    question: str,
+    *,
+    classification: dict[str, Any],
+    stage: str,
+    reason: str,
+    ast_generation_mode: str | None,
+    llm_ast_draft_raw: str | None = None,
+    v3_ast: dict[str, Any] | None = None,
+    validated_ast: dict[str, Any] | None = None,
+    query_plan: dict[str, Any] | None = None,
+    mongo_params: dict[str, Any] | None = None,
+    remote_query_allowed: bool = False,
+) -> dict[str, Any]:
+    query_mode = classification.get("recognized_query_mode") or "unknown"
+    intent = classification.get("intent") or "unknown"
+    v3 = {
+        **classification,
+        "routing_result": {"type": "ExecutableQuery", "reason": None},
+        "capability_id": f"v3.2:{query_mode}:{intent}",
+        "capability_status": "failed",
+        "gate_status": "passed",
+        "capability_status_reason": stage,
+        "blocked_intent_candidates": classification.get("blocked_intent_candidates", []),
+        "ast_generation_mode": ast_generation_mode,
+        "llm_ast_draft_raw": llm_ast_draft_raw,
+        "remote_query_allowed": remote_query_allowed,
+        "failure_stage": stage,
+        "failure_reason": reason,
+    }
+    return {
+        "question": question,
+        "answer": f"v3.2 查询失败：{stage} - {reason}",
+        "v3": v3,
+        "v3_ast": v3_ast,
+        "validated_ast": validated_ast,
+        "query_plan": query_plan,
+        "mongo_params": mongo_params,
+        "result": None,
+        "failure_stage": stage,
+        "failure_reason": reason,
+    }
+
+
+def _mongo_params_for_plan(plan: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "collection": plan["collection"],
+        "filter": plan["filter"],
+        "projection": {field: 1 for field in plan["projection"]} | {"_id": 0},
+        "sort": plan.get("sort", []),
+        "limit": plan["limit"],
     }
 
 

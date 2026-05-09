@@ -1,5 +1,65 @@
 # ETF 数据字典
 
+## 嵌套字段查询规则
+
+本数据字典中部分字段为 **嵌套结构**（源自 MongoDB 文档数据库），查询方式不同于普通字段。
+
+### 1. 时间序列结构（10个字段）
+
+结构：`[{value: 数值, btime: "日期"}, ...]`
+查询路径：`ETF代码 + 字段名 + btime → value`
+`btime` 格式：`YYYY-MM-DD`（交易日，如 `2026-05-08`）
+
+**MongoDB 查询最新值**：
+
+```js
+db.tb_ths_etf_base.find({ thscode: "510500.SH" }, { ths_unit_nv_fund: { $slice: -1 } })
+```
+
+**Python 查询最新值**：
+
+```python
+import json
+data = json.loads(row["ths_unit_nv_fund"])
+latest = max(data, key=lambda x: x["btime"])
+value, date = latest["value"], latest["btime"]
+```
+
+**Excel 场景**：无法直接用公式解析，需 Python 处理。
+
+涉及字段：`ths_fund_scale_fund`、`ths_fund_shares_fund`、`ths_unit_nv_fund`、`ths_unit_nvg_rate_fund`、`ths_similar_fund_std_avg_yield_fund`、`ths_amt_fund`、`ths_netcashflow_fund`、`ths_margin_trading_balance_fund`、`ths_short_selling_amtb_fund`
+
+### 2. 基金经理结构（1个字段）
+
+结构：`[{ths_name_fund, ths_service_sd_fund, ths_tenure_fund, ths_service_duration_annual_return_fund, ths_rzjjzgm_fund, rank_num}, ...]`
+查询路径：`ETF代码 + rank_num → 一个基金经理`
+
+**MongoDB 查询**：
+
+```js
+db.tb_ths_etf_base.find({ thscode: "510500.SH" }, { ths_manager: 1 })
+```
+
+**Python 查询**：
+
+```python
+managers = json.loads(row["ths_manager"])
+for m in managers:
+    print(m["ths_name_fund"], m["ths_tenure_fund"], "天")
+```
+
+涉及字段：`ths_manager`
+
+### 3. TopN 排名结构（季报/年报）
+
+结构：`[{value: 内容或数值, rank_num: 排名}, ...]`
+查询路径：`ETF代码 + 报告期 + 字段名 + rank_num → value`
+同 `rank_num` 的字段对齐（如 rank_num=1 的行业名称 ↔ rank_num=1 的行业占比）
+
+涉及字段：`ths_top_n_top_industry_name_fund`、`ths_zcgnmc_fund`、`ths_top_n_top_industry_mv_to_equity_fund`、`ths_top_sec_code_fund`、`ths_top_n_top_stock_mv_to_equity_fund`、`ths_top_held_stock_code_fund`、`ths_top_stock_mv_to_fnv_fund`
+
+---
+
 ## tb_ths_etf_base（基础信息集合）
 
 ### 基金标识
@@ -23,15 +83,20 @@
 | ---------------------------------- | ----- | ------ | ------------ |
 | `ths_fund_establishment_date_fund` | 基金成立日 | string | 如 2019-06-12 |
 
+> **时间序列说明**：10 个 array 类型字段的 `btime` 为**交易日**（周一至周五，排除节假日），数据粒度为日频。
+
 ### 规模与净值
 
-| 字段名                      | 中文名     | 类型     | 说明   |
-| ------------------------ | ------- | ------ | ---- |
-| `ths_fund_scale_fund`    | 基金规模    | number | 单位：元 |
-| `ths_fund_shares_fund`   | 基金份额    | number |      |
-| `ths_current_mv_fund`    | 总市值     | number | 单位：元 |
-| `ths_unit_nv_fund`       | 单位净值    | number |      |
-| `ths_unit_nvg_rate_fund` | 单位净值增长率 | number | 百分比  |
+> **注意**：以下标 `array` 的字段为时间序列结构，值为 JSON 数组：`[{value: 数值, btime: "日期"}, ...]`
+> 查询最新值：取 `btime` 最大的那条记录的 `value`。
+
+| 字段名                      | 中文名     | 类型     | 说明        |
+| ------------------------ | ------- | ------ | --------- |
+| `ths_fund_scale_fund`    | 基金规模    | array  | 单位：元，时间序列 |
+| `ths_fund_shares_fund`   | 基金份额    | array  | 时间序列      |
+| `ths_current_mv_fund`    | 总市值     | number | 单位：元      |
+| `ths_unit_nv_fund`       | 单位净值    | array  | 时间序列      |
+| `ths_unit_nvg_rate_fund` | 单位净值增长率 | array  | 百分比，时间序列  |
 
 ### 收益率（各周期）
 
@@ -88,6 +153,7 @@
 | `ths_yeild_rank_std_fund`        | 成立以来同类排名    | number | 纯数字排名       |
 | `ths_yeild_rank_std_fund_origin` | 成立以来同类排名    | string |             |
 | `ths_yeild_rank_std_etf`         | 成立以来 ETF 排名 | number |             |
+| `ths_yeild_std_rank_etf`         | 成立以来 ETF 排名 | number |             |
 
 ### 基金经理
 
@@ -97,30 +163,36 @@
 | `ths_manager`                   | 基金经理详情   | array  | 包含 rank_num, ths_name_fund(姓名), ths_service_sd_fund(任职起始日), ths_service_duration_annual_return_fund(任职年化回报), ths_tenure_fund(任职天数), ths_rzjjzgm_fund(管理规模) |
 | `ths_fund_supervisor_fund`      | 基金管理人    | string |                                                                                                                                                            |
 
-### 基金经理详情子字段（ths_manager 数组内嵌字段，也作为独立字段存储）
+### 基金经理详情子字段（ths_manager 数组内嵌字段）
 
-| 字段名                                       | 中文名      | 类型     | 说明                               |
-| ----------------------------------------- | -------- | ------ | -------------------------------- |
-| `ths_service_sd_fund`                     | 任职起始日    | string | 如 "2024-02-02"，rank_num=1 为第一任经理 |
-| `ths_name_fund`                           | 基金经理姓名   | string | rank_num=1 为第一任经理                |
-| `ths_service_duration_annual_return_fund` | 任职期间年化回报 | number | 单位：%                             |
-| `ths_rzjjzgm_fund`                        | 任职基金总规模  | number | 单位：元                             |
-| `ths_tenure_fund`                         | 任职天数     | number |                                  |
+> `ths_manager` 为 array 类型，结构：`[{ths_name_fund, ths_service_sd_fund, ths_tenure_fund, ths_service_duration_annual_return_fund, ths_rzjjzgm_fund, rank_num}, ...]`
+> `rank_num` 表示经理排序，1 为第一任/当前经理。
+
+| 字段名                                       | 中文名      | 类型     | 说明                |
+| ----------------------------------------- | -------- | ------ | ----------------- |
+| `ths_name_fund`                           | 基金经理姓名   | string | rank_num=1 为第一任经理 |
+| `ths_service_sd_fund`                     | 任职起始日    | string | 如 "2024-02-02"    |
+| `ths_tenure_fund`                         | 任职天数     | number |                   |
+| `ths_service_duration_annual_return_fund` | 任职期间年化回报 | number | 单位：%              |
+| `ths_rzjjzgm_fund`                        | 任职基金总规模  | number | 单位：元              |
+| `rank_num`                                | 经理排序     | number |                   |
 
 ### 交易类指标
 
-| 字段名                               | 中文名    | 类型     | 说明  |
-| --------------------------------- | ------ | ------ | --- |
-| `ths_amt_fund`                    | 成交额    | number |     |
-| `ths_netcashflow_fund`            | 净现金流   | number |     |
-| `ths_margin_trading_balance_fund` | 融资余额   | number |     |
-| `ths_short_selling_amtb_fund`     | 融券卖出金额 | number |     |
+> 以下标 `array` 的字段为时间序列结构，值为 JSON 数组：`[{value: 数值, btime: "日期"}, ...]`
+
+| 字段名                               | 中文名  | 类型    | 说明   |
+| --------------------------------- | ---- | ----- | ---- |
+| `ths_amt_fund`                    | 成交额  | array | 时间序列 |
+| `ths_netcashflow_fund`            | 净现金流 | array | 时间序列 |
+| `ths_margin_trading_balance_fund` | 融资余额 | array | 时间序列 |
+| `ths_short_selling_amtb_fund`     | 融券金额 | array | 时间序列 |
 
 ### 其他补充字段
 
-| 字段名                                   | 中文名           | 类型     | 说明  |
-| ------------------------------------- | ------------- | ------ | --- |
-| `ths_similar_fund_std_avg_yield_fund` | 同类基金成立以来平均收益率 | number |     |
+| 字段名                                   | 中文名       | 类型    | 说明              |
+| ------------------------------------- | --------- | ----- | --------------- |
+| `ths_similar_fund_std_avg_yield_fund` | 同类基金平均收益率 | array | 时间序列，同时间序列结构说明 |
 
 ### 费率
 

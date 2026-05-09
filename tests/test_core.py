@@ -871,11 +871,14 @@ def test_v3_1_agent_paraphrase_entity_hints():
     low_cost = extract_v3_1_entity_hints("低成本的沪深300产品都有哪些")
     bond = extract_v3_1_entity_hints("偏债的场内基金有哪些")
     min_scale = extract_v3_1_entity_hints("规模不小于100亿的产品")
+    fee_threshold = extract_v3_1_entity_hints("管理费率低于0.2%的ETF有哪些")
 
     assert {"field": "ths_name_of_tracking_index_fund", "op": "eq", "value": "沪深300指数", "raw_value": "沪深300"} in low_cost["filters"]
     assert low_cost["order_by"] == {"field": "ths_manage_fee_rate_fund", "direction": "asc"}
     assert {"field": "ths_fund_invest_type_fund", "op": "eq", "value": "债券型"} in bond["filters"]
     assert {"field": "ths_fund_scale_fund", "op": "gte", "value": 10000000000} in min_scale["filters"]
+    assert {"field": "ths_manage_fee_rate_fund", "op": "lt", "value": 0.2} in fee_threshold["filters"]
+    assert fee_threshold["order_by"] is None
 
 
 @pytest.mark.parametrize(
@@ -929,7 +932,7 @@ def test_v3_1_filter_ast_projects_where_only_compare_field():
 def test_v3_1_resolves_tracking_index_alias_to_catalog_value_in_dry_run():
     from etf_agent import semantic_query_v3
 
-    result = semantic_query_v3("我想找跟踪科创50的ETF", root=ROOT, dry_run=True)
+    result = semantic_query_v3("筛选跟踪科创50指数的ETF", root=ROOT, dry_run=True)
 
     assert result["v3"]["recognized_query_mode"] == "filter"
     assert {"field": "ths_name_of_tracking_index_fund", "op": "eq", "value": "上证科创板50成份指数"} in result["v3_ast"]["where"]
@@ -1205,6 +1208,7 @@ def test_answer_directory_keeps_only_result_markdown_files():
 
     assert files == [
         "audit-v3.1-results.md",
+        "audit-v3.2-results.md",
         "test3.0-results.md",
         "test3.1-agent-results.md",
         "test3.1-results.md",
@@ -1216,6 +1220,7 @@ def test_answer_raw_directory_keeps_machine_readable_json_files():
 
     assert files == [
         "audit-v3.1-results.json",
+        "audit-v3.2-results.json",
         "test3.1-agent-results.json",
         "test3.1-results.json",
     ]

@@ -12,6 +12,16 @@
 
 ## 项目定位
 
+### 最高项目架构标准
+
+本项目的最高标准是：
+
+> 我明确我的基本标准，我要实现的是语义输入并查询，不是通过预封装函数执行，要的是 text2sql 查询。
+
+所有后续实现、评审和验收都必须服从这条标准。也就是说，用户自然语言必须被转换为受限查询 AST，经 validator 校验、compiler 编译后再查询 MongoDB；不能把用户问题路由到预封装业务函数、intent if/else 模板、固定字段拼装器或 deterministic fallback 后算作 text2sql 成功。
+
+允许本地代码做的事情是：识别 deny/unsupported/clarify 边界、抽取实体和证据、裁剪能力范围、校验 AST、安全归一、物理编译、只读执行和格式化。用户请求的查询语义字段、条件、排序、period、sub-intent 和 limit 必须来自 AST draft，并能被 provenance diff 审计。
+
 **当前方向：text2sql**，中间形态选用 SQL AST（结构化 JSON）。Qwen 生成 AST → 本地校验 → 编译成 Mongo 查询 → 远端执行 → 模板化输出。不生成 SQL 字符串，不引入 SQL parser。
 
 v1（已完成）跑通了单只 ETF 标量查询链路：`自然语言 → Qwen 查询计划 → 校验 → SSH 远端 Mongo 查询 → 模板化输出`。v1 的字段字典、枚举值映射、安全白名单、结果格式化等资产继承到 text2sql 阶段。
