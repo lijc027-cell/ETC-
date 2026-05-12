@@ -11,7 +11,14 @@ from etf_agent.ast_generator import generate_full_ast_draft_with_llm
 from etf_agent.ast_validator import validate_v3_3_ast_draft
 from etf_agent.formatter import format_answer
 from etf_agent.generation_context import build_generation_bundle
-from etf_agent.v3 import _compile_ast_to_plan, _v3_3_intent_override, build_v3_1_ast, extract_v3_1_entity_hints, semantic_query_v3
+from etf_agent.v3 import (
+    _compile_ast_to_plan,
+    _semantic_query_v3_3_filter_to_compare,
+    _v3_3_intent_override,
+    build_v3_1_ast,
+    extract_v3_1_entity_hints,
+    semantic_query_v3,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -580,6 +587,65 @@ def test_v3_3_filter_summary_explains_lowest_fee_bucket_and_date_sort():
     assert format_answer(date_plan, date_result).startswith(
         "2024 年成立的 ETF 共 167 只。默认按成立日期从早到晚展示前 10 只。"
     )
+
+
+def test_v3_3_filter_to_compare_explains_and_aligns_selection_sort(monkeypatch):
+    calls = []
+
+    def fake_strict(question, *, config_obj, classification, apply_override=True):
+        calls.append({"question": question, "classification": classification})
+        if classification["recognized_query_mode"] == "filter":
+            return {
+                "v3": {"llm_ast_draft_raw": {}, "provenance_diff": {}, "validator_applied_defaults": {}},
+                "v3_ast": {"intent": "filter"},
+                "validated_ast": {"intent": "filter"},
+                "query_plan": {
+                    "sort": [["ths_yeild_1y_fund", -1], ["ths_fund_scale_fund", -1], ["fundcode", 1]],
+                    "projection": ["fundcode", "ths_yeild_1y_fund"],
+                },
+                "mongo_params": {},
+                "result": {
+                    "success": True,
+                    "data": [
+                        {"fundcode": "159238", "ths_yeild_1y_fund": None},
+                        {"fundcode": "159393", "ths_yeild_1y_fund": 35.17},
+                        {"fundcode": "515360", "ths_yeild_1y_fund": 35.58},
+                        {"fundcode": "561930", "ths_yeild_1y_fund": 34.86},
+                        {"fundcode": "159300", "ths_yeild_1y_fund": 33.80},
+                        {"fundcode": "510300", "ths_yeild_1y_fund": 32.12},
+                    ],
+                },
+            }
+        assert classification["entity_hints"]["fundcodes"] == ["515360", "159393", "561930", "159300", "510300"]
+        return {
+            "answer": "| 指标 | 515360 | 159393 | 561930 | 159300 | 510300 |\n| --- | --- | --- | --- | --- | --- |\n| 近1年收益率 | 35.58% | 35.17% | 34.86% | 33.80% | 32.12% |",
+            "v3": {"llm_ast_draft_raw": {}, "provenance_diff": {}, "validator_applied_defaults": {}},
+            "v3_ast": {"intent": "compare"},
+            "validated_ast": {"intent": "compare"},
+            "query_plan": {"filter": {"fundcode": {"$in": classification["entity_hints"]["fundcodes"]}}},
+            "mongo_params": {},
+            "result": {"success": True, "data": []},
+        }
+
+    monkeypatch.setattr("etf_agent.v3._semantic_query_v3_3_strict", fake_strict)
+
+    question = "对比所有跟踪沪深300的前5只ETF，看收益和费率"
+    result = _semantic_query_v3_3_filter_to_compare(
+        question,
+        classification={
+            "recognized_query_mode": "compare",
+            "intent": "two_step_composite",
+            "entity_hints": extract_v3_1_entity_hints(question),
+        },
+        config_obj=SimpleNamespace(),
+    )
+
+    filter_hints = calls[0]["classification"]["entity_hints"]
+    assert filter_hints["order_by"] == {"field": "ths_yeild_1y_fund", "direction": "desc"}
+    assert result["answer"].startswith(
+        "这里按近1年收益率从高到低选取前5只跟踪沪深300相关 ETF，再对比它们的收益和费率。排序依据：近1年收益率。"
+    )
+    assert "159238" not in result["answer"]
 
 
 @pytest.mark.parametrize(
@@ -1655,8 +1721,9 @@ def test_v3_3_semantic_query_exposes_real_data_window_and_token_usage(monkeypatc
     assert result["llm_usage"] == [{"prompt_tokens": 123, "completion_tokens": 45, "total_tokens": 168}]
     assert "查询起始时间：" not in result["answer"]
     assert "查询结束时间：" not in result["answer"]
-    assert "数据起始日：2024-01-02" in result["answer"]
-    assert "数据结束日：2024-12-31" in result["answer"]
+    assert "数据起始日：" not in result["answer"]
+    assert "数据结束日：" not in result["answer"]
+    assert "数据截至 2024-12-31。" in result["answer"]
     assert "LLM token：168" in result["answer"]
     assert "prompt_tokens=" not in result["answer"]
 

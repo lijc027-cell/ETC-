@@ -1914,6 +1914,9 @@ def _semantic_query_v3_3_filter_to_compare(
     config_obj,
 ) -> dict[str, Any]:
     filter_hints = dict(classification.get("entity_hints") or extract_v3_1_entity_hints(question))
+    selection_sort_field = _filter_to_compare_selection_sort_field(question)
+    if selection_sort_field:
+        filter_hints["order_by"] = {"field": selection_sort_field, "direction": "desc"}
     selection_question = _filter_to_compare_selection_question(question)
     filter_child = _semantic_query_v3_3_strict(
         selection_question,
@@ -1938,7 +1941,7 @@ def _semantic_query_v3_3_filter_to_compare(
             filter_child.get("failure_reason") or "filter_to_compare step 1 failed",
         )
 
-    compare_codes = _result_fundcodes(filter_child)[:5]
+    compare_codes = _filter_to_compare_fundcodes(filter_child, selection_sort_field)[:5]
     if len(compare_codes) < 2:
         return _v3_3_composite_failure(
             question,
@@ -2022,9 +2025,14 @@ def _semantic_query_v3_3_filter_to_compare(
             (compare_child.get("v3") or {}).get("validator_applied_defaults"),
         ],
     }
+    answer = compare_child.get("answer") or ""
+    prefix = _filter_to_compare_answer_prefix(question, selection_sort_field)
+    if prefix and answer:
+        answer = f"{prefix}\n\n{answer}"
+
     return {
         "question": question,
-        "answer": compare_child.get("answer") or "",
+        "answer": answer,
         "v3": output_v3,
         "v3_ast": {"intent": "two_step_composite", "steps": [filter_child.get("v3_ast"), compare_child.get("v3_ast")]},
         "validated_ast": {"intent": "two_step_composite", "steps": [filter_child.get("validated_ast"), compare_child.get("validated_ast")]},
@@ -2035,6 +2043,54 @@ def _semantic_query_v3_3_filter_to_compare(
         "failure_stage": None,
         "failure_reason": None,
     }
+
+
+def _filter_to_compare_selection_sort_field(question: str) -> str:
+    if "performance" not in _expected_composite_sub_intents(question):
+        return ""
+    if "前" not in question and not re.search(r"top\s*[0-9]+", question, re.I):
+        return ""
+    return _yield_field_for_question(question, default_period="1y")
+
+
+def _filter_to_compare_fundcodes(filter_child: dict[str, Any], sort_field: str) -> list[str]:
+    if not sort_field:
+        return _result_fundcodes(filter_child)
+    data = ((filter_child.get("result") or {}).get("data") or [])
+    if not isinstance(data, list):
+        return _result_fundcodes(filter_child)
+    candidates = []
+    for row in data:
+        if not isinstance(row, dict) or not row.get("fundcode"):
+            continue
+        value = _latest_sort_value(row.get(sort_field))
+        if value is None:
+            continue
+        candidates.append((str(row["fundcode"]), value))
+    if not candidates:
+        return _result_fundcodes(filter_child)
+    candidates.sort(key=lambda item: (-float(item[1]), item[0]))
+    return [fundcode for fundcode, _value in candidates]
+
+
+def _latest_sort_value(value: Any) -> Any:
+    if isinstance(value, list):
+        dict_items = [item for item in value if isinstance(item, dict) and "value" in item]
+        if dict_items:
+            latest = max(dict_items, key=lambda item: str(item.get("btime", "")))
+            return latest.get("value")
+        return None
+    if isinstance(value, dict) and "value" in value:
+        return value.get("value")
+    return value
+
+
+def _filter_to_compare_answer_prefix(question: str, sort_field: str) -> str:
+    if sort_field != "ths_yeild_1y_fund":
+        return ""
+    if "沪深300" in question:
+        return "这里按近1年收益率从高到低选取前5只跟踪沪深300相关 ETF，再对比它们的收益和费率。排序依据：近1年收益率。"
+    return "这里按近1年收益率从高到低选取前5只候选 ETF，再进行对比。排序依据：近1年收益率。"
 
 
 def _run_v3_2_child(
@@ -3187,10 +3243,8 @@ def _append_runtime_metadata(answer: str, *, result: dict[str, Any], usage: dict
 
 
 def _format_data_window_footer(data_window: tuple[str, str]) -> list[str]:
-    start, end = data_window
-    if start == end:
-        return [f"数据起止日：{start}"]
-    return [f"数据起始日：{start}", f"数据结束日：{end}"]
+    _start, end = data_window
+    return [f"数据截至 {end}。"]
 
 
 def _result_data_window(result: dict[str, Any]) -> tuple[str, str] | None:
