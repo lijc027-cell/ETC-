@@ -57,6 +57,7 @@ LIST_BASELINE_FIELDS = list(REGISTRY_LIST_BASELINE_FIELDS)
 COMPARE_FIELDS = list(REGISTRY_COMPARE_FIELDS)
 
 FIELD_META = {field: field_meta(field) for field in set(LIST_BASELINE_FIELDS + COMPARE_FIELDS)}
+MIN_MANAGE_FEE_RATE = 0.15
 
 # Semantic descriptions for embedding matching — NOT exhaustive keyword lists.
 # The embedding model maps user questions to the closest intent by meaning, not by substring.
@@ -665,6 +666,8 @@ def _extract_filters(question: str) -> list[dict[str, Any]]:
         filters.append({"field": "ths_name_of_tracking_index_fund", "op": "eq", "value": "沪深300指数", "raw_value": "沪深300"})
 
     filters.extend(_extract_numeric_filters(question))
+    if _is_lowest_management_fee_question(question) and not any(item["field"] == "ths_manage_fee_rate_fund" for item in filters):
+        filters.append({"field": "ths_manage_fee_rate_fund", "op": "eq", "value": MIN_MANAGE_FEE_RATE})
     return filters
 
 
@@ -720,7 +723,13 @@ def _extract_order_by(question: str) -> dict[str, str] | None:
         return {"field": _yield_field_for_question(question, default_period="ytd"), "direction": "desc"}
     if re.search(r"收益率?\s*(?:大于等于|不低于|至少|大于|超过|高于)\s*[0-9.]+\s*%", question):
         return {"field": _yield_field_for_question(question), "direction": "desc"}
+    if re.search(r"(20[0-9]{2})年.*成立", question):
+        return {"field": "ths_fund_establishment_date_fund", "direction": "asc"}
     return None
+
+
+def _is_lowest_management_fee_question(question: str) -> bool:
+    return any(word in question for word in ("管理费", "费率", "低成本", "便宜", "费用省")) and "最低" in question
 
 
 def _has_index_filter_context(question: str) -> bool:
@@ -1107,6 +1116,7 @@ def _compile_ast_to_plan(ast: dict[str, Any]) -> dict[str, Any]:
         plan["sort"] = _sort_spec(order_by)
     elif ast.get("intent") in {"search", "filter"}:
         plan["sort"] = [["ths_fund_scale_fund", -1], ["fundcode", 1]]
+    _apply_sort_fields_to_plan(plan)
     if _needs_performance_nav_projection(ast, plan):
         plan["projection"] = _append_unique_projection(plan["projection"], "ths_unit_nv_fund")
     for clause in ast.get("where", []):
@@ -1199,9 +1209,29 @@ def _append_unique_projection(projection: list[str], field: str) -> list[str]:
     return [*projection, field]
 
 
+def _apply_sort_fields_to_plan(plan: dict[str, Any]) -> None:
+    for item in plan.get("sort") or []:
+        if not isinstance(item, (list, tuple)) or not item:
+            continue
+        field = str(item[0])
+        plan["projection"] = _append_unique_projection(plan["projection"], field)
+        if field != "fundcode":
+            _append_answer_field(plan, field)
+
+
+def _append_answer_field(plan: dict[str, Any], field: str) -> None:
+    if any(item.get("field") == field for item in plan.get("answer_fields") or []):
+        return
+    label, fmt = field_meta(field)
+    plan.setdefault("answer_fields", []).append({"field": field, "label": label, "format": fmt})
+
+
 def _sort_spec(order_by: dict[str, str]) -> list[list[Any]]:
     direction = -1 if order_by.get("direction") == "desc" else 1
     sort = [[order_by["field"], direction]]
+    if order_by["field"] == "ths_fund_establishment_date_fund":
+        sort.append(["fundcode", 1])
+        return sort
     if order_by["field"] != "ths_fund_scale_fund":
         sort.append(["ths_fund_scale_fund", -1])
     if order_by["field"] != "fundcode":

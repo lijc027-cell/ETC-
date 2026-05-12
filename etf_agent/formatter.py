@@ -163,6 +163,10 @@ def _list_summary(plan: dict[str, Any], result: dict[str, Any]) -> str:
 
 
 def _filter_list_summary(plan: dict[str, Any], result: dict[str, Any]) -> str:
+    special = _special_filter_list_summary(plan, result)
+    if special:
+        return special
+
     limit = int(plan.get("limit") or result.get("returned_count") or 0)
     total = result.get("total_count")
     has_more = bool(result.get("has_more"))
@@ -178,6 +182,65 @@ def _filter_list_summary(plan: dict[str, Any], result: dict[str, Any]) -> str:
     if has_more:
         return first + "\n还有更多结果，可缩小条件或指定展示数量。"
     return first
+
+
+def _special_filter_list_summary(plan: dict[str, Any], result: dict[str, Any]) -> str:
+    if _is_lowest_fee_bucket_plan(plan):
+        limit = int(plan.get("limit") or result.get("returned_count") or 0)
+        total = result.get("total_count")
+        fee = _format_filter_scalar((plan.get("filter") or {})["ths_manage_fee_rate_fund"], "ths_manage_fee_rate_fund")
+        if isinstance(total, int):
+            first = f"当前库里最低管理费率为 {fee}，共有 {total} 只 ETF。默认按基金规模从高到低展示前 {limit} 只。"
+        else:
+            first = f"当前库里最低管理费率为 {fee}，默认按基金规模从高到低展示前 {limit} 只。"
+        return _with_has_more(first, result)
+
+    year = _date_filter_year(plan)
+    if year and _primary_sort_field(plan) == "ths_fund_establishment_date_fund":
+        limit = int(plan.get("limit") or result.get("returned_count") or 0)
+        total = result.get("total_count")
+        if isinstance(total, int):
+            first = f"{year} 年成立的 ETF 共 {total} 只。默认按成立日期从早到晚展示前 {limit} 只。"
+        else:
+            first = f"{year} 年成立的 ETF 默认按成立日期从早到晚展示前 {limit} 只。"
+        return _with_has_more(first, result)
+
+    return ""
+
+
+def _is_lowest_fee_bucket_plan(plan: dict[str, Any]) -> bool:
+    filters = plan.get("filter") or {}
+    return (
+        filters.get("ths_manage_fee_rate_fund") == 0.15
+        and _primary_sort_field(plan) == "ths_manage_fee_rate_fund"
+        and any(item[0] == "ths_fund_scale_fund" for item in plan.get("sort") or [] if isinstance(item, (list, tuple)) and item)
+    )
+
+
+def _date_filter_year(plan: dict[str, Any]) -> str:
+    value = (plan.get("filter") or {}).get("ths_fund_establishment_date_fund")
+    if not isinstance(value, dict):
+        return ""
+    start = value.get("$gte")
+    end = value.get("$lte")
+    if not isinstance(start, str) or not isinstance(end, str):
+        return ""
+    if re.fullmatch(r"20[0-9]{2}-01-01", start) and end == f"{start[:4]}-12-31":
+        return start[:4]
+    return ""
+
+
+def _primary_sort_field(plan: dict[str, Any]) -> str:
+    sort = plan.get("sort") or []
+    if not sort or not isinstance(sort[0], (list, tuple)) or not sort[0]:
+        return ""
+    return str(sort[0][0])
+
+
+def _with_has_more(text: str, result: dict[str, Any]) -> str:
+    if result.get("has_more"):
+        return text + "\n还有更多结果，可缩小条件或指定展示数量。"
+    return text
 
 
 def _list_sort_phrase(plan: dict[str, Any]) -> str:

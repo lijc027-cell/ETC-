@@ -510,8 +510,76 @@ def test_v3_3_fee_filter_sorts_by_fee_then_scale_then_fundcode(question):
         ["ths_fund_scale_fund", -1],
         ["fundcode", 1],
     ]
+    assert "ths_fund_scale_fund" in plan["projection"]
+    assert any(item["field"] == "ths_fund_scale_fund" for item in plan["answer_fields"])
+    if "最低" in question:
+        assert plan["filter"]["ths_manage_fee_rate_fund"] == 0.15
     if "低于0.2%" in question:
         assert plan["filter"]["ths_manage_fee_rate_fund"] == {"$lt": 0.2}
+
+
+def test_v3_3_date_filter_defaults_to_establishment_date_sort():
+    hints = extract_v3_1_entity_hints("2024年成立的ETF有哪些")
+    ast = build_v3_1_ast("filter", hints, "2024年成立的ETF有哪些")
+    plan = _compile_ast_to_plan(ast)
+
+    assert ast["order_by"] == {"field": "ths_fund_establishment_date_fund", "direction": "asc"}
+    assert plan["sort"] == [["ths_fund_establishment_date_fund", 1], ["fundcode", 1]]
+    assert "ths_fund_establishment_date_fund" in plan["projection"]
+    assert any(item["field"] == "ths_fund_establishment_date_fund" for item in plan["answer_fields"])
+
+
+def test_v3_3_filter_summary_explains_lowest_fee_bucket_and_date_sort():
+    lowest_fee_plan = {
+        "output_style": "list",
+        "limit": 10,
+        "filter": {"ths_manage_fee_rate_fund": 0.15},
+        "sort": [["ths_manage_fee_rate_fund", 1], ["ths_fund_scale_fund", -1], ["fundcode", 1]],
+        "answer_fields": [
+            {"field": "fundcode", "label": "基金代码", "format": "plain"},
+            {"field": "ths_fund_extended_inner_short_name_fund", "label": "基金简称", "format": "plain"},
+            {"field": "ths_manage_fee_rate_fund", "label": "管理费率", "format": "percent"},
+            {"field": "ths_fund_scale_fund", "label": "基金规模", "format": "amount"},
+        ],
+    }
+    lowest_fee_result = {
+        "success": True,
+        "data": [{"fundcode": "510300", "ths_manage_fee_rate_fund": 0.15, "ths_fund_scale_fund": 168660000000}],
+        "total_count": 432,
+        "returned_count": 10,
+        "has_more": True,
+    }
+
+    assert format_answer(lowest_fee_plan, lowest_fee_result).startswith(
+        "当前库里最低管理费率为 0.15%，共有 432 只 ETF。默认按基金规模从高到低展示前 10 只。"
+    )
+
+    date_plan = {
+        "output_style": "list",
+        "limit": 10,
+        "filter": {
+            "ths_fund_establishment_date_fund": {
+                "$gte": "2024-01-01",
+                "$lte": "2024-12-31",
+            }
+        },
+        "sort": [["ths_fund_establishment_date_fund", 1], ["fundcode", 1]],
+        "answer_fields": [
+            {"field": "fundcode", "label": "基金代码", "format": "plain"},
+            {"field": "ths_fund_establishment_date_fund", "label": "成立日期", "format": "date"},
+        ],
+    }
+    date_result = {
+        "success": True,
+        "data": [{"fundcode": "159567", "ths_fund_establishment_date_fund": "2024-01-03"}],
+        "total_count": 167,
+        "returned_count": 10,
+        "has_more": True,
+    }
+
+    assert format_answer(date_plan, date_result).startswith(
+        "2024 年成立的 ETF 共 167 只。默认按成立日期从早到晚展示前 10 只。"
+    )
 
 
 @pytest.mark.parametrize(
