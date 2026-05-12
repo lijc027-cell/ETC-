@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import warnings
 from pathlib import Path
 from typing import Any
 
@@ -13,6 +14,13 @@ from .name_resolver import resolve_fundcode_from_name
 from .plan import build_sql_like, mongo_params, validate_query_plan
 from .remote import execute_remote_query, fake_result
 from .retrieval import retrieve_mappings
+
+
+warnings.warn(
+    "etf_agent.pipeline is legacy v1; prefer etf_agent.semantic_query_v3 or pass --legacy-v1 explicitly.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 
 def semantic_query(question: str, *, root: Path | str | None = None, dry_run: bool = False, no_llm: bool = False) -> dict[str, Any]:

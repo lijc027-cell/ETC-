@@ -14,23 +14,26 @@ def main() -> int:
     parser.add_argument("--dry-run", action="store_true", help="不调用 Qwen/SSH，使用确定性计划和示例远端结果演示链路")
     parser.add_argument("--no-llm", action="store_true", help="跳过 Qwen，仍执行真实 SSH 查询")
     parser.add_argument("--v3", action="store_true", help="使用 v3.0 路由和 AST 预览")
+    parser.add_argument("--phase", choices=("v3.2", "v3.3"), default="v3.3", help="选择 v3 语义查询阶段")
+    parser.add_argument("--legacy-v1", action="store_true", help="显式使用 legacy v1 pipeline")
     parser.add_argument("--verbose", action="store_true", help="打印完整调试链路和远端原始 JSON")
     parser.add_argument("--answer-only", action="store_true", help="只打印最终人话回答")
     args = parser.parse_args()
 
-    if args.v3:
-        output = semantic_query_v3(
+    if args.legacy_v1 or not args.v3:
+        output = semantic_query(
             args.question,
             root=Path(__file__).resolve().parent,
             dry_run=args.dry_run,
             no_llm=args.no_llm,
         )
     else:
-        output = semantic_query(
+        output = semantic_query_v3(
             args.question,
             root=Path(__file__).resolve().parent,
             dry_run=args.dry_run,
             no_llm=args.no_llm,
+            phase=args.phase,
         )
     print_report(output, verbose=args.verbose, answer_only=args.answer_only)
     return 1 if "error" in output else 0
@@ -119,6 +122,11 @@ def print_report(output: dict, *, verbose: bool = False, answer_only: bool = Fal
 
 
 def print_query_plan_summary(query_plan: dict) -> None:
+    if "mongo_phase" in query_plan:
+        mongo_phase = query_plan["mongo_phase"]
+        print(f"集合: {mongo_phase['collection']}")
+        print(f"字段: {', '.join(mongo_phase['projection'])}")
+        return
     if "steps" in query_plan:
         for index, step in enumerate(query_plan["steps"], start=1):
             print(f"查询步骤 {index}")

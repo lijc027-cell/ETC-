@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import shlex
 import uuid
+from functools import lru_cache
+from pathlib import Path
 from typing import Any
 
 from .name_resolver import CATALOG_FIELDS
@@ -153,6 +156,8 @@ if __name__ == "__main__":
     main()
 '''
 
+SNAPSHOT_PATH = Path(__file__).resolve().parents[1] / "result" / "codex-etf-remote-snapshot.json"
+
 
 def execute_remote_query(plan: dict[str, Any], config) -> dict[str, Any]:
     try:
@@ -167,6 +172,7 @@ def execute_remote_query(plan: dict[str, Any], config) -> dict[str, Any]:
 
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    connected = False
     try:
         ssh.connect(
             config.ssh_host,
@@ -175,6 +181,7 @@ def execute_remote_query(plan: dict[str, Any], config) -> dict[str, Any]:
             config.ssh_password,
             timeout=5,
         )
+        connected = True
         sftp = ssh.open_sftp()
         _write_remote_json(sftp, remote_plan, plan)
         _write_remote_text(sftp, remote_runner, RUNNER)
@@ -204,13 +211,14 @@ def execute_remote_query(plan: dict[str, Any], config) -> dict[str, Any]:
         raise RuntimeError(f"阶段：远端 Mongo 查询\n错误：SSH 连接失败或查询失败：{exc}") from exc
     finally:
         try:
-            _stdin, stdout, stderr = ssh.exec_command(
-                f"rm -f {shlex.quote(remote_plan)} {shlex.quote(remote_runner)} {shlex.quote(remote_result)}"
-            )
-            exit_code = stdout.channel.recv_exit_status()
-            if exit_code != 0:
-                warning = stderr.read().decode("utf-8", errors="replace")
-                print(f"warning: remote temp cleanup failed: {warning}")
+            if connected:
+                _stdin, stdout, stderr = ssh.exec_command(
+                    f"rm -f {shlex.quote(remote_plan)} {shlex.quote(remote_runner)} {shlex.quote(remote_result)}"
+                )
+                exit_code = stdout.channel.recv_exit_status()
+                if exit_code != 0:
+                    warning = stderr.read().decode("utf-8", errors="replace")
+                    print(f"warning: remote temp cleanup failed: {warning}")
         except Exception:
             print("warning: remote temp cleanup failed")
         try:
@@ -273,6 +281,154 @@ def fake_result(plan: dict[str, Any]) -> dict[str, Any]:
         else:
             values[field] = "示例值"
     return {"success": True, "data": values}
+
+
+def _execute_local_snapshot_query(plan: dict[str, Any]) -> dict[str, Any] | None:
+    snapshot = _load_local_snapshot()
+    if snapshot is None:
+        return None
+
+    documents = _snapshot_documents(snapshot, plan.get("collection"))
+    if documents is None:
+        return None
+
+    query_filter, post_filters = _compile_local_filter(plan.get("filter") or {})
+    projection = list(plan.get("projection") or [])
+    sort_spec = list(plan.get("sort") or [])
+    limit = int(plan.get("limit") or 1)
+
+    rows = [doc for doc in documents if _matches_local_filter(doc, query_filter)]
+    if post_filters:
+        rows = [doc for doc in rows if _matches_post_filters(doc, post_filters)]
+    if sort_spec:
+        rows = _sort_local_documents(rows, sort_spec)
+
+    if limit == 1:
+        result = _project_local_document(rows[0], projection) if rows else None
+    else:
+        result = [_project_local_document(doc, projection) for doc in rows[:limit]]
+    return {"success": True, "data": result}
+
+
+@lru_cache(maxsize=1)
+def _load_local_snapshot() -> dict[str, Any] | None:
+    if not SNAPSHOT_PATH.exists():
+        return None
+    try:
+        return json.loads(SNAPSHOT_PATH.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+
+
+def _snapshot_documents(snapshot: dict[str, Any], collection: str | None) -> list[dict[str, Any]] | None:
+    if collection == "tb_ths_etf_base":
+        data = snapshot.get("base_all")
+        return list(data) if isinstance(data, list) else None
+    if collection == "tb_ths_etf_report_year":
+        data = snapshot.get("reports_year")
+        return list(data.values()) if isinstance(data, dict) else None
+    if collection == "tb_ths_etf_report_quarter":
+        data = snapshot.get("reports_quarter")
+        return list(data.values()) if isinstance(data, dict) else None
+    return None
+
+
+def _compile_local_filter(raw_filter: dict[str, Any]) -> tuple[dict[str, Any], list[tuple[str, dict[str, Any]]]]:
+    query: dict[str, Any] = {}
+    post_filters: list[tuple[str, dict[str, Any]]] = []
+    for field, value in raw_filter.items():
+        if field == "__search_text__" and isinstance(value, dict) and "$contains" in value:
+            query[field] = {"$contains": str(value["$contains"])}
+        elif isinstance(value, dict) and any(op in value for op in ("$gt", "$gte", "$lt", "$lte")):
+            post_filters.append((field, dict(value)))
+        else:
+            query[field] = value
+    return query, post_filters
+
+
+def _matches_local_filter(document: dict[str, Any], query_filter: dict[str, Any]) -> bool:
+    for field, expected in query_filter.items():
+        if field == "__search_text__" and isinstance(expected, dict):
+            if not _matches_search_text(document, str(expected.get("$contains") or "")):
+                return False
+            continue
+        value = document.get(field)
+        if isinstance(expected, dict):
+            if "$in" in expected:
+                if value not in set(expected["$in"]):
+                    return False
+            elif "$regex" in expected:
+                if not re.search(str(expected["$regex"]), str(value or ""), re.I if str(expected.get("$options") or "").lower() == "i" else 0):
+                    return False
+            else:
+                if not _matches_post_filters({field: value}, [(field, expected)]):
+                    return False
+        elif value != expected:
+            return False
+    return True
+
+
+def _matches_search_text(document: dict[str, Any], keyword: str) -> bool:
+    if not keyword:
+        return True
+    pattern = re.escape(keyword)
+    for field in ("ths_fund_extended_inner_short_name_fund", "ths_name_of_tracking_index_fund", "ths_tracking_index_code_fund"):
+        if re.search(pattern, str(document.get(field) or ""), re.I):
+            return True
+    return False
+
+
+def _matches_post_filters(document: dict[str, Any], post_filters: list[tuple[str, dict[str, Any]]]) -> bool:
+    for field, ops in post_filters:
+        value = _latest_local_value(document.get(field))
+        if value is None:
+            return False
+        for op, threshold in ops.items():
+            if op == "$gt" and not value > threshold:
+                return False
+            if op == "$gte" and not value >= threshold:
+                return False
+            if op == "$lt" and not value < threshold:
+                return False
+            if op == "$lte" and not value <= threshold:
+                return False
+    return True
+
+
+def _sort_local_documents(documents: list[dict[str, Any]], sort_spec: list[list[Any]]) -> list[dict[str, Any]]:
+    sorted_documents = documents
+    for field, direction in reversed(sort_spec):
+        reverse = direction == -1
+
+        def key(document: dict[str, Any], field: str = field, direction: int = direction):
+            value = _latest_local_value(document.get(field))
+            if value is None:
+                return float("-inf") if direction == -1 else float("inf")
+            return value
+
+        sorted_documents = sorted(sorted_documents, key=key, reverse=reverse)
+    return sorted_documents
+
+
+def _latest_local_value(value: Any) -> Any:
+    if isinstance(value, list):
+        dict_items = [item for item in value if isinstance(item, dict) and "value" in item]
+        if dict_items:
+            latest = max(dict_items, key=lambda item: str(item.get("btime", "")))
+            return latest.get("value")
+    if isinstance(value, dict) and "value" in value:
+        return value.get("value")
+    return value
+
+
+def _project_local_document(document: dict[str, Any], projection: list[str]) -> dict[str, Any]:
+    if not projection:
+        return dict(document)
+    projected = {}
+    for field in projection:
+        if field in document:
+            projected[field] = document[field]
+    return projected
 
 
 def _fake_rows(plan: dict[str, Any]) -> list[dict[str, Any]]:

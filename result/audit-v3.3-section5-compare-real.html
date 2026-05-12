@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>v3.3 Section 5 Expected Compare</title>
+<style>
+  :root { --bg: #f4f0e6; --paper: #fffaf0; --ink: #2f2418; --muted: #6e5c45; --line: #d7c8b2; --pass: #2f6f4e; --fail: #a2463b; --match: #2f6f4e; --mismatch: #a2463b; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: Georgia, serif; }
+  .wrap { max-width: 1220px; margin: 0 auto; padding: 28px 22px 48px; }
+  .hero { padding: 10px 0 18px; border-bottom: 1px solid var(--line); margin-bottom: 18px; }
+  h1 { margin: 0 0 8px; font-size: 32px; }
+  .sub { color: var(--muted); font-size: 14px; }
+  .metrics { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; margin: 18px 0 24px; }
+  .metric { background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; box-shadow: 0 2px 0 rgba(60,45,25,.04); }
+  .metric-label { color: var(--muted); font-size: 13px; margin-bottom: 6px; }
+  .metric-value { font-size: 28px; line-height: 1.1; }
+  .cases { display: grid; gap: 14px; }
+  .case { background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 16px; box-shadow: 0 2px 0 rgba(60,45,25,.04); }
+  .case-head { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; }
+  .case-id { font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+  .case-question { font-size: 20px; line-height: 1.3; }
+  .badges { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+  .pill { padding: 6px 10px; border-radius: 999px; font-size: 12px; border: 1px solid transparent; white-space: nowrap; }
+  .pill.pass, .pill.match { background: #e8f3ec; color: var(--match); border-color: #c7e0d0; }
+  .pill.fail, .pill.mismatch { background: #fae9e5; color: var(--mismatch); border-color: #efc8bf; }
+  .meta { margin-top: 10px; color: var(--muted); font-size: 13px; }
+  .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
+  .compare-col { border: 1px solid var(--line); border-radius: 10px; background: #fffdf7; padding: 12px 14px; }
+  .compare-col .label { color: var(--muted); font-size: 13px; margin-bottom: 8px; }
+  .compare-col .body { white-space: pre-wrap; line-height: 1.7; font-size: 15px; }
+  .detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 18px; margin-top: 14px; font-size: 13px; }
+  .detail-grid span { display: block; color: var(--muted); margin-bottom: 4px; }
+  .detail-grid strong { font-weight: 400; }
+  @media (max-width: 900px) { .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); } .case-head, .compare { grid-template-columns: 1fr; display: grid; } .badges { justify-content: flex-start; } .detail-grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="hero">
+      <h1>v3.3 Section 5 Expected Compare</h1>
+      <div class="sub">/Users/l/Downloads/laiqian/etf-query/result/audit-v3.3-section5-compare-real.html · 5 pass · 0 fail · expected match 0/5</div>
+    </div>
+    <div class="metrics">
+      <div class="metric"><div class="metric-label">Cases</div><div class="metric-value">5</div></div>
+      <div class="metric"><div class="metric-label">Pass</div><div class="metric-value">5</div></div>
+      <div class="metric"><div class="metric-label">Fail</div><div class="metric-value">0</div></div>
+      <div class="metric"><div class="metric-label">Expected match</div><div class="metric-value">0</div></div>
+      <div class="metric"><div class="metric-label">Expected mismatch</div><div class="metric-value">5</div></div>
+      <div class="metric"><div class="metric-label">Release pass</div><div class="metric-value">true</div></div>
+    </div>
+    <div class="cases">
+
+    <section class="case pass">
+      <div class="case-head">
+        <div>
+          <div class="case-id">五.1</div>
+          <div class="case-question">510300的基金经理是谁</div>
+        </div>
+        <div class="badges"><div class="pill pass">PASS</div><div class="pill mismatch">MISMATCH</div></div>
+      </div>
+      <div class="meta">v3_2_required · covered_single_manager · single</div>
+      <div class="compare">
+        <div class="compare-col"><div class="label">Expected</div><div class="body">柳军。</div></div>
+        <div class="compare-col"><div class="label">Actual</div><div class="body">510300 的基金经理(现任)为 柳军，基金管理人为 华泰柏瑞基金。</div></div>
+      </div>
+      <div class="detail-grid">
+        <div><span>Stripped expected</span><strong>柳军。</strong></div>
+        <div><span>Stripped actual</span><strong>510300 的基金经理(现任)为 柳军，基金管理人为 华泰柏瑞基金。</strong></div>
+        <div><span>Actual outcome</span><strong>ExecutableQuery(single/manager)</strong></div>
+        <div><span>Reason</span><strong>—</strong></div>
+      </div>
+    </section>
+    
+    <section class="case pass">
+      <div class="case-head">
+        <div>
+          <div class="case-id">五.2</div>
+          <div class="case-question">510300现任基金经理管理了多久</div>
+        </div>
+        <div class="badges"><div class="pill pass">PASS</div><div class="pill mismatch">MISMATCH</div></div>
+      </div>
+      <div class="meta">v3_3_required · v3_3_manager_detail · single</div>
+      <div class="compare">
+        <div class="compare-col"><div class="label">Expected</div><div class="body">自2012-05-04起任职，5122天。</div></div>
+        <div class="compare-col"><div class="label">Actual</div><div class="body">沪深300ETF（510300）现任基金经理柳军，自2012-05-04起任职，任职5122天，任职期间年化回报6.05%，任职基金总规模3388.01亿元。当前远端库仅返回现任基金经理信息，未提供更早历史更换记录。</div></div>
+      </div>
+      <div class="detail-grid">
+        <div><span>Stripped expected</span><strong>自2012-05-04起任职，5122天。</strong></div>
+        <div><span>Stripped actual</span><strong>沪深300ETF（510300）现任基金经理柳军，自2012-05-04起任职，任职5122天，任职期间年化回报6.05%，任职基金总规模3388.01亿元。当前远端库仅返回现任基金经理信息，未提供更早历史更换记录。</strong></div>
+        <div><span>Actual outcome</span><strong>ExecutableQuery(single/manager_detail)</strong></div>
+        <div><span>Reason</span><strong>—</strong></div>
+      </div>
+    </section>
+    
+    <section class="case pass">
+      <div class="case-head">
+        <div>
+          <div class="case-id">五.3</div>
+          <div class="case-question">510300基金经理的历史业绩怎么样</div>
+        </div>
+        <div class="badges"><div class="pill pass">PASS</div><div class="pill mismatch">MISMATCH</div></div>
+      </div>
+      <div class="meta">v3_3_required · v3_3_manager_detail · single</div>
+      <div class="compare">
+        <div class="compare-col"><div class="label">Expected</div><div class="body">任职期间年化回报6.05%。</div></div>
+        <div class="compare-col"><div class="label">Actual</div><div class="body">沪深300ETF（510300）现任基金经理柳军，自2012-05-04起任职，任职5122天，任职期间年化回报6.05%，任职基金总规模3388.01亿元。当前远端库仅返回现任基金经理信息，未提供更早历史更换记录。</div></div>
+      </div>
+      <div class="detail-grid">
+        <div><span>Stripped expected</span><strong>任职期间年化回报6.05%。</strong></div>
+        <div><span>Stripped actual</span><strong>沪深300ETF（510300）现任基金经理柳军，自2012-05-04起任职，任职5122天，任职期间年化回报6.05%，任职基金总规模3388.01亿元。当前远端库仅返回现任基金经理信息，未提供更早历史更换记录。</strong></div>
+        <div><span>Actual outcome</span><strong>ExecutableQuery(single/manager_detail)</strong></div>
+        <div><span>Reason</span><strong>—</strong></div>
+      </div>
+    </section>
+    
+    <section class="case pass">
+      <div class="case-head">
+        <div>
+          <div class="case-id">五.4</div>
+          <div class="case-question">510300基金经理管了多少规模的基金</div>
+        </div>
+        <div class="badges"><div class="pill pass">PASS</div><div class="pill mismatch">MISMATCH</div></div>
+      </div>
+      <div class="meta">v3_3_required · v3_3_manager_detail · single</div>
+      <div class="compare">
+        <div class="compare-col"><div class="label">Expected</div><div class="body">3388.01亿。</div></div>
+        <div class="compare-col"><div class="label">Actual</div><div class="body">沪深300ETF（510300）现任基金经理柳军，自2012-05-04起任职，任职5122天，任职期间年化回报6.05%，任职基金总规模3388.01亿元。当前远端库仅返回现任基金经理信息，未提供更早历史更换记录。</div></div>
+      </div>
+      <div class="detail-grid">
+        <div><span>Stripped expected</span><strong>3388.01亿。</strong></div>
+        <div><span>Stripped actual</span><strong>沪深300ETF（510300）现任基金经理柳军，自2012-05-04起任职，任职5122天，任职期间年化回报6.05%，任职基金总规模3388.01亿元。当前远端库仅返回现任基金经理信息，未提供更早历史更换记录。</strong></div>
+        <div><span>Actual outcome</span><strong>ExecutableQuery(single/manager_detail)</strong></div>
+        <div><span>Reason</span><strong>—</strong></div>
+      </div>
+    </section>
+    
+    <section class="case pass">
+      <div class="case-head">
+        <div>
+          <div class="case-id">五.5</div>
+          <div class="case-question">510300什么时候换的基金经理</div>
+        </div>
+        <div class="badges"><div class="pill pass">PASS</div><div class="pill mismatch">MISMATCH</div></div>
+      </div>
+      <div class="meta">v3_3_required · v3_3_manager_detail_timeline · single</div>
+      <div class="compare">
+        <div class="compare-col"><div class="label">Expected</div><div class="body">当前远端库仅返回现任基金经理柳军，起始日2012-05-04。</div></div>
+        <div class="compare-col"><div class="label">Actual</div><div class="body">沪深300ETF（510300）现任基金经理柳军，自2012-05-04起任职，任职5122天，任职期间年化回报6.05%，任职基金总规模3388.01亿元。当前远端库仅返回现任基金经理信息，未提供更早历史更换记录。</div></div>
+      </div>
+      <div class="detail-grid">
+        <div><span>Stripped expected</span><strong>当前远端库仅返回现任基金经理柳军，起始日2012-05-04。</strong></div>
+        <div><span>Stripped actual</span><strong>沪深300ETF（510300）现任基金经理柳军，自2012-05-04起任职，任职5122天，任职期间年化回报6.05%，任职基金总规模3388.01亿元。当前远端库仅返回现任基金经理信息，未提供更早历史更换记录。</strong></div>
+        <div><span>Actual outcome</span><strong>ExecutableQuery(single/manager_detail)</strong></div>
+        <div><span>Reason</span><strong>—</strong></div>
+      </div>
+    </section>
+    
+    </div>
+  </div>
+</body>
+</html>

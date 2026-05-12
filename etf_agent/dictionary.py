@@ -81,8 +81,8 @@ def _parse_table(lines: list[str], collection: str, section: str) -> list[FieldM
         cn_name = cells[indexes["中文名"]]
         if not field or set(field) <= {"-", " "}:
             continue
-        field_type = cells[indexes["类型"]] if "类型" in indexes else ""
-        description = cells[indexes["说明"]] if "说明" in indexes else ""
+        field_type = _normalize_field_type(field, cells[indexes["类型"]] if "类型" in indexes else "")
+        description = _normalize_description(field, cells[indexes["说明"]] if "说明" in indexes else "")
         search_text = (
             f"ETF字段 {cn_name} {description} 所属分组:{section} "
             f"集合:{collection} 字段:{field}"
@@ -113,3 +113,15 @@ def _clean_cell(cell: str) -> str:
 def _unquote(value: str) -> str:
     match = BACKTICK_RE.match(value)
     return match.group(1) if match else value
+
+
+def _normalize_field_type(field: str, field_type: str) -> str:
+    if field == "ths_fund_scale_fund":
+        return "number"
+    return field_type
+
+
+def _normalize_description(field: str, description: str) -> str:
+    if field == "ths_fund_scale_fund":
+        return "单位：元"
+    return description

@@ -20,6 +20,22 @@ V3_2_REQUIRED_KEYS = {
     "report_period",
     "expand",
 }
+V3_3_REQUIRED_KEYS = V3_2_REQUIRED_KEYS | {"ast_schema_version"}
+V3_3_OPTIONAL_KEYS = {"grammar_fragment_id", "compiler_rule_id", "profile", "performance_rows", "timeseries_semantics"}
+V3_3_SCHEMA_VERSIONS = {"v3_2_base_ast", "v3_3_structured_query"}
+V3_3_PROFILES = {"derived_performance_table", "derived_return_list", "rank_list", "composite_single"}
+DERIVED_ALIAS_LABELS = {
+    "1w": "近1周收益率",
+    "1m": "近1月收益率",
+    "3m": "近3月收益率",
+    "6m": "近半年收益率",
+    "1y": "近1年收益率",
+    "2y": "近2年收益率",
+    "3y": "近3年收益率",
+    "5y": "近5年收益率",
+    "ytd": "今年以来收益率",
+    "std": "成立以来收益率",
+}
 ALLOWED_QUERY_INTENTS = {
     ("single", "basic_info"),
     ("single", "fund_scale"),
@@ -91,6 +107,315 @@ def validate_v3_2_ast_draft(
     }
 
 
+def validate_v3_3_ast_draft(
+    draft_ast: dict[str, Any],
+    *,
+    query_mode: str,
+    intent: str,
+    generation_bundle: dict[str, Any],
+) -> dict[str, Any]:
+    selection_context = generation_bundle["selection_context"]
+    expectations = generation_bundle["validator_expectations"]
+    draft_before_validation = deepcopy(draft_ast)
+    normalized = deepcopy(draft_ast)
+
+    ast_schema_version = _validate_v3_3_ast_schema_version(normalized)
+    has_derived_return_select = any(
+        (isinstance(item, dict) and item.get("type") == "derived_return")
+        or (isinstance(item, str) and item.startswith("return_"))
+        for item in normalized.get("select") or []
+    )
+    if (
+        "profile" not in normalized
+        and "performance_rows" not in normalized
+        and normalized.get("timeseries_semantics") is None
+        and not has_derived_return_select
+    ):
+        base_draft = {
+            key: value
+            for key, value in normalized.items()
+            if key not in {"ast_schema_version", "grammar_fragment_id", "compiler_rule_id", "timeseries_semantics"}
+        }
+        validation = validate_v3_2_ast_draft(
+            base_draft,
+            query_mode=query_mode,
+            intent=intent,
+            generation_bundle=generation_bundle,
+        )
+        validated_ast = validation["validated_ast"]
+        validated_ast["ast_schema_version"] = ast_schema_version
+        if "timeseries_semantics" in normalized:
+            validated_ast["timeseries_semantics"] = normalized["timeseries_semantics"]
+        if "grammar_fragment_id" in normalized:
+            validated_ast["grammar_fragment_id"] = normalized["grammar_fragment_id"]
+        if "compiler_rule_id" in normalized:
+            validated_ast["compiler_rule_id"] = normalized["compiler_rule_id"]
+        provenance_diff = validation["provenance_diff"]
+        provenance_diff["ast_schema_version"] = ast_schema_version
+        return {
+            "validated_ast": validated_ast,
+            "provenance_diff": provenance_diff,
+            "validator_applied_defaults": validation["validator_applied_defaults"],
+        }
+
+    ast_schema_version, alias_map = _validate_v3_3_shape(normalized)
+    if "performance_rows" in normalized and "profile" not in normalized:
+        raise ValueError("profile must be present when performance_rows is provided")
+
+    _validate_v3_3_profile(normalized, expectations)
+    _validate_v3_3_timeseries_semantics(normalized, selection_context, expectations)
+    if normalized.get("profile") == "derived_performance_table" and "performance_rows" not in normalized:
+        raise ValueError("performance_rows must be a list")
+    _validate_v3_2_capability(normalized, query_mode=query_mode, intent=intent, selection_context=selection_context)
+    defaults = _apply_v3_2_defaults(normalized, selection_context, generation_bundle, intent)
+    _validate_v3_2_limit(normalized, expectations, generation_bundle["llm_context"]["limit_policy"])
+    _validate_v3_3_select(normalized, alias_map, selection_context, expectations)
+    _normalize_v3_2_answer_fields(normalized, alias_map)
+    _validate_v3_3_answer_fields(normalized, alias_map, selection_context, expectations)
+    _validate_v3_2_where(normalized, selection_context, expectations, generation_bundle)
+    _validate_v3_3_order_by(normalized, selection_context, expectations)
+    _validate_v3_2_sub_intents(normalized, expectations)
+    if "performance_rows" in normalized:
+        _validate_v3_3_performance_rows(normalized, alias_map, expectations)
+    provenance_diff = _build_v3_2_provenance_diff(
+        draft_before_validation,
+        normalized,
+        baseline_fields_added=defaults,
+        semantic_roles=selection_context["semantic_roles"],
+    )
+    provenance_diff["ast_schema_version"] = ast_schema_version
+
+    return {
+        "validated_ast": normalized,
+        "provenance_diff": provenance_diff,
+        "validator_applied_defaults": {"baseline_fields_added": defaults},
+    }
+
+
+def _validate_v3_3_shape(ast: dict[str, Any]) -> tuple[str, dict[str, str]]:
+    if not isinstance(ast, dict):
+        raise ValueError("LLM Draft AST must be an object")
+    missing = V3_3_REQUIRED_KEYS - set(ast)
+    if missing:
+        raise ValueError(f"LLM Draft AST missing keys: {sorted(missing)}")
+    extra = set(ast) - (V3_3_REQUIRED_KEYS | V3_3_OPTIONAL_KEYS)
+    if extra:
+        raise ValueError(f"LLM Draft AST contains forbidden keys: {sorted(extra)}")
+    schema_version = ast.get("ast_schema_version")
+    if schema_version not in V3_3_SCHEMA_VERSIONS:
+        raise ValueError(f"ast_schema_version must be one of {sorted(V3_3_SCHEMA_VERSIONS)}")
+    if schema_version == "v3_2_base_ast" and ({"profile", "performance_rows"} & set(ast)):
+        raise ValueError("v3_2_base_ast cannot include v3.3 fragment fields")
+    if not isinstance(ast["sub_intents"], list):
+        raise ValueError("sub_intents must be a list")
+    alias_map = _normalize_v3_3_select(ast)
+    if not isinstance(ast["where"], list):
+        raise ValueError("where must be a list")
+    if not isinstance(ast["answer_fields"], list):
+        raise ValueError("answer_fields must be a list")
+    if "performance_rows" in ast and not isinstance(ast["performance_rows"], list):
+        raise ValueError("performance_rows must be a list")
+    if "profile" in ast and ast["profile"] not in V3_3_PROFILES:
+        raise ValueError(f"unsupported v3.3 profile: {ast.get('profile')}")
+    return schema_version, alias_map
+
+
+def _validate_v3_3_ast_schema_version(ast: dict[str, Any]) -> str:
+    if not isinstance(ast, dict):
+        raise ValueError("LLM Draft AST must be an object")
+    schema_version = ast.get("ast_schema_version")
+    if schema_version not in V3_3_SCHEMA_VERSIONS:
+        raise ValueError(f"ast_schema_version must be one of {sorted(V3_3_SCHEMA_VERSIONS)}")
+    return schema_version
+
+
+def _normalize_v3_3_select(ast: dict[str, Any]) -> dict[str, str]:
+    raw_select = ast.get("select")
+    if not isinstance(raw_select, list):
+        raise ValueError("select must be a list")
+
+    normalized: list[str] = []
+    alias_map: dict[str, str] = {}
+    for item in raw_select:
+        if isinstance(item, str):
+            _reject_legacy_yield_field(item)
+            normalized.append(item)
+            continue
+        if isinstance(item, dict):
+            alias = item.get("alias")
+            item_type = item.get("type")
+            period = item.get("period")
+            if item_type != "derived_return" or not isinstance(alias, str) or not alias:
+                raise ValueError("v3.3 derived select items must declare alias/type/period")
+            if not isinstance(period, str) or not period:
+                raise ValueError("v3.3 derived select item missing period")
+            alias_map[alias] = alias
+            normalized.append(alias)
+            continue
+        raise ValueError("select must contain field names or derived alias objects")
+
+    ast["select"] = list(dict.fromkeys(normalized))
+    return alias_map
+
+
+def _validate_v3_3_profile(ast: dict[str, Any], expectations: dict[str, Any]) -> None:
+    if "profile" not in ast:
+        return
+    allowed = set((expectations.get("v3_3") or {}).get("allowed_profiles") or [])
+    if allowed and ast["profile"] not in allowed:
+        raise ValueError(f"profile not allowed for user evidence: {ast['profile']}")
+
+
+def _validate_v3_3_select(
+    ast: dict[str, Any],
+    alias_map: dict[str, str],
+    selection_context: dict[str, Any],
+    expectations: dict[str, Any],
+) -> None:
+    allowed = set(selection_context["selectable_fields"]) | set(alias_map)
+    for field in ast["select"]:
+        _reject_legacy_yield_field(field)
+        if field not in allowed:
+            raise ValueError(f"select contains unsupported field: {field}")
+    labels = expectations.get("semantic_field_labels") or {}
+    for field in expectations.get("required_select_fields") or []:
+        if field not in ast["select"]:
+            label = labels.get(field, field)
+            raise ValueError(f"missing requested semantic field: {label}")
+    required_aliases = (expectations.get("v3_3") or {}).get("required_derived_aliases") or []
+    for alias in required_aliases:
+        if alias not in alias_map and alias not in ast["select"]:
+            raise ValueError(f"missing requested derived alias: {alias}")
+
+
+def _validate_v3_3_answer_fields(
+    ast: dict[str, Any],
+    alias_map: dict[str, str],
+    selection_context: dict[str, Any],
+    expectations: dict[str, Any],
+) -> None:
+    selected = set(ast["select"])
+    allowed_formats = set(selection_context["allowed_formats"])
+    field_metas = selection_context["field_metas"]
+    answer_field_names = set()
+    for item in ast["answer_fields"]:
+        if not isinstance(item, dict):
+            raise ValueError("answer_fields item must be an object")
+        field = item.get("field")
+        _reject_legacy_yield_field(field)
+        if field not in selected:
+            raise ValueError(f"answer field is not selected: {field}")
+        if field in alias_map:
+            item.setdefault("label", _derived_alias_label(field))
+            item.setdefault("format", "percent")
+            if item.get("source") != "derived":
+                raise ValueError(f"derived answer field must use source=derived: {field}")
+        else:
+            item.setdefault("label", field_metas.get(field, {"label": field})["label"])
+            item.setdefault("format", field_metas.get(field, {"format": "plain"})["format"])
+            if item.get("source") == "derived":
+                raise ValueError(f"non-derived answer field cannot use source=derived: {field}")
+        if item.get("format") not in allowed_formats:
+            raise ValueError(f"unsupported answer format: {item.get('format')}")
+        answer_field_names.add(field)
+    required_answer_fields = expectations.get("required_answer_fields") or expectations.get("required_select_fields") or []
+    for field in required_answer_fields:
+        if field not in answer_field_names:
+            label = (expectations.get("semantic_field_labels") or {}).get(field, field)
+            raise ValueError(f"missing requested semantic answer field: {label}")
+
+
+def _derived_alias_label(alias: str) -> str:
+    if not isinstance(alias, str) or not alias.startswith("return_"):
+        return alias
+    period = alias.removeprefix("return_")
+    return DERIVED_ALIAS_LABELS.get(period, alias)
+
+
+def _validate_v3_3_order_by(ast: dict[str, Any], selection_context: dict[str, Any], expectations: dict[str, Any]) -> None:
+    order_by = ast.get("order_by")
+    if isinstance(order_by, list) and len(order_by) == 1 and isinstance(order_by[0], dict):
+        order_by = order_by[0]
+        ast["order_by"] = order_by
+    if order_by is None:
+        return
+    if not isinstance(order_by, dict):
+        raise ValueError("order_by must be an object or null")
+    field = order_by.get("field")
+    _reject_legacy_yield_field(field)
+    if isinstance(field, str) and field.endswith("_fund_origin"):
+        raise ValueError("rank_list order_by must use numeric _fund field, not _fund_origin")
+    if order_by.get("direction") not in {"asc", "desc"}:
+        raise ValueError("order_by direction must be asc or desc")
+    if field not in set(selection_context["sortable_fields"]) | set((expectations.get("v3_3") or {}).get("required_derived_aliases") or []):
+        raise ValueError(f"order_by contains non-sortable field: {field}")
+
+
+def _validate_v3_3_performance_rows(ast: dict[str, Any], alias_map: dict[str, str], expectations: dict[str, Any]) -> None:
+    aliases = set(alias_map)
+    row_aliases = []
+    for row in ast["performance_rows"]:
+        if not isinstance(row, dict):
+            raise ValueError("performance_rows item must be an object")
+        alias = row.get("alias")
+        if alias not in aliases:
+            raise ValueError(f"performance row alias is not declared: {alias}")
+        row_aliases.append(alias)
+    required_rows = (expectations.get("v3_3") or {}).get("required_performance_rows") or []
+    for alias in required_rows:
+        if alias not in row_aliases:
+            raise ValueError(f"missing requested performance row: {alias}")
+
+
+def _validate_v3_3_timeseries_semantics(
+    ast: dict[str, Any],
+    selection_context: dict[str, Any],
+    expectations: dict[str, Any],
+) -> None:
+    expected = expectations.get("expected_timeseries_modes") or {}
+    timeseries = ast.get("timeseries_semantics")
+    if timeseries is None:
+        if expected:
+            raise ValueError("missing requested timeseries_semantics")
+        return
+    if not isinstance(timeseries, dict):
+        raise ValueError("timeseries_semantics must be an object or null")
+    by_field = timeseries.get("by_field")
+    if not isinstance(by_field, dict):
+        raise ValueError("timeseries_semantics.by_field must be an object")
+    allowed_fields = set(selection_context["selectable_fields"]) | set(selection_context["sortable_fields"])
+    normalized_by_field: dict[str, dict[str, Any]] = {}
+    for field, spec in by_field.items():
+        if field not in allowed_fields:
+            raise ValueError(f"timeseries_semantics contains unsupported field: {field}")
+        if isinstance(spec, str):
+            spec = {"mode": spec}
+        if not isinstance(spec, dict):
+            raise ValueError("timeseries_semantics entries must be objects")
+        normalized_spec = dict(spec)
+        mode = normalized_spec.get("mode")
+        if mode not in {"latest", "latest_two", "specified"}:
+            raise ValueError(f"unsupported timeseries mode: {mode}")
+        if mode == "specified" and not isinstance(normalized_spec.get("btime"), str):
+            raise ValueError("specified timeseries mode requires btime")
+        expected_spec = expected.get(field)
+        if expected_spec is not None:
+            if mode != expected_spec.get("mode"):
+                raise ValueError(f"timeseries mode mismatch for {field}")
+            if expected_spec.get("mode") == "specified" and spec.get("btime") != expected_spec.get("btime"):
+                raise ValueError(f"timeseries btime mismatch for {field}")
+        normalized_by_field[field] = normalized_spec
+    for field, expected_spec in expected.items():
+        if field not in by_field:
+            raise ValueError(f"missing requested timeseries field: {field}")
+    timeseries["by_field"] = normalized_by_field
+
+
+def _reject_legacy_yield_field(field: Any) -> None:
+    if isinstance(field, str) and field.startswith("ths_yeild_") and "_rank_" not in field:
+        raise ValueError(f"legacy yield field is not allowed in v3.3 derived performance: {field}")
+
+
 def _build_v3_2_provenance_diff(
     draft_ast: dict[str, Any],
     validated_ast: dict[str, Any],
@@ -131,6 +456,7 @@ def _v3_2_semantic_fingerprint(ast: dict[str, Any]) -> dict[str, Any]:
         "order_by": ast.get("order_by"),
         "limit": ast.get("limit"),
         "answer_fields": [item.get("field") for item in ast.get("answer_fields") or [] if isinstance(item, dict)],
+        "timeseries_semantics": ast.get("timeseries_semantics"),
         "report_period": ast.get("report_period"),
         "expand": ast.get("expand"),
     }
@@ -352,6 +678,8 @@ def _apply_v3_2_defaults(
             ast["answer_fields"].append({"field": field, "label": meta["label"], "format": meta["format"]})
             answer_field_names.add(field)
     for field in ast["select"]:
+        if isinstance(field, str) and field.startswith("return_"):
+            continue
         if field not in answer_field_names:
             meta = metas.get(field, {"label": field, "format": "plain"})
             ast["answer_fields"].append({"field": field, "label": meta["label"], "format": meta["format"]})

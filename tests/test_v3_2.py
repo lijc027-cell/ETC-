@@ -86,7 +86,7 @@ def test_v3_2_single_query_uses_llm_ast_draft_path(monkeypatch):
         },
     )
 
-    result = semantic_query_v3("510300的成立日期是什么时候", root=ROOT, dry_run=False, no_llm=False)
+    result = semantic_query_v3("510300的成立日期是什么时候", root=ROOT, dry_run=False, no_llm=False, phase="v3.2")
 
     assert result["v3"]["ast_generation_mode"] == "llm_ast_draft"
     assert result["v3"]["llm_ast_draft_raw"]
@@ -137,7 +137,7 @@ def test_v3_2_validator_rejects_missing_requested_semantic_field(monkeypatch):
         lambda **kwargs: {"raw": json.dumps(draft, ensure_ascii=False), "draft": draft},
     )
 
-    result = semantic_query_v3("510300的成立日期是什么时候", root=ROOT, dry_run=False, no_llm=False)
+    result = semantic_query_v3("510300的成立日期是什么时候", root=ROOT, dry_run=False, no_llm=False, phase="v3.2")
 
     assert result["failure_stage"] == "validator"
     assert "成立日期" in result["failure_reason"]
@@ -304,7 +304,7 @@ def test_v3_2_validator_normalizes_select_object_aliases(monkeypatch):
         },
     )
 
-    result = semantic_query_v3("510300是什么", root=ROOT, dry_run=False, no_llm=False)
+    result = semantic_query_v3("510300是什么", root=ROOT, dry_run=False, no_llm=False, phase="v3.2")
 
     assert result["v3"]["ast_generation_mode"] == "llm_ast_draft"
     assert result["validated_ast"]["select"] == [
@@ -368,7 +368,7 @@ def test_v3_2_rank_only_performance_queries_do_not_require_yield_fields(
         },
     )
 
-    result = semantic_query_v3(question, root=ROOT, dry_run=False, no_llm=False)
+    result = semantic_query_v3(question, root=ROOT, dry_run=False, no_llm=False, phase="v3.2")
 
     assert result["v3"]["ast_generation_mode"] == "llm_ast_draft"
     assert rank_field in result["validated_ast"]["select"]
@@ -433,7 +433,7 @@ def test_v3_2_filter_between_date_draft_is_normalized_to_range(monkeypatch):
         },
     )
 
-    result = semantic_query_v3("2024年成立的ETF有哪些", root=ROOT, dry_run=False, no_llm=False)
+    result = semantic_query_v3("2024年成立的ETF有哪些", root=ROOT, dry_run=False, no_llm=False, phase="v3.2")
 
     assert result["v3"]["ast_generation_mode"] == "llm_ast_draft"
     assert result["validated_ast"]["where"] == [
@@ -522,7 +522,7 @@ def test_v3_2_composite_single_emits_all_requested_single_sub_intents(monkeypatc
         },
     )
 
-    result = semantic_query_v3("510300收益、管理人、申赎状态能不能一次查？", root=ROOT, dry_run=False, no_llm=False)
+    result = semantic_query_v3("510300收益、管理人、申赎状态能不能一次查？", root=ROOT, dry_run=False, no_llm=False, phase="v3.2")
 
     assert result["v3"]["intent"] == "composite_single"
     assert result["v3"]["ast_generation_mode"] == "llm_ast_draft"
@@ -586,7 +586,7 @@ def test_v3_2_composite_return_and_dividend_does_not_require_rank_fields(monkeyp
         },
     )
 
-    result = semantic_query_v3("510300成立以来收益怎么样，分过红吗", root=ROOT, dry_run=False, no_llm=False)
+    result = semantic_query_v3("510300成立以来收益怎么样，分过红吗", root=ROOT, dry_run=False, no_llm=False, phase="v3.2")
 
     assert result["v3"]["intent"] == "composite_single"
     assert result["v3"]["ast_generation_mode"] == "llm_ast_draft"
@@ -626,7 +626,7 @@ def test_v3_2_composite_single_rejects_missing_requested_sub_intents(monkeypatch
         lambda **kwargs: {"raw": json.dumps(draft, ensure_ascii=False), "draft": draft},
     )
 
-    result = semantic_query_v3("510300成立以来收益怎么样，分过红吗", root=ROOT, dry_run=False, no_llm=False)
+    result = semantic_query_v3("510300成立以来收益怎么样，分过红吗", root=ROOT, dry_run=False, no_llm=False, phase="v3.2")
 
     assert result["failure_stage"] == "validator"
     assert "sub_intents" in result["failure_reason"]
@@ -703,7 +703,7 @@ def test_v3_2_filter_tracking_index_alias_is_normalized(monkeypatch):
         },
     )
 
-    result = semantic_query_v3("成立以来收益最好的沪深300ETF是哪只", root=ROOT, dry_run=False, no_llm=False)
+    result = semantic_query_v3("成立以来收益最好的沪深300ETF是哪只", root=ROOT, dry_run=False, no_llm=False, phase="v3.2")
 
     assert result["v3"]["ast_generation_mode"] == "llm_ast_draft"
     assert result["validated_ast"]["where"] == [
@@ -766,7 +766,7 @@ def test_v3_2_compare_null_limit_defaults_to_compare_cap(monkeypatch):
         },
     )
 
-    result = semantic_query_v3("对比510300、510500和159919", root=ROOT, dry_run=False, no_llm=False)
+    result = semantic_query_v3("对比510300、510500和159919", root=ROOT, dry_run=False, no_llm=False, phase="v3.2")
 
     assert result["v3"]["ast_generation_mode"] == "llm_ast_draft"
     assert result["validated_ast"]["limit"] == 10
@@ -818,7 +818,7 @@ def test_v3_2_filter_order_by_singleton_list_is_normalized(monkeypatch):
         },
     )
 
-    result = semantic_query_v3("今年以来收益排名前10的ETF", root=ROOT, dry_run=False, no_llm=False)
+    result = semantic_query_v3("今年以来收益排名前10的ETF", root=ROOT, dry_run=False, no_llm=False, phase="v3.2")
 
     assert result["v3"]["ast_generation_mode"] == "llm_ast_draft"
     assert result["validated_ast"]["order_by"] == {"field": "ths_yeild_ytd_fund", "direction": "desc"}
@@ -925,7 +925,7 @@ def test_v3_2_filter_select_does_not_need_to_repeat_predicate_fields(monkeypatch
     monkeypatch.setattr("etf_agent.v3.generate_full_ast_draft_with_llm", fake_generate_full_ast_draft_with_llm)
     monkeypatch.setattr("etf_agent.v3._execute_v3_plan", fake_execute_v3_plan)
 
-    result = semantic_query_v3("上交所的ETF里，找管理费最低的3只，对比它们的今年收益", root=ROOT, dry_run=False, no_llm=False)
+    result = semantic_query_v3("上交所的ETF里，找管理费最低的3只，对比它们的今年收益", root=ROOT, dry_run=False, no_llm=False, phase="v3.2")
 
     assert result["v3"]["recognized_query_mode"] == "compare"
     assert result["v3"]["intent"] == "two_step_composite"
@@ -1020,7 +1020,7 @@ def test_v3_2_filter_to_compare_step2_prompt_forbids_order_by(monkeypatch):
         },
     )
 
-    result = semantic_query_v3("股票型ETF里今年收益最高的5只是哪些？对比一下", root=ROOT, dry_run=False, no_llm=False)
+    result = semantic_query_v3("股票型ETF里今年收益最高的5只是哪些？对比一下", root=ROOT, dry_run=False, no_llm=False, phase="v3.2")
 
     assert result["v3"]["recognized_query_mode"] == "compare"
     assert result["v3"]["intent"] == "two_step_composite"
@@ -1036,7 +1036,7 @@ def test_v3_2_manager_detail_does_not_fallback_to_manager(monkeypatch):
 
     monkeypatch.setattr("etf_agent.v3.generate_full_ast_draft_with_llm", fail_if_called)
 
-    result = semantic_query_v3("510300基金经理的历史业绩怎么样", root=ROOT, dry_run=False, no_llm=False)
+    result = semantic_query_v3("510300基金经理的历史业绩怎么样", root=ROOT, dry_run=False, no_llm=False, phase="v3.2")
 
     assert result["v3"]["routing_result"]["type"] == "UnsupportedQuery"
     assert result["v3"]["failure_reason"] == "blocked_by_verification"
@@ -1124,7 +1124,7 @@ def test_v3_2_two_step_composite_uses_llm_ast_for_each_child(monkeypatch):
         },
     )
 
-    result = semantic_query_v3("股票型ETF里今年收益最高的5只是哪些？对比一下", root=ROOT, dry_run=False, no_llm=False)
+    result = semantic_query_v3("股票型ETF里今年收益最高的5只是哪些？对比一下", root=ROOT, dry_run=False, no_llm=False, phase="v3.2")
 
     assert result["v3"]["recognized_query_mode"] == "compare"
     assert result["v3"]["intent"] == "two_step_composite"
@@ -1138,7 +1138,7 @@ def test_v3_2_two_step_composite_uses_llm_ast_for_each_child(monkeypatch):
     assert "510300" in result["answer"]
     assert "510500" in result["answer"]
 def test_v3_2_invalid_ascii_code_raises_clarification():
-    result = semantic_query_v3("abcdef是什么基金", root=ROOT, dry_run=False, no_llm=False)
+    result = semantic_query_v3("abcdef是什么基金", root=ROOT, dry_run=False, no_llm=False, phase="v3.2")
 
     assert result["v3"]["recognized_query_mode"] == "clarify"
     assert result["v3"]["routing_result"]["type"] == "ClarificationRequired"
@@ -1175,7 +1175,7 @@ def test_v3_2_search_signal_beats_track_filter(monkeypatch):
         lambda plan, config_obj, *, dry_run, no_llm: {"success": True, "data": []},
     )
 
-    result = semantic_query_v3("我想找跟踪科创50的ETF", root=ROOT, dry_run=False, no_llm=False)
+    result = semantic_query_v3("我想找跟踪科创50的ETF", root=ROOT, dry_run=False, no_llm=False, phase="v3.2")
 
     assert result["v3"]["recognized_query_mode"] == "search"
     assert result["v3"]["intent"] == "search"
@@ -1184,7 +1184,7 @@ def test_v3_2_search_signal_beats_track_filter(monkeypatch):
 
 
 def test_v3_2_manager_history_query_is_blocked():
-    result = semantic_query_v3("510300什么时候换的基金经理", root=ROOT, dry_run=False, no_llm=False)
+    result = semantic_query_v3("510300什么时候换的基金经理", root=ROOT, dry_run=False, no_llm=False, phase="v3.2")
 
     assert result["v3"]["recognized_query_mode"] == "unsupported"
     assert result["v3"]["routing_result"]["type"] == "UnsupportedQuery"
@@ -1194,7 +1194,7 @@ def test_v3_2_manager_history_query_is_blocked():
 
 
 def test_v3_2_fund_share_timeseries_query_is_blocked():
-    result = semantic_query_v3("510300的基金份额最近有变化吗", root=ROOT, dry_run=False, no_llm=False)
+    result = semantic_query_v3("510300的基金份额最近有变化吗", root=ROOT, dry_run=False, no_llm=False, phase="v3.2")
 
     assert result["v3"]["recognized_query_mode"] == "unsupported"
     assert result["v3"]["routing_result"]["type"] == "UnsupportedQuery"
@@ -1238,7 +1238,7 @@ def test_v3_2_performance_does_not_default_rank_fields(monkeypatch):
         },
     )
 
-    result = semantic_query_v3("510300今年的收益率是多少", root=ROOT, dry_run=False, no_llm=False)
+    result = semantic_query_v3("510300今年的收益率是多少", root=ROOT, dry_run=False, no_llm=False, phase="v3.2")
 
     assert result["v3"]["ast_generation_mode"] == "llm_ast_draft"
     assert "ths_yeild_rank_ytd_fund_origin" not in result["validated_ast"]["select"]
@@ -1301,8 +1301,9 @@ def test_v3_2_audit_main_skips_out_of_scope_rows_without_runtime(monkeypatch, tm
     ]
     calls = []
 
-    def fake_semantic_query_v3(question, root):
+    def fake_semantic_query_v3(question, root, phase="v3.2"):
         calls.append(question)
+        assert phase == "v3.2"
         return {
             "answer": "510300 是沪深300ETF。",
             "v3": {

@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import json
 import math
 import re
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -11,7 +13,8 @@ from .capability_registry import LIST_BASELINE_FIELDS as REGISTRY_LIST_BASELINE_
 from .capability_registry import field_meta, get_selection_context
 from .entities import PERIOD_PATTERNS
 from .ast_generator import generate_full_ast_draft_with_llm
-from .ast_validator import validate_v3_2_ast_draft
+from .ast_validator import validate_v3_2_ast_draft, validate_v3_3_ast_draft
+from .derived_performance import compile_derived_performance_query, execute_derived_performance
 from .generation_context import build_generation_bundle
 
 SUPPORTED_INTENTS = {
@@ -241,6 +244,22 @@ def _lexical_infer_intent(question: str) -> str:
     return "basic_info"
 
 
+def _requires_explicit_derived_performance(question: str) -> bool:
+    text = question.replace(" ", "")
+    explicit_triggers = (
+        "按净值序列重新计算",
+        "按净值重新计算",
+        "自定义日期区间",
+        "自定义日期",
+        "指定日期区间",
+        "从某天到某天",
+        "从某日到某日",
+    )
+    if any(trigger in text for trigger in explicit_triggers):
+        return True
+    return "从" in text and "到" in text and any(word in text for word in ("涨了多少", "收益率", "收益", "回报", "涨幅", "表现"))
+
+
 def classify_v3_query(
     question: str,
     entities: dict[str, str] | None = None,
@@ -352,6 +371,15 @@ def _force_unsupported_classification(question: str) -> dict[str, Any] | None:
             "from_candidates": [],
             "reason": "unsupported_timeseries",
         }
+    if any(word in question for word in ("季报", "年报")) and any(word in question for word in ("没有", "都没有", "不存在", "缺失")):
+        report_intent = _report_intent_for_missing_data(question)
+        return {
+            "recognized_query_mode": "unsupported",
+            "intent": report_intent,
+            "intent_candidates": [report_intent] if report_intent else [],
+            "from_candidates": [],
+            "reason": "data_not_available",
+        }
     unsupported_keywords = ("持仓", "重仓", "行业", "概念", "季报", "年报", "前十大", "机构持有", "投资风格", "净资产")
     if any(word in question for word in unsupported_keywords):
         return {
@@ -364,12 +392,28 @@ def _force_unsupported_classification(question: str) -> dict[str, Any] | None:
     if any(word in question for word in ("同类比", "同类平均", "同类均值")):
         return {
             "recognized_query_mode": "unsupported",
-            "intent": None,
-            "intent_candidates": [],
+            "intent": "unsupported_peer_average",
+            "intent_candidates": ["unsupported_peer_average"],
             "from_candidates": [],
-            "reason": "peer_average_requires_v3_2",
-        }
+            "reason": "blocked_by_verification",
+    }
     return None
+
+
+def _report_intent_for_missing_data(question: str) -> str | None:
+    if "概念" in question:
+        return "report_concept"
+    if "重仓股" in question or "重仓证券" in question:
+        return "report_holding"
+    if "机构持有" in question:
+        return "institution_holding"
+    if "投资风格" in question:
+        return "report_style"
+    if "净资产" in question:
+        return "report_nav_change"
+    if any(word in question for word in ("行业", "持仓")):
+        return "report_industry"
+    return "report_industry"
 
 
 def _force_v3_2_single_classification(question: str, entities: dict[str, str]) -> dict[str, Any] | None:
@@ -660,6 +704,8 @@ def _extract_order_by(question: str) -> dict[str, str] | None:
     if any(word in question for word in fee_words):
         if any(word in question for word in ("最低", "低到高", "低成本", "便宜", "费用省", "费率最低")):
             return {"field": "ths_manage_fee_rate_fund", "direction": "asc"}
+        if re.search(r"管理费率?\s*(?:小于等于|不超过|至多|小于|低于|少于)\s*[0-9.]+\s*%", question):
+            return {"field": "ths_manage_fee_rate_fund", "direction": "asc"}
         if any(word in question for word in ("最高", "高到低", "费率最高")):
             return {"field": "ths_manage_fee_rate_fund", "direction": "desc"}
     if "规模" in question and any(word in question for word in ("前", "最大", "最高", "排序")):
@@ -667,6 +713,8 @@ def _extract_order_by(question: str) -> dict[str, str] | None:
     if any(word in question for word in ("收益", "收益率", "回报")) and any(
         word in question for word in ("前", "最高", "最好", "排名", "排序", "靠前")
     ):
+        return {"field": _yield_field_for_question(question, default_period="ytd"), "direction": "desc"}
+    if re.search(r"收益率?\s*(?:大于等于|不低于|至少|大于|超过|高于)\s*[0-9.]+\s*%", question):
         return {"field": _yield_field_for_question(question), "direction": "desc"}
     return None
 
@@ -685,6 +733,8 @@ def _extract_limit(question: str) -> int | None:
     match = re.search(r"([0-9]+)\s*只", question)
     if match:
         return int(match.group(1))
+    if any(word in question for word in ("哪只", "哪一只", "哪支")) and any(word in question for word in ("最好", "最高", "最低", "最强", "最优")):
+        return 1
     if "全部" in question or "所有" in question:
         return 50
     return None
@@ -735,8 +785,12 @@ def _period_from_question(question: str) -> str:
     return "1y"
 
 
-def _yield_field_for_question(question: str) -> str:
-    return f"ths_yeild_{_period_from_question(question)}_fund"
+def _yield_field_for_question(question: str, *, default_period: str = "1y") -> str:
+    return f"ths_yeild_{_period_from_question(question) if _has_explicit_period(question) else default_period}_fund"
+
+
+def _has_explicit_period(question: str) -> bool:
+    return any(pattern.search(question) for pattern, _period in PERIOD_PATTERNS)
 
 
 def _force_deny_classification(question: str) -> dict[str, Any] | None:
@@ -748,7 +802,15 @@ def _force_deny_classification(question: str) -> dict[str, Any] | None:
             "from_candidates": [],
             "deny_reason": "investment_advice",
         }
-    if any(word in question for word in ("实时行情", "今日涨跌", "成交额", "融资余额", "融券", "净现金流", "大盘", "A股大盘", "K线", "MACD", "均线", "RSI")):
+    if any(word in question for word in ("实时行情", "实时净值", "盘中行情", "今日涨跌", "今天涨跌", "实时")):
+        return {
+            "recognized_query_mode": "deny",
+            "intent": None,
+            "intent_candidates": [],
+            "from_candidates": [],
+            "deny_reason": "realtime_not_supported",
+        }
+    if any(word in question for word in ("大盘", "A股大盘", "个股分析", "上证指数", "深证成指", "K线", "MACD", "均线", "RSI")):
         return {
             "recognized_query_mode": "deny",
             "intent": None,
@@ -767,6 +829,9 @@ def _force_v3_0_single_classification(question: str, entities: dict[str, str]) -
     hints = extract_v3_1_entity_hints(question)
     if hints["filters"] or _has_search_signal(question) or _has_compare_signal(question):
         return None
+
+    if _requires_explicit_derived_performance(question):
+        return _single_classification("performance", entities)
 
     real_time_markers = ("实时", "盘中", "当前", "现在", "今天", "今日", "估值")
     if "净值" in question and not any(marker in question for marker in real_time_markers):
@@ -986,10 +1051,15 @@ def _compile_ast_to_plan(ast: dict[str, Any]) -> dict[str, Any]:
         "limit": ast["limit"],
         "answer_fields": list(ast["answer_fields"]),
         "output_style": ast.get("output_style", "summary"),
+        "timeseries_semantics": ast.get("timeseries_semantics"),
     }
     order_by = ast.get("order_by")
     if order_by:
         plan["sort"] = _sort_spec(order_by)
+    elif ast.get("intent") in {"search", "filter"}:
+        plan["sort"] = [["ths_fund_scale_fund", -1], ["fundcode", 1]]
+    if _needs_performance_nav_projection(ast, plan):
+        plan["projection"] = _append_unique_projection(plan["projection"], "ths_unit_nv_fund")
     for clause in ast.get("where", []):
         op = clause.get("op")
         if op == "eq":
@@ -997,7 +1067,10 @@ def _compile_ast_to_plan(ast: dict[str, Any]) -> dict[str, Any]:
         elif op == "in":
             plan["filter"][clause["field"]] = {"$in": clause["value"]}
         elif op == "contains":
-            plan["filter"][clause["field"]] = {"$contains": clause["value"]}
+            if clause["field"] == "__search_text__":
+                plan["filter"][clause["field"]] = {"$contains": clause["value"]}
+            else:
+                plan["filter"][clause["field"]] = {"$regex": re.escape(str(clause["value"])), "$options": "i"}
         elif op == "between":
             value = clause.get("value") or {}
             plan["filter"].setdefault(clause["field"], {})["$gte"] = value.get("start") or value.get("gte")
@@ -1005,6 +1078,24 @@ def _compile_ast_to_plan(ast: dict[str, Any]) -> dict[str, Any]:
         elif op in {"gt", "gte", "lt", "lte"}:
             plan["filter"].setdefault(clause["field"], {})[_mongo_compare_op(op)] = clause["value"]
     return plan
+
+
+def _needs_performance_nav_projection(ast: dict[str, Any], plan: dict[str, Any]) -> bool:
+    if ast.get("intent") == "performance":
+        return True
+    fields = list(plan.get("projection") or [])
+    sort_spec = list(plan.get("sort") or [])
+    if any(isinstance(field, str) and field.startswith("ths_yeild_") for field in fields):
+        return True
+    if any(isinstance(item, (list, tuple)) and item and str(item[0]).startswith("ths_yeild_") for item in sort_spec):
+        return True
+    return False
+
+
+def _append_unique_projection(projection: list[str], field: str) -> list[str]:
+    if field in projection:
+        return projection
+    return [*projection, field]
 
 
 def _sort_spec(order_by: dict[str, str]) -> list[list[Any]]:
@@ -1065,7 +1156,7 @@ def _detect_project_root() -> Path:
     return cwd
 
 
-def semantic_query_v3(question: str, *, root=None, dry_run: bool = False, no_llm: bool = False) -> dict[str, Any]:
+def semantic_query_v3(question: str, *, root=None, dry_run: bool = False, no_llm: bool = False, phase: str = "v3.3") -> dict[str, Any]:
     # Load config
     from .config import load_config
 
@@ -1077,7 +1168,11 @@ def semantic_query_v3(question: str, *, root=None, dry_run: bool = False, no_llm
     mode = classification["recognized_query_mode"]
 
     if not dry_run and not no_llm:
-        return _semantic_query_v3_2_strict(question, config_obj=config_obj, classification=classification)
+        if phase == "v3.2":
+            return _semantic_query_v3_2_strict(question, config_obj=config_obj, classification=classification)
+        if phase == "v3.3":
+            return _semantic_query_v3_3_strict(question, config_obj=config_obj, classification=classification)
+        raise ValueError(f"unsupported v3 phase: {phase}")
 
     if mode == "deny":
         return {
@@ -1398,6 +1493,176 @@ def _semantic_query_v3_2_strict(question: str, *, config_obj, classification: di
     }
 
 
+def _semantic_query_v3_3_strict(
+    question: str,
+    *,
+    config_obj,
+    classification: dict[str, Any],
+    apply_override: bool = True,
+) -> dict[str, Any]:
+    started_at = datetime.now(timezone.utc)
+    if apply_override:
+        classification = _v3_3_override_classification(question, classification)
+        if classification.get("composite_execution") == "multi_child_bundle":
+            return _semantic_query_v3_3_composite_bundle(question, config_obj=config_obj, classification=classification)
+    mode = classification["recognized_query_mode"]
+    if mode in {"deny", "unsupported", "clarify"}:
+        output = _non_executable_v3_2_output(question, classification)
+        output["v3"]["phase"] = "v3.3"
+        return output
+    if (
+        mode == "filter"
+        and not classification.get("child_task")
+        and (classification.get("entity_hints") or {}).get("wants_compare")
+        and _has_compare_signal(question)
+    ):
+        return _semantic_query_v3_3_filter_to_compare(
+            question,
+            classification=classification,
+            config_obj=config_obj,
+        )
+
+    try:
+        query_mode, intent, entity_hints, routing_evidence = _v3_3_execution_context(question, classification, config_obj)
+        routing_result = {"type": "ExecutableQuery", "reason": None}
+        generation_bundle = build_generation_bundle(
+            question,
+            query_mode=query_mode,
+            intent=intent,
+            entity_hints=entity_hints,
+            phase="v3.3",
+        )
+        if classification.get("child_task"):
+            generation_bundle["llm_context"]["child_task"] = classification["child_task"]
+    except Exception as exc:
+        return _v3_3_failure(
+            question,
+            classification=classification,
+            stage="routing",
+            reason=str(exc),
+            ast_generation_mode=None,
+        )
+
+    if _is_v3_3_mixed_rank_return(question, generation_bundle):
+        return _v3_3_unsupported(question, classification, "mixed_rank_return_list_not_supported")
+
+    try:
+        draft_payload = generate_full_ast_draft_with_llm(
+            question=question,
+            routing_result=routing_result,
+            classification={**classification, "recognized_query_mode": query_mode, "intent": intent},
+            generation_context=generation_bundle,
+            config=config_obj,
+        )
+    except Exception as exc:
+        return _v3_3_failure(
+            question,
+            classification=classification,
+            stage="llm_ast_draft",
+            reason=str(exc),
+            ast_generation_mode="llm_ast_draft_failed",
+        )
+
+    try:
+        validation = validate_v3_3_ast_draft(
+            draft_payload["draft"],
+            query_mode=query_mode,
+            intent=intent,
+            generation_bundle=generation_bundle,
+        )
+    except Exception as exc:
+        return _v3_3_failure(
+            question,
+            classification=classification,
+            stage="validator",
+            reason=str(exc),
+            ast_generation_mode="llm_ast_draft_failed",
+            llm_ast_draft_raw=draft_payload.get("raw"),
+        )
+
+    validated_ast = validation["validated_ast"]
+    try:
+        compiled_kind, compiled_query = _compile_v3_3_query(validated_ast)
+        if compiled_kind == "derived_performance":
+            mongo_params = _mongo_params_for_plan(compiled_query["mongo_phase"])
+            mongo_result = _execute_mongo_phase(compiled_query["mongo_phase"], config_obj)
+            result = execute_derived_performance(compiled_query, mongo_result)
+            answer_plan = compiled_query["output_phase"]
+        else:
+            mongo_params = _mongo_params_for_plan(compiled_query)
+            result = _execute_v3_plan(compiled_query, config_obj, dry_run=False, no_llm=False)
+            answer_plan = compiled_query
+    except Exception as exc:
+        return _v3_3_failure(
+            question,
+            classification=classification,
+            stage="compiler" if "compiled_kind" not in locals() else "executor",
+            reason=str(exc),
+            ast_generation_mode="llm_ast_draft" if "compiled_kind" in locals() else "llm_ast_draft_failed",
+            llm_ast_draft_raw=draft_payload.get("raw"),
+            v3_ast=draft_payload["draft"],
+            validated_ast=validated_ast,
+            query_plan=compiled_query if "compiled_query" in locals() else None,
+            mongo_params=mongo_params if "mongo_params" in locals() else None,
+            remote_query_allowed=True,
+        )
+
+    from .formatter import format_answer
+
+    if compiled_kind != "derived_performance":
+        result = _apply_timeseries_semantics(validated_ast, result)
+
+    answer = format_answer(answer_plan, result)
+    ended_at = datetime.now(timezone.utc)
+    answer = _append_runtime_metadata(
+        answer,
+        result=result,
+        usage=draft_payload.get("usage"),
+    )
+    capability_audit = _capability_audit_fields("v3.3", query_mode, intent, generation_bundle)
+    output_mode = classification.get("recognized_query_mode") if classification.get("recognized_query_mode") == "composite" else query_mode
+    output_v3 = {
+        **classification,
+        "phase": "v3.3",
+        "ast_schema_version": validation["provenance_diff"].get("ast_schema_version", "v3_3_structured_query"),
+        "grammar_fragment_id": compiled_query.get("grammar_fragment_id") if isinstance(compiled_query, dict) else None,
+        "compiler_rule_id": compiled_query.get("compiler_rule_id") if isinstance(compiled_query, dict) else None,
+        "routing_result": routing_result,
+        "recognized_query_mode": output_mode,
+        "child_query_mode": query_mode if output_mode == "composite" else None,
+        "intent": intent,
+        **capability_audit,
+        "derived_performance_strict_pass": validation["provenance_diff"]["strict_pass"],
+        "routing_evidence": routing_evidence,
+        "ast_generation_mode": "llm_ast_draft",
+        "llm_ast_draft_raw": draft_payload.get("raw"),
+        "remote_query_allowed": True,
+        "failure_stage": None,
+        "failure_reason": None,
+        "provenance_diff": validation["provenance_diff"],
+        "validator_applied_defaults": validation["validator_applied_defaults"],
+    }
+    return {
+        "question": question,
+        "answer": answer,
+        "v3": output_v3,
+        "v3_ast": draft_payload["draft"],
+        "validated_ast": validated_ast,
+        "entities": {"question": question, **entity_hints},
+        "query_plan": compiled_query,
+        "compiled_query": compiled_query,
+        "mongo_params": mongo_params,
+        "result": result,
+        "execution_window": {
+            "started_at": started_at.isoformat(),
+            "ended_at": ended_at.isoformat(),
+        },
+        "llm_usage": _normalize_usage(draft_payload.get("usage")),
+        "failure_stage": None,
+        "failure_reason": None,
+    }
+
+
 def _semantic_query_v3_2_filter_to_compare(
     question: str,
     *,
@@ -1509,6 +1774,136 @@ def _semantic_query_v3_2_filter_to_compare(
     }
 
 
+def _semantic_query_v3_3_filter_to_compare(
+    question: str,
+    *,
+    classification: dict[str, Any],
+    config_obj,
+) -> dict[str, Any]:
+    filter_hints = dict(classification.get("entity_hints") or extract_v3_1_entity_hints(question))
+    selection_question = _filter_to_compare_selection_question(question)
+    filter_child = _semantic_query_v3_3_strict(
+        selection_question,
+        config_obj=config_obj,
+        classification={
+            **classification,
+            "recognized_query_mode": "filter",
+            "intent": "filter",
+            "intent_candidates": ["filter"],
+            "from_candidates": ["tb_ths_etf_base"],
+            "entity_hints": filter_hints,
+            "child_task": "two_step_composite step 1: generate only the filter/list AST that selects candidate fundcodes.",
+        },
+        apply_override=False,
+    )
+    if filter_child.get("failure_stage") is not None:
+        return _v3_3_composite_failure(
+            question,
+            classification,
+            [filter_child],
+            filter_child.get("failure_stage") or "composite_step1",
+            filter_child.get("failure_reason") or "filter_to_compare step 1 failed",
+        )
+
+    compare_codes = _result_fundcodes(filter_child)[:5]
+    if len(compare_codes) < 2:
+        return _v3_3_composite_failure(
+            question,
+            classification,
+            [filter_child],
+            "composite",
+            "filter_to_compare requires at least two candidates",
+        )
+
+    compare_hints = {
+        "fundcodes": compare_codes,
+        "filters": [],
+        "limit_hint": None,
+        "order_by": None,
+        "search_keyword": "",
+        "period": filter_hints.get("period") or _period_from_question(question),
+        "wants_compare": True,
+    }
+    compare_question = _compare_child_question(
+        question,
+        compare_codes,
+        _expected_composite_sub_intents(question) or ["performance"],
+    )
+    compare_child = _semantic_query_v3_3_strict(
+        compare_question,
+        config_obj=config_obj,
+        classification={
+            **classification,
+            "recognized_query_mode": "compare",
+            "intent": "compare",
+            "intent_candidates": ["compare"],
+            "from_candidates": ["tb_ths_etf_base"],
+            "entity_hints": compare_hints,
+            "child_task": (
+                "two_step_composite step 2: compare only the provided fundcodes from step 1; "
+                "do not add order_by or additional candidate selection."
+            ),
+        },
+        apply_override=False,
+    )
+    if compare_child.get("failure_stage") is not None:
+        return _v3_3_composite_failure(
+            question,
+            classification,
+            [filter_child, compare_child],
+            compare_child.get("failure_stage") or "composite_step2",
+            compare_child.get("failure_reason") or "filter_to_compare step 2 failed",
+        )
+
+    output_v3 = {
+        **classification,
+        "phase": "v3.3",
+        "ast_schema_version": "v3_3_structured_query",
+        "routing_result": {"type": "ExecutableQuery", "reason": None},
+        "recognized_query_mode": "compare",
+        "intent": "two_step_composite",
+        "capability_id": "v3.3:compare:two_step_composite",
+        "capability_status": "executable",
+        "gate_status": "not_applicable",
+        "capability_status_reason": None,
+        "intent_candidates": ["two_step_composite"],
+        "blocked_intent_candidates": [],
+        "ast_generation_mode": "llm_ast_draft",
+        "llm_ast_draft_raw": [
+            (filter_child.get("v3") or {}).get("llm_ast_draft_raw"),
+            (compare_child.get("v3") or {}).get("llm_ast_draft_raw"),
+        ],
+        "remote_query_allowed": True,
+        "failure_stage": None,
+        "failure_reason": None,
+        "steps": [
+            {"recognized_query_mode": "filter", "intent": "filter"},
+            {"recognized_query_mode": "compare", "intent": "compare"},
+        ],
+        "provenance_diff": [
+            (filter_child.get("v3") or {}).get("provenance_diff"),
+            (compare_child.get("v3") or {}).get("provenance_diff"),
+        ],
+        "validator_applied_defaults": [
+            (filter_child.get("v3") or {}).get("validator_applied_defaults"),
+            (compare_child.get("v3") or {}).get("validator_applied_defaults"),
+        ],
+    }
+    return {
+        "question": question,
+        "answer": compare_child.get("answer") or "",
+        "v3": output_v3,
+        "v3_ast": {"intent": "two_step_composite", "steps": [filter_child.get("v3_ast"), compare_child.get("v3_ast")]},
+        "validated_ast": {"intent": "two_step_composite", "steps": [filter_child.get("validated_ast"), compare_child.get("validated_ast")]},
+        "query_plan": {"steps": [filter_child.get("query_plan"), compare_child.get("query_plan")]},
+        "compiled_query": {"steps": [filter_child.get("query_plan"), compare_child.get("query_plan")]},
+        "mongo_params": {"steps": [filter_child.get("mongo_params"), compare_child.get("mongo_params")]},
+        "result": {"success": True, "steps": [filter_child.get("result"), compare_child.get("result")]},
+        "failure_stage": None,
+        "failure_reason": None,
+    }
+
+
 def _run_v3_2_child(
     question: str,
     *,
@@ -1592,10 +1987,13 @@ def _capability_audit_fields(
 def _non_executable_v3_2_output(question: str, classification: dict[str, Any]) -> dict[str, Any]:
     routing_result = _routing_result_for_classification(classification)
     reason = routing_result.get("reason")
+    failure_stage = "data_not_available" if reason == "data_not_available" else "routing"
     if routing_result["type"] == "DeniedQuery":
         answer = "抱歉，该问题涉及实时行情、交易指标或投资建议，超出当前 ETF 数据查询能力范围。"
     elif routing_result["type"] == "ClarificationRequired":
         answer = "查询条件还不够明确，请补充后重试。"
+    elif reason == "data_not_available":
+        answer = "暂无数据。"
     else:
         answer = "当前版本暂不支持该查询类型。"
     v3 = {
@@ -1605,7 +2003,7 @@ def _non_executable_v3_2_output(question: str, classification: dict[str, Any]) -
         "ast_generation_mode": None,
         "llm_ast_draft_raw": None,
         "remote_query_allowed": False,
-        "failure_stage": "routing",
+        "failure_stage": failure_stage,
         "failure_reason": reason,
     }
     return {
@@ -1617,7 +2015,7 @@ def _non_executable_v3_2_output(question: str, classification: dict[str, Any]) -
         "query_plan": None,
         "mongo_params": None,
         "result": None,
-        "failure_stage": "routing",
+        "failure_stage": failure_stage,
         "failure_reason": reason,
     }
 
@@ -1639,6 +2037,627 @@ def _v3_2_execution_context(
     period = entities.get("period") or _period_from_question(question)
     entity_hints = {"fundcodes": [entities["fundcode"]], "period": period}
     return "single", intent, entity_hints, _build_routing_evidence(question, query_mode="single", intent=intent, entity_hints=entity_hints, entities=entities)
+
+
+def _v3_3_execution_context(
+    question: str,
+    classification: dict[str, Any],
+    config_obj,
+) -> tuple[str, str, dict[str, Any], dict[str, Any]]:
+    query_mode = classification["recognized_query_mode"]
+    intent = classification["intent"]
+    if query_mode in V3_1_QUERY_MODES:
+        return _v3_2_execution_context(question, classification, config_obj)
+
+    if query_mode == "report":
+        entities = _resolve_single_entities_for_v3_2(question, config_obj)
+        period = entities.get("period") or _period_from_question(question)
+        entity_hints = {
+            "fundcodes": [entities["fundcode"]],
+            "period": period,
+            "report_period": {"mode": "latest"},
+        }
+        return "report", intent, entity_hints, _build_routing_evidence(question, query_mode="report", intent=intent, entity_hints=entity_hints, entities=entities)
+
+    if intent in {"manager_detail", "trading_metric"}:
+        entities = _resolve_single_entities_for_v3_2(question, config_obj)
+        period = entities.get("period") or _period_from_question(question)
+        entity_hints = {"fundcodes": [entities["fundcode"]], "period": period}
+        return "single", intent, entity_hints, _build_routing_evidence(question, query_mode="single", intent=intent, entity_hints=entity_hints, entities=entities)
+
+    return _v3_2_execution_context(question, classification, config_obj)
+
+
+def _v3_3_override_classification(question: str, classification: dict[str, Any]) -> dict[str, Any]:
+    override = _v3_3_intent_override(question)
+    if override is None:
+        return classification
+
+    if classification.get("intent") == "unsupported_peer_average":
+        return classification
+
+    mode = classification.get("recognized_query_mode")
+    reason = classification.get("reason") or classification.get("deny_reason")
+    if mode == "deny" and classification.get("deny_reason") != "v3_unsupported_domain":
+        return classification
+    if mode == "unsupported" and reason not in {
+        None,
+        "blocked_by_verification",
+        "unsupported_manager_history",
+        "unsupported_timeseries",
+        "peer_average_requires_v3_2",
+        "multi_step_composite_not_supported",
+        "multi_intent_composite_not_supported",
+    }:
+        return classification
+
+    return {
+        **classification,
+        "recognized_query_mode": override["recognized_query_mode"],
+        "intent": override["intent"],
+        "intent_candidates": [override["intent"]],
+        "from_candidates": override.get("from_candidates", []),
+        "entity_hints": override.get("entity_hints", classification.get("entity_hints") or {}),
+        "composite_type": override.get("composite_type"),
+        "composite_execution": override.get("composite_execution"),
+        "reason": None,
+        "deny_reason": None,
+    }
+
+
+def _semantic_query_v3_3_composite_bundle(
+    question: str,
+    *,
+    config_obj,
+    classification: dict[str, Any],
+) -> dict[str, Any]:
+    if classification.get("intent") == "two_step_composite":
+        return _semantic_query_v3_3_two_step_bundle(question, config_obj=config_obj, classification=classification)
+    return _semantic_query_v3_3_multi_child_bundle(question, config_obj=config_obj, classification=classification)
+
+
+def _semantic_query_v3_3_two_step_bundle(
+    question: str,
+    *,
+    config_obj,
+    classification: dict[str, Any],
+) -> dict[str, Any]:
+    step1_mode = _v3_3_two_step_selection_mode(question)
+    selection_question = _v3_3_two_step_selection_question(question, step1_mode)
+    selection_hints = extract_v3_1_entity_hints(selection_question)
+    step1_classification = {
+        **classification,
+        "recognized_query_mode": step1_mode,
+        "intent": step1_mode,
+        "intent_candidates": [step1_mode],
+        "from_candidates": ["tb_ths_etf_base"],
+        "entity_hints": selection_hints,
+    }
+    step1_result = _semantic_query_v3_3_strict(
+        selection_question,
+        config_obj=config_obj,
+        classification=step1_classification,
+        apply_override=False,
+    )
+    if step1_result.get("failure_stage") is not None:
+        return _v3_3_composite_failure(question, classification, [step1_result], step1_result.get("failure_stage") or "composite_step1", step1_result.get("failure_reason") or "composite step 1 failed")
+
+    selected_fundcodes = _result_fundcodes(step1_result)
+    if not selected_fundcodes and step1_mode == "search":
+        selected_fundcodes = _search_selection_fundcodes(selection_hints, config_obj)
+    if not selected_fundcodes:
+        return _v3_3_composite_failure(question, classification, [step1_result], "composite_step1", "step 1 did not resolve any fundcode")
+
+    child_results = [step1_result]
+    detail_fundcode = selected_fundcodes[0]
+    detail_hints = {
+        "fundcodes": [detail_fundcode],
+        "period": selection_hints.get("period") or _period_from_question(question),
+    }
+    for sub_intent in _expected_composite_sub_intents(question):
+        if sub_intent in {"basic_info", "basic_info_extended", "investment_profile", "performance", "fund_scale", "fee", "manager", "fee_and_manager", "dividend", "manager_detail", "trading_metric"}:
+            child_results.append(
+                _semantic_query_v3_3_strict(
+                    _child_question_for_sub_intent(question, sub_intent, [detail_fundcode]),
+                    config_obj=config_obj,
+                    classification={
+                        **classification,
+                        "recognized_query_mode": "single",
+                        "intent": sub_intent,
+                        "intent_candidates": [sub_intent],
+                        "from_candidates": ["tb_ths_etf_base"],
+                        "entity_hints": detail_hints,
+                    },
+                    apply_override=False,
+                )
+            )
+        elif sub_intent in {"report_industry", "report_holding", "report_concept", "institution_holding", "report_style", "report_nav_change"}:
+            child_results.append(
+                _semantic_query_v3_3_strict(
+                    _child_question_for_sub_intent(question, sub_intent, [detail_fundcode]),
+                    config_obj=config_obj,
+                    classification={
+                        **classification,
+                        "recognized_query_mode": "report",
+                        "intent": sub_intent,
+                        "intent_candidates": [sub_intent],
+                        "from_candidates": ["tb_ths_etf_report_year", "tb_ths_etf_report_quarter"],
+                        "entity_hints": {**detail_hints, "report_period": {"mode": "latest"}},
+                    },
+                    apply_override=False,
+                )
+            )
+
+    failure = next((item for item in child_results if item.get("failure_stage") is not None), None)
+    if failure is not None:
+        return _v3_3_composite_failure(
+            question,
+            classification,
+            child_results,
+            failure.get("failure_stage") or "composite_child",
+            failure.get("failure_reason") or "composite child failed",
+        )
+    return _compose_v3_3_composite_success(question, classification, child_results)
+
+
+def _semantic_query_v3_3_multi_child_bundle(
+    question: str,
+    *,
+    config_obj,
+    classification: dict[str, Any],
+) -> dict[str, Any]:
+    entity_hints = classification.get("entity_hints") or {}
+    fundcodes = [str(item) for item in entity_hints.get("fundcodes") or _extract_fundcodes(question) if item]
+    sub_intents = list(entity_hints.get("sub_intents") or _expected_composite_sub_intents(question))
+    child_results: list[dict[str, Any]] = []
+    base_sub_intents = [
+        item
+        for item in sub_intents
+        if item in {"basic_info", "basic_info_extended", "investment_profile", "performance", "fund_scale", "fee", "manager", "fee_and_manager", "dividend", "manager_detail", "trading_metric"}
+    ]
+    report_sub_intents = [
+        item
+        for item in sub_intents
+        if item in {"report_industry", "report_holding", "report_concept", "institution_holding", "report_style", "report_nav_change"}
+    ]
+
+    if len(fundcodes) >= 2 and any(item in {"basic_info", "basic_info_extended", "investment_profile", "performance", "fund_scale", "fee", "manager", "fee_and_manager", "dividend"} for item in base_sub_intents):
+        compare_hints = {
+            "fundcodes": fundcodes[:10],
+            "period": entity_hints.get("period") or _period_from_question(question),
+        }
+        child_results.append(
+            _semantic_query_v3_3_strict(
+                _compare_child_question(question, fundcodes[:10], base_sub_intents),
+                config_obj=config_obj,
+                classification={
+                    **classification,
+                    "recognized_query_mode": "compare",
+                    "intent": "compare",
+                    "intent_candidates": ["compare"],
+                    "from_candidates": ["tb_ths_etf_base"],
+                    "entity_hints": compare_hints,
+                },
+                apply_override=False,
+            )
+        )
+    else:
+        for sub_intent in base_sub_intents:
+            child_results.append(
+                _semantic_query_v3_3_strict(
+                    _child_question_for_sub_intent(question, sub_intent, fundcodes[:1]),
+                    config_obj=config_obj,
+                    classification=_child_classification_for_sub_intent(classification, question, sub_intent, fundcodes[:1]),
+                    apply_override=False,
+                )
+            )
+
+    for sub_intent in report_sub_intents:
+        for fundcode in fundcodes[: max(1, len(fundcodes))]:
+            child_results.append(
+                _semantic_query_v3_3_strict(
+                    _child_question_for_sub_intent(question, sub_intent, [fundcode]),
+                    config_obj=config_obj,
+                    classification=_child_classification_for_sub_intent(classification, question, sub_intent, [fundcode]),
+                    apply_override=False,
+                )
+            )
+
+    failure = next((item for item in child_results if item.get("failure_stage") is not None), None)
+    if failure is not None:
+        return _v3_3_composite_failure(
+            question,
+            classification,
+            child_results,
+            failure.get("failure_stage") or "composite_child",
+            failure.get("failure_reason") or "composite child failed",
+        )
+    return _compose_v3_3_composite_success(question, classification, child_results)
+
+
+def _child_classification_for_sub_intent(
+    parent_classification: dict[str, Any],
+    question: str,
+    sub_intent: str,
+    fundcodes: list[str],
+) -> dict[str, Any]:
+    if sub_intent in {"report_industry", "report_holding", "report_concept", "institution_holding", "report_style", "report_nav_change"}:
+        return {
+            **parent_classification,
+            "recognized_query_mode": "report",
+            "intent": sub_intent,
+            "intent_candidates": [sub_intent],
+            "from_candidates": ["tb_ths_etf_report_year", "tb_ths_etf_report_quarter"],
+            "entity_hints": {
+                "fundcodes": fundcodes,
+                "period": _period_from_question(question),
+                "report_period": {"mode": "latest"},
+            },
+        }
+    return {
+        **parent_classification,
+        "recognized_query_mode": "single",
+        "intent": sub_intent,
+        "intent_candidates": [sub_intent],
+        "from_candidates": ["tb_ths_etf_base"],
+        "entity_hints": {
+            "fundcodes": fundcodes,
+            "period": _period_from_question(question),
+        },
+    }
+
+
+def _v3_3_two_step_selection_mode(question: str) -> str:
+    if _has_compare_signal(question):
+        return "compare"
+    if _has_filter_signal(question, extract_v3_1_entity_hints(question)):
+        return "filter"
+    return "search"
+
+
+def _v3_3_two_step_selection_question(question: str, step1_mode: str) -> str:
+    if step1_mode == "filter":
+        return re.split(r"然后|，然后|,然后|查一下它|看它", question, maxsplit=1)[0].strip("，,。 ") or question
+    if step1_mode == "search":
+        return re.split(r"查一下它|然后|，|,", question, maxsplit=1)[0].strip("，,。 ") or question
+    return question
+
+
+def _filter_to_compare_selection_question(question: str) -> str:
+    parts = re.split(r"[，,？?]\s*(?:对比它们|对比一下|比较它们|比较一下)", question, maxsplit=1)
+    if len(parts) > 1 and parts[0].strip():
+        return parts[0].strip("，,。 ?？")
+    parts = re.split(r"(?:对比它们|对比一下|比较它们|比较一下)", question, maxsplit=1)
+    if len(parts) > 1 and parts[0].strip():
+        return parts[0].strip("，,。 ?？")
+    return question
+
+
+def _child_question_for_sub_intent(parent_question: str, sub_intent: str, fundcodes: list[str]) -> str:
+    fundcode = fundcodes[0] if fundcodes else ""
+    prefix = f"{fundcode}" if fundcode else ""
+    if sub_intent == "basic_info":
+        return f"{prefix}是什么"
+    if sub_intent == "basic_info_extended":
+        return f"{prefix}的基本信息扩展字段是什么"
+    if sub_intent == "investment_profile":
+        return f"{prefix}的投资目标和风险收益特征是什么"
+    if sub_intent == "performance":
+        if "今年" in parent_question:
+            return f"{prefix}今年收益多少"
+        if "成立以来" in parent_question:
+            return f"{prefix}成立以来收益怎么样"
+        return f"{prefix}收益多少"
+    if sub_intent == "fund_scale":
+        if "份额" in parent_question:
+            return f"{prefix}的基金份额是多少"
+        if "净值" in parent_question:
+            return f"{prefix}的最新净值是多少"
+        return f"{prefix}的基金规模多大"
+    if sub_intent == "fee":
+        return f"{prefix}的费率是多少"
+    if sub_intent == "manager":
+        return f"{prefix}的基金经理是谁"
+    if sub_intent == "manager_detail":
+        if "换" in parent_question:
+            return f"{prefix}什么时候换的基金经理"
+        if "历史业绩" in parent_question:
+            return f"{prefix}基金经理的历史业绩怎么样"
+        if "规模" in parent_question:
+            return f"{prefix}基金经理管了多少规模的基金"
+        return f"{prefix}现任基金经理管理了多久"
+    if sub_intent == "dividend":
+        return f"{prefix}有没有分红记录"
+    if sub_intent == "report_industry":
+        return f"{prefix}的持仓行业有哪些"
+    if sub_intent == "report_holding":
+        return f"{prefix}前十大重仓股是什么"
+    if sub_intent == "report_concept":
+        return f"{prefix}重仓了哪些概念"
+    if sub_intent == "institution_holding":
+        return f"{prefix}的机构持有比例是多少"
+    if sub_intent == "report_style":
+        return f"{prefix}的投资风格是什么"
+    if sub_intent == "report_nav_change":
+        return f"{prefix}的净资产变动情况"
+    return parent_question
+
+
+def _compare_child_question(parent_question: str, fundcodes: list[str], sub_intents: list[str]) -> str:
+    joined = "和".join(fundcodes)
+    fields = []
+    if "fee" in sub_intents:
+        fields.append("费率")
+    if "fund_scale" in sub_intents:
+        fields.append("规模")
+    if "performance" in sub_intents:
+        fields.append("收益")
+    if not fields:
+        return parent_question
+    return f"对比{joined}的{'、'.join(fields)}"
+
+
+def _search_selection_fundcodes(selection_hints: dict[str, Any], config_obj) -> list[str]:
+    keyword = str(selection_hints.get("search_keyword") or "").strip()
+    if not keyword:
+        return []
+    from .name_resolver import resolve_fundcode_from_name
+
+    candidates = []
+    if not keyword.upper().endswith("ETF"):
+        candidates.append(f"{keyword}ETF")
+    candidates.append(keyword)
+
+    for candidate in candidates:
+        resolved = resolve_fundcode_from_name(candidate, config_obj, dry_run=False)
+        if resolved["status"] == "matched" and resolved.get("fundcode"):
+            return [str(resolved["fundcode"])]
+        if resolved["status"] == "ambiguous":
+            matches = resolved.get("matches") or []
+            fundcodes = [str(item.get("fundcode")) for item in matches if item.get("fundcode")]
+            if fundcodes:
+                return fundcodes[:5]
+    return []
+
+
+def _result_fundcodes(result: dict[str, Any]) -> list[str]:
+    data = result.get("result", {}).get("data")
+    if isinstance(data, list):
+        return [str(item.get("fundcode")) for item in data if isinstance(item, dict) and item.get("fundcode")]
+    if isinstance(data, dict):
+        fundcode = data.get("fundcode")
+        return [str(fundcode)] if fundcode else []
+    return []
+
+
+def _compose_v3_3_composite_success(
+    question: str,
+    classification: dict[str, Any],
+    child_results: list[dict[str, Any]],
+) -> dict[str, Any]:
+    sections = []
+    raw_drafts = []
+    validated_asts = []
+    query_plans = []
+    mongo_params = []
+    provenance_diffs = []
+    for index, child in enumerate(child_results, start=1):
+        child_v3 = child.get("v3") or {}
+        label = child_v3.get("intent") or f"step_{index}"
+        sections.append(f"## {label}\n{child.get('answer') or ''}")
+        raw_drafts.append(child_v3.get("llm_ast_draft_raw"))
+        validated_asts.append(child.get("validated_ast"))
+        query_plans.append(child.get("query_plan"))
+        mongo_params.append(child.get("mongo_params"))
+        provenance_diffs.append(child_v3.get("provenance_diff"))
+
+    answer = "\n\n".join(sections)
+    result_steps = [child.get("result") for child in child_results]
+    outer_v3 = {
+        **classification,
+        "phase": "v3.3",
+        "ast_schema_version": "v3_3_structured_query",
+        "routing_result": {"type": "ExecutableQuery", "reason": None},
+        "recognized_query_mode": "composite",
+        "child_query_mode": classification.get("intent"),
+        "intent": classification.get("intent"),
+        "capability_id": f"v3.3:composite:{classification.get('intent')}",
+        "capability_status": "executable",
+        "gate_status": "not_applicable",
+        "capability_status_reason": None,
+        "blocked_intent_candidates": [],
+        "routing_evidence": {
+            "question": question,
+            "composite_type": classification.get("composite_type"),
+            "composite_execution": classification.get("composite_execution"),
+            "sub_intents": classification.get("entity_hints", {}).get("sub_intents") or _expected_composite_sub_intents(question),
+        },
+        "ast_generation_mode": "llm_ast_draft",
+        "llm_ast_draft_raw": raw_drafts,
+        "remote_query_allowed": True,
+        "failure_stage": None,
+        "failure_reason": None,
+        "steps": [{"recognized_query_mode": child.get("v3", {}).get("recognized_query_mode"), "intent": child.get("v3", {}).get("intent")} for child in child_results],
+        "provenance_diff": provenance_diffs,
+        "validator_applied_defaults": [child.get("v3", {}).get("validator_applied_defaults") for child in child_results],
+    }
+    return {
+        "question": question,
+        "answer": answer,
+        "v3": outer_v3,
+        "v3_ast": {"intent": classification.get("intent"), "steps": [child.get("v3_ast") for child in child_results]},
+        "validated_ast": {"intent": classification.get("intent"), "steps": validated_asts},
+        "query_plan": {"steps": query_plans},
+        "compiled_query": {"steps": query_plans},
+        "mongo_params": {"steps": mongo_params},
+        "result": {"success": all(isinstance(item, dict) and item.get("success") is True for item in result_steps), "steps": result_steps},
+        "failure_stage": None,
+        "failure_reason": None,
+    }
+
+
+def _v3_3_composite_failure(
+    question: str,
+    classification: dict[str, Any],
+    child_results: list[dict[str, Any]],
+    stage: str,
+    reason: str,
+) -> dict[str, Any]:
+    return _v3_3_failure(
+        question,
+        classification=classification,
+        stage=stage,
+        reason=reason,
+        ast_generation_mode="llm_ast_draft_failed",
+        llm_ast_draft_raw=[(child.get("v3") or {}).get("llm_ast_draft_raw") for child in child_results],
+        v3_ast={"intent": classification.get("intent"), "steps": [child.get("v3_ast") for child in child_results]},
+        validated_ast={"intent": classification.get("intent"), "steps": [child.get("validated_ast") for child in child_results]},
+        query_plan={"steps": [child.get("query_plan") for child in child_results]},
+        mongo_params={"steps": [child.get("mongo_params") for child in child_results]},
+        remote_query_allowed=True,
+    )
+
+
+def _v3_3_intent_override(question: str) -> dict[str, Any] | None:
+    fundcodes = _extract_fundcodes(question)
+    period = _period_from_question(question)
+    composite_sub_intents = _expected_composite_sub_intents(question)
+    report_sub_intents = [item for item in composite_sub_intents if item.startswith("report_")]
+
+    if any(phrase in question for phrase in ("然后看它的基本信息和收益", "查一下它的基本信息和持仓", "查一下它的基本信息和收益")):
+        return {
+            "recognized_query_mode": "composite",
+            "intent": "two_step_composite",
+            "composite_type": "two_step_composite",
+            "composite_execution": "multi_child_bundle",
+            "from_candidates": ["tb_ths_etf_base"],
+            "entity_hints": {"fundcodes": fundcodes, "period": period},
+        }
+
+    if fundcodes and len(composite_sub_intents) >= 2 and report_sub_intents and _v3_3_has_multi_intent_separator(question):
+        return {
+            "recognized_query_mode": "composite",
+            "intent": "composite_single",
+            "composite_type": "composite_single",
+            "composite_execution": "multi_child_bundle",
+            "from_candidates": ["tb_ths_etf_base", "tb_ths_etf_report_year", "tb_ths_etf_report_quarter"],
+            "entity_hints": {"fundcodes": fundcodes, "period": period, "sub_intents": composite_sub_intents},
+        }
+
+    if (
+        fundcodes
+        and len(composite_sub_intents) >= 2
+        and _same_collection_composite_sub_intents(composite_sub_intents)
+        and _v3_3_has_multi_intent_separator(question)
+        and not _has_compare_signal(question)
+    ):
+        return {
+            "recognized_query_mode": "single",
+            "intent": "composite_single",
+            "composite_type": "composite_single",
+            "composite_execution": "single_ast",
+            "from_candidates": ["tb_ths_etf_base"],
+            "entity_hints": {"fundcodes": fundcodes, "period": period, "sub_intents": composite_sub_intents},
+        }
+
+    if "份额" in question and any(word in question for word in ("最近有变化", "变化吗", "变化")):
+        return {
+            "recognized_query_mode": "single",
+            "intent": "fund_scale",
+            "from_candidates": ["tb_ths_etf_base"],
+            "entity_hints": {
+                "fundcodes": fundcodes,
+                "period": period,
+                "timeseries_semantics": {
+                    "by_field": {
+                        "ths_fund_shares_fund": {"mode": "latest_two"},
+                    }
+                },
+            },
+        }
+
+    if any(word in question for word in ("机构持有比例", "机构持有份额", "机构投资者持有", "投资风格", "净资产变动")):
+        intent = "institution_holding"
+        if "投资风格" in question:
+            intent = "report_style"
+        elif "净资产" in question:
+            intent = "report_nav_change"
+        return {
+            "recognized_query_mode": "report",
+            "intent": intent,
+            "from_candidates": ["tb_ths_etf_report_year"],
+            "entity_hints": {"fundcodes": fundcodes, "period": period},
+        }
+
+    if any(word in question for word in ("持仓行业", "行业配置", "行业持仓", "行业", "持仓")):
+        return {
+            "recognized_query_mode": "report",
+            "intent": "report_industry",
+            "from_candidates": ["tb_ths_etf_report_quarter", "tb_ths_etf_report_year"],
+            "entity_hints": {"fundcodes": fundcodes, "period": period},
+        }
+
+    if any(word in question for word in ("重仓概念", "概念")):
+        return {
+            "recognized_query_mode": "report",
+            "intent": "report_concept",
+            "from_candidates": ["tb_ths_etf_report_quarter"],
+            "entity_hints": {"fundcodes": fundcodes, "period": period},
+        }
+
+    if any(word in question for word in ("同类比", "同类平均", "同类均值")):
+        return {
+            "recognized_query_mode": "single",
+            "intent": "performance",
+            "from_candidates": ["tb_ths_etf_base"],
+            "entity_hints": {"fundcodes": fundcodes, "period": period or "6m"},
+        }
+
+    if any(word in question for word in ("前十大重仓股", "重仓股", "重仓证券")):
+        return {
+            "recognized_query_mode": "report",
+            "intent": "report_holding",
+            "from_candidates": ["tb_ths_etf_report_year"],
+            "entity_hints": {"fundcodes": fundcodes, "period": period},
+        }
+
+    if any(word in question for word in ("管理了多久", "历史业绩", "管理规模", "管了多少规模", "什么时候换的基金经理", "换的基金经理", "任职", "任期", "历任")):
+        return {
+            "recognized_query_mode": "single",
+            "intent": "manager_detail",
+            "from_candidates": ["tb_ths_etf_base"],
+            "entity_hints": {"fundcodes": fundcodes, "period": period},
+        }
+
+    if any(word in question for word in ("成交额", "净现金流", "融资余额", "融券卖出量")):
+        if any(word in question for word in ("实时", "盘中", "今天", "今日", "当前")):
+            return None
+        return {
+            "recognized_query_mode": "single",
+            "intent": "trading_metric",
+            "from_candidates": ["tb_ths_etf_base"],
+            "entity_hints": {"fundcodes": fundcodes, "period": period},
+        }
+
+    return None
+
+
+def _v3_3_has_multi_intent_separator(question: str) -> bool:
+    return any(sep in question for sep in ("、", "和", "，", ",", "以及", "同时", "然后"))
+
+
+def _same_collection_composite_sub_intents(sub_intents: list[str]) -> bool:
+    same_collection = {
+        "basic_info",
+        "basic_info_extended",
+        "fund_scale",
+        "fee",
+        "performance",
+        "dividend",
+        "manager",
+        "investment_profile",
+    }
+    return all(item in same_collection for item in sub_intents)
 
 
 def _build_routing_evidence(
@@ -1686,12 +2705,32 @@ def _build_routing_evidence(
 
 def _expected_composite_sub_intents(question: str) -> list[str]:
     sub_intents = []
+    if any(word in question for word in ("基本信息", "是什么", "介绍", "概况")):
+        sub_intents.append("basic_info")
     if any(word in question for word in ("收益", "排名", "涨", "跌")):
         sub_intents.append("performance")
-    if any(word in question for word in ("管理人", "基金经理")):
+    if any(word in question for word in ("规模", "盘子", "市值", "份额", "净值")):
+        sub_intents.append("fund_scale")
+    if any(word in question for word in ("管理费", "托管费", "费率")):
+        sub_intents.append("fee")
+    if any(word in question for word in ("管理了多久", "历史业绩", "管理规模", "什么时候换的基金经理", "换的基金经理", "任职", "基金经理")):
+        sub_intents.append("manager_detail")
+    elif "管理人" in question:
         sub_intents.append("manager")
     if any(word in question for word in ("申赎", "申购", "赎回", "联接", "上市", "业绩比较基准")):
         sub_intents.append("basic_info_extended")
+    if any(word in question for word in ("持仓行业", "行业配置", "行业持仓", "行业", "持仓")):
+        sub_intents.append("report_industry")
+    if any(word in question for word in ("重仓股", "前十大", "重仓证券")):
+        sub_intents.append("report_holding")
+    if any(word in question for word in ("重仓概念", "概念")):
+        sub_intents.append("report_concept")
+    if "机构持有" in question:
+        sub_intents.append("institution_holding")
+    if any(word in question for word in ("投资风格", "风格")):
+        sub_intents.append("report_style")
+    if any(word in question for word in ("净资产变动", "净资产变化")):
+        sub_intents.append("report_nav_change")
     if any(word in question for word in ("分红", "分过红")):
         sub_intents.append("dividend")
     return list(dict.fromkeys(sub_intents))
@@ -1737,6 +2776,10 @@ def _non_executable_capability_audit_fields(routing_result: dict[str, Any], reas
         status = "clarification_required"
         mode = "clarify"
         audit_reason = reason or "clarification_required"
+    elif routing_type == "UnsupportedQuery" and reason == "data_not_available":
+        status = "data_not_available"
+        mode = "unsupported"
+        audit_reason = "data_not_available"
     else:
         status = reason or "unsupported"
         mode = "unsupported"
@@ -1811,6 +2854,218 @@ def _execute_v3_plan(plan: dict[str, Any], config_obj, *, dry_run: bool, no_llm:
     from .remote import execute_remote_query
 
     return execute_remote_query(plan, config_obj)
+
+
+def _execute_mongo_phase(mongo_phase: dict[str, Any], config_obj) -> dict[str, Any]:
+    from .remote import execute_remote_query
+
+    return execute_remote_query(mongo_phase, config_obj)
+
+
+def _apply_timeseries_semantics(ast: dict[str, Any], result: dict[str, Any]) -> dict[str, Any]:
+    semantics = ast.get("timeseries_semantics")
+    if not isinstance(semantics, dict):
+        return result
+    by_field = semantics.get("by_field")
+    if not isinstance(by_field, dict):
+        return result
+    data = result.get("data")
+    if isinstance(data, list):
+        updated = [(_apply_timeseries_semantics_to_row(row, by_field) if isinstance(row, dict) else row) for row in data]
+        return {**result, "data": updated}
+    if isinstance(data, dict):
+        return {**result, "data": _apply_timeseries_semantics_to_row(data, by_field)}
+    return result
+
+
+def _apply_timeseries_semantics_to_row(row: dict[str, Any], by_field: dict[str, Any]) -> dict[str, Any]:
+    updated = dict(row)
+    timeseries_audit = dict(updated.get("timeseries_audit") or {})
+    for field, spec in by_field.items():
+        if not isinstance(spec, dict):
+            continue
+        mode = spec.get("mode")
+        raw_value = updated.get(field)
+        if mode == "latest_two":
+            normalized, audit = _normalize_latest_two_timeseries(raw_value)
+            updated[field] = normalized
+            timeseries_audit[field] = audit
+        elif mode == "latest":
+            timeseries_audit[field] = {"mode": mode, "status": "kept"}
+        elif mode == "specified":
+            timeseries_audit[field] = {"mode": mode, "status": "kept", "btime": spec.get("btime")}
+    if timeseries_audit:
+        updated["timeseries_audit"] = timeseries_audit
+    return updated
+
+
+def _normalize_latest_two_timeseries(raw_value: Any) -> tuple[dict[str, Any] | Any, dict[str, Any]]:
+    points = _timeseries_points(raw_value)
+    if len(points) < 2:
+        return raw_value, {"mode": "latest_two", "status": "insufficient_points", "point_count": len(points)}
+    current_btime, current_value = points[-1]
+    previous_btime, previous_value = points[-2]
+    if current_value is None or previous_value is None:
+        return raw_value, {"mode": "latest_two", "status": "invalid_points", "point_count": len(points)}
+    delta = current_value - previous_value
+    delta_pct = round((delta / previous_value) * 100, 10) if previous_value else None
+    direction = "increase" if delta > 0 else "decrease" if delta < 0 else "flat"
+    return (
+        {
+            "current": {"value": current_value, "btime": current_btime},
+            "previous": {"value": previous_value, "btime": previous_btime},
+            "delta": delta,
+            "delta_pct": delta_pct,
+            "direction": direction,
+        },
+        {
+            "mode": "latest_two",
+            "status": "ok",
+            "current_btime": current_btime,
+            "previous_btime": previous_btime,
+        },
+    )
+
+
+def _timeseries_points(raw_value: Any) -> list[tuple[str, Any]]:
+    if not isinstance(raw_value, list):
+        return []
+    points: list[tuple[str, Any]] = []
+    for item in raw_value:
+        if not isinstance(item, dict):
+            continue
+        btime = item.get("btime")
+        if btime is None:
+            continue
+        value = item.get("value")
+        if isinstance(value, str):
+            try:
+                value = float(value)
+            except ValueError:
+                value = None
+        points.append((str(btime), value))
+    points.sort(key=lambda item: item[0])
+    return points
+
+
+def _compile_v3_3_query(ast: dict[str, Any]) -> tuple[str, dict[str, Any]]:
+    if _is_v3_3_derived_ast(ast):
+        return "derived_performance", compile_derived_performance_query(ast)
+    return "base_plan", _compile_ast_to_plan(ast)
+
+
+def _is_v3_3_derived_ast(ast: dict[str, Any]) -> bool:
+    select = ast.get("select") or []
+    if any(isinstance(item, dict) and item.get("type") == "derived_return" for item in select):
+        return True
+    return any(isinstance(item, str) and item.startswith("return_") for item in select)
+
+
+def _v3_3_failure(
+    question: str,
+    *,
+    classification: dict[str, Any],
+    stage: str,
+    reason: str,
+    ast_generation_mode: str | None,
+    llm_ast_draft_raw: str | None = None,
+    v3_ast: dict[str, Any] | None = None,
+    validated_ast: dict[str, Any] | None = None,
+    query_plan: dict[str, Any] | None = None,
+    mongo_params: dict[str, Any] | None = None,
+    remote_query_allowed: bool = False,
+) -> dict[str, Any]:
+    output = _v3_2_failure(
+        question,
+        classification=classification,
+        stage=stage,
+        reason=reason,
+        ast_generation_mode=ast_generation_mode,
+        llm_ast_draft_raw=llm_ast_draft_raw,
+        v3_ast=v3_ast,
+        validated_ast=validated_ast,
+        query_plan=query_plan,
+        mongo_params=mongo_params,
+        remote_query_allowed=remote_query_allowed,
+    )
+    output["answer"] = f"v3.3 查询失败：{stage} - {reason}"
+    output["compiled_query"] = query_plan
+    output["v3"]["phase"] = "v3.3"
+    output["v3"]["ast_schema_version"] = "v3_3_structured_query"
+    output["v3"]["grammar_fragment_id"] = (query_plan or {}).get("grammar_fragment_id")
+    output["v3"]["compiler_rule_id"] = (query_plan or {}).get("compiler_rule_id")
+    output["v3"]["capability_id"] = output["v3"]["capability_id"].replace("v3.2:", "v3.3:", 1)
+    output["v3"]["derived_performance_strict_pass"] = False
+    return output
+
+
+def _normalize_usage(usage: dict[str, Any] | None) -> list[dict[str, int]]:
+    if not usage:
+        return [{"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}]
+    if all(key in usage for key in ("prompt_tokens", "completion_tokens", "total_tokens")):
+        return [
+            {
+                "prompt_tokens": int(usage["prompt_tokens"]),
+                "completion_tokens": int(usage["completion_tokens"]),
+                "total_tokens": int(usage["total_tokens"]),
+            }
+        ]
+    return [{"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}]
+
+
+def _append_runtime_metadata(answer: str, *, result: dict[str, Any], usage: dict[str, Any] | None) -> str:
+    usage_payload = _normalize_usage(usage)
+    total_tokens = sum(item["total_tokens"] for item in usage_payload)
+    data_window = _result_data_window(result)
+    footer = [
+        *(_format_data_window_footer(data_window) if data_window else []),
+        f"LLM token：{total_tokens}",
+    ]
+    return "\n\n".join([answer, *footer])
+
+
+def _format_data_window_footer(data_window: tuple[str, str]) -> list[str]:
+    start, end = data_window
+    if start == end:
+        return [f"数据起止日：{start}"]
+    return [f"数据起始日：{start}", f"数据结束日：{end}"]
+
+
+def _result_data_window(result: dict[str, Any]) -> tuple[str, str] | None:
+    data = result.get("data")
+    dates = sorted(_collect_btime_values(data))
+    if not dates:
+        return None
+    return dates[0], dates[-1]
+
+
+def _collect_btime_values(value: Any) -> set[str]:
+    dates: set[str] = set()
+    if isinstance(value, dict):
+        for key, item in value.items():
+            if key in {"btime", "date"} and isinstance(item, str) and item:
+                dates.add(item[:10])
+            else:
+                dates.update(_collect_btime_values(item))
+    elif isinstance(value, list):
+        for item in value:
+            dates.update(_collect_btime_values(item))
+    return dates
+
+
+def _v3_3_unsupported(question: str, classification: dict[str, Any], reason: str) -> dict[str, Any]:
+    output = _non_executable_v3_2_output(question, {**classification, "reason": reason, "recognized_query_mode": "unsupported"})
+    output["failure_reason"] = reason
+    output["v3"]["phase"] = "v3.3"
+    output["v3"]["ast_schema_version"] = "v3_3_structured_query"
+    output["v3"]["grammar_fragment_id"] = None
+    output["v3"]["compiler_rule_id"] = None
+    output["v3"]["failure_reason"] = reason
+    return output
+
+
+def _is_v3_3_mixed_rank_return(question: str, generation_bundle: dict[str, Any]) -> bool:
+    return False
 
 
 def _fundcodes_from_result(result: dict[str, Any]) -> list[str]:

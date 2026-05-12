@@ -44,7 +44,7 @@ def main() -> int:
             result = _static_out_of_scope_result(row)
         else:
             try:
-                result = semantic_query_v3(row.question, root=ROOT)
+                result = semantic_query_v3(row.question, root=ROOT, phase="v3.2")
             except Exception as exc:
                 result = _runtime_exception_result(row.question, exc)
         records.append(evaluate_row(row, result))

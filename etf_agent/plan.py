@@ -1,10 +1,18 @@
 from __future__ import annotations
 
 from copy import deepcopy
+import warnings
 from typing import Any
 
 from .candidates import PERIOD_FIELDS
 from .dictionary import FieldMapping, collection_fields
+
+
+warnings.warn(
+    "etf_agent.plan validates legacy v1 query plans; v3 uses AST validation and compiled_query.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 
 IDENTITY_FIELDS = {"fundcode", "thscode", "ths_fund_extended_inner_short_name_fund"}

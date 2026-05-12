@@ -2,9 +2,17 @@ from __future__ import annotations
 
 import json
 import re
+import warnings
 from typing import Any
 
 from .candidates import PERIOD_FIELDS
+
+
+warnings.warn(
+    "etf_agent.llm contains legacy v1 query-plan generation; v3 uses ast_generator.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 
 SYSTEM_PROMPT = """你是 ETF 数据库查询计划生成器。

@@ -16,6 +16,8 @@
 db.tb_ths_etf_base.find({ thscode: "510500.SH" }, { ths_unit_nv_fund: { $slice: -1 } })
 ```
 
+> 注意：`$slice:-1` 只适用于“最新值”查询示例。v3.3 strict performance 计算收益率时必须读取完整 `ths_unit_nv_fund` 数组，禁止用 `$slice:-1`。
+
 **Python 查询最新值**：
 
 ```python
@@ -100,6 +102,8 @@ for m in managers:
 
 ### 收益率（各周期）
 
+> 这些 `ths_yeild_*` 字段是数据库现存收益率标量字段，v3.0-v3.2 可直接查询。v3.3 strict performance 不以它们作为收益率来源；v3.3 收益率必须从完整 `ths_unit_nv_fund` 交易日序列派生，AST 中使用 `return_*` derived alias。
+
 | 字段名                  | 中文名     | 类型     |
 | -------------------- | ------- | ------ |
 | `ths_yeild_1w_fund`  | 近1周收益率  | number |
@@ -113,6 +117,8 @@ for m in managers:
 | `ths_yeild_ytd_fund` | 今年以来收益率 | number |
 | `ths_yeild_std_fund` | 成立以来收益率 | number |
 
+> 收益率周期计算规则（交易日数、T 定义、公式、成立不足处理）见 `docs/etf-semantic-query-spec-v3.md` Section 10 Period 规则。
+
 ### 同类排名
 
 > **排名字段说明**：
@@ -120,6 +126,7 @@ for m in managers:
 > - `_fund_origin`（string）：完整排名字符串，格式如 `"4247/22901"`（排名/同类总数），适合展示
 > - `_fund`（number）：纯数字排名，如 `4247`，适合排序和比较
 > - `_etf`（number）：仅在 ETF 内部的排名
+> - Registry canonical 成立以来 ETF 排名字段为 `ths_yeild_rank_std_etf`；`ths_yeild_std_rank_etf` 为 deprecated alias，仅用于远端字段一致性探针和迁移说明。
 
 | 字段名                              | 中文名         | 类型     | 说明          |
 | -------------------------------- | ----------- | ------ | ----------- |
