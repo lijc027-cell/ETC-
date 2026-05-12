@@ -1,0 +1,150 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "ETF Query Temporary API",
+    "version": "temp-v3.3",
+    "description": "临时 ETF 查数接口：输入自然语言问题，返回当前 v3.3 查询回答。"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8090",
+      "description": "local temporary server"
+    }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "健康检查",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/v1/query": {
+      "post": {
+        "summary": "ETF 自然语言查数",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QueryRequest"
+              },
+              "example": {
+                "question": "510300是什么",
+                "phase": "v3.3"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "查询成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueryResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "请求参数错误"
+          },
+          "500": {
+            "description": "服务端查询失败"
+          }
+        }
+      }
+    },
+    "/openapi.json": {
+      "get": {
+        "summary": "OpenAPI 文档",
+        "responses": {
+          "200": {
+            "description": "OpenAPI JSON"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "QueryRequest": {
+        "type": "object",
+        "required": [
+          "question"
+        ],
+        "properties": {
+          "question": {
+            "type": "string",
+            "description": "自然语言 ETF 查询问题"
+          },
+          "phase": {
+            "type": "string",
+            "enum": [
+              "v3.2",
+              "v3.3"
+            ],
+            "default": "v3.3"
+          },
+          "dry_run": {
+            "type": "boolean",
+            "default": false
+          },
+          "no_llm": {
+            "type": "boolean",
+            "default": false
+          },
+          "include_debug": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      },
+      "QueryResponse": {
+        "type": "object",
+        "required": [
+          "ok",
+          "question",
+          "answer",
+          "phase"
+        ],
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "question": {
+            "type": "string"
+          },
+          "answer": {
+            "type": "string"
+          },
+          "phase": {
+            "type": "string"
+          },
+          "mode": {
+            "type": "string"
+          },
+          "intent": {
+            "type": "string"
+          },
+          "matches": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "query_plan": {
+            "type": "object"
+          },
+          "result": {
+            "type": "object"
+          }
+        }
+      }
+    }
+  }
+}
