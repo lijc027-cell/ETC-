@@ -6,7 +6,7 @@ from typing import Any
 from .candidates import PERIOD_FIELDS
 
 
-ALLOWED_FORMATS = ("plain", "amount", "percent", "date", "yuan_to_100m", "long_text")
+ALLOWED_FORMATS = ("plain", "amount", "percent", "date", "yuan_to_100m", "long_text", "shares")
 BASE_COLLECTION = "tb_ths_etf_base"
 
 
@@ -100,7 +100,7 @@ FIELD_SPECS: dict[str, FieldSpec] = {
     "ths_current_mv_fund": FieldSpec("ths_current_mv_fund", "总市值", "amount", sortable=True),
     "ths_unit_nv_fund": FieldSpec("ths_unit_nv_fund", "单位净值", "plain"),
     "ths_unit_nvg_rate_fund": FieldSpec("ths_unit_nvg_rate_fund", "单位净值增长率", "percent", sortable=True),
-    "ths_fund_shares_fund": FieldSpec("ths_fund_shares_fund", "基金份额", "plain", sortable=True),
+    "ths_fund_shares_fund": FieldSpec("ths_fund_shares_fund", "基金份额", "shares", sortable=True),
     "ths_fund_establishment_date_fund": FieldSpec("ths_fund_establishment_date_fund", "成立日期", "date", filterable=True, sortable=True, filter_operators=("eq", "gte", "lte", "between"), value_schema="date", normalizer="date"),
     "ths_perf_comparative_benchmark_fund": FieldSpec("ths_perf_comparative_benchmark_fund", "业绩比较基准", "plain"),
     "ths_pur_and_redemp_status_fund": FieldSpec("ths_pur_and_redemp_status_fund", "申购赎回状态", "plain"),
@@ -123,7 +123,7 @@ FIELD_SPECS: dict[str, FieldSpec] = {
     "ths_top_held_stock_code_fund": FieldSpec("ths_top_held_stock_code_fund", "前十大重仓股代码", "plain"),
     "ths_top_stock_mv_to_fnv_fund": FieldSpec("ths_top_stock_mv_to_fnv_fund", "前十大股票占基金净值比", "percent"),
     "ths_org_investor_total_held_ratio_fund": FieldSpec("ths_org_investor_total_held_ratio_fund", "机构投资者持有比例", "percent"),
-    "ths_org_investor_total_held_shares_fund": FieldSpec("ths_org_investor_total_held_shares_fund", "机构投资者持有份额", "plain"),
+    "ths_org_investor_total_held_shares_fund": FieldSpec("ths_org_investor_total_held_shares_fund", "机构投资者持有份额", "shares"),
     "ths_invest_style_fund": FieldSpec("ths_invest_style_fund", "投资风格", "plain"),
     "ths_fanv_chg_fund": FieldSpec("ths_fanv_chg_fund", "净资产变动", "amount"),
     "ths_fanv_chg_rate_fund": FieldSpec("ths_fanv_chg_rate_fund", "净资产变动率", "percent"),

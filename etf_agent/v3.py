@@ -16,6 +16,7 @@ from .ast_generator import generate_full_ast_draft_with_llm
 from .ast_validator import validate_v3_2_ast_draft, validate_v3_3_ast_draft
 from .derived_performance import compile_derived_performance_query, execute_derived_performance
 from .generation_context import build_generation_bundle
+from .report_scope import default_report_expand, report_collection, report_type_filter, resolve_report_scope
 
 SUPPORTED_INTENTS = {
     "basic_info",
@@ -1044,6 +1045,7 @@ def _validate_with_llm_fallback(
 
 def _compile_ast_to_plan(ast: dict[str, Any]) -> dict[str, Any]:
     """Compile v3 AST into a plan dict compatible with execute_remote_query + format_answer."""
+    report_scope = ast.get("report_scope")
     plan: dict[str, Any] = {
         "collection": ast["from"],
         "filter": {},
@@ -1053,6 +1055,10 @@ def _compile_ast_to_plan(ast: dict[str, Any]) -> dict[str, Any]:
         "output_style": ast.get("output_style", "summary"),
         "timeseries_semantics": ast.get("timeseries_semantics"),
     }
+    if report_scope:
+        plan["collection"] = report_collection(ast.get("intent", ""), report_scope, plan["collection"])
+        plan["report_scope"] = report_scope
+        plan["report_period"] = ast.get("report_period")
     order_by = ast.get("order_by")
     if order_by:
         plan["sort"] = _sort_spec(order_by)
@@ -1077,7 +1083,37 @@ def _compile_ast_to_plan(ast: dict[str, Any]) -> dict[str, Any]:
             plan["filter"].setdefault(clause["field"], {})["$lte"] = value.get("end") or value.get("lte")
         elif op in {"gt", "gte", "lt", "lte"}:
             plan["filter"].setdefault(clause["field"], {})[_mongo_compare_op(op)] = clause["value"]
+    _apply_report_scope_to_plan(ast, plan)
     return plan
+
+
+def _apply_report_scope_to_plan(ast: dict[str, Any], plan: dict[str, Any]) -> None:
+    report_scope = ast.get("report_scope")
+    if not report_scope:
+        return
+    type_nums = report_type_filter(report_scope)
+    if type_nums:
+        plan["filter"]["type_num"] = {"$in": type_nums}
+    if report_scope.endswith("_latest"):
+        plan["sort"] = [["year_num", -1], ["type_num", -1]]
+        plan["limit"] = 1
+    if plan.get("output_style") != "report_list":
+        return
+
+    expand = ast.get("expand") or default_report_expand("", ast.get("intent", ""), report_scope)
+    if not isinstance(expand, dict):
+        return
+    plan["expand"] = {
+        "field": expand.get("field"),
+        "paired_fields": list(expand.get("paired_fields") or []),
+        "order_by": expand.get("order_by") or {"field": "rank_num", "direction": "asc"},
+    }
+    for field in [plan["expand"]["field"], *plan["expand"]["paired_fields"]]:
+        if field and field not in plan["projection"]:
+            plan["projection"].append(field)
+    display_limit = ast.get("limit")
+    if isinstance(display_limit, int) and display_limit > 1:
+        plan["display_limit"] = display_limit
 
 
 def _needs_performance_nav_projection(ast: dict[str, Any], plan: dict[str, Any]) -> bool:
@@ -2052,10 +2088,13 @@ def _v3_3_execution_context(
     if query_mode == "report":
         entities = _resolve_single_entities_for_v3_2(question, config_obj)
         period = entities.get("period") or _period_from_question(question)
+        report_scope = resolve_report_scope(question, intent, classification.get("entity_hints") or {})
         entity_hints = {
             "fundcodes": [entities["fundcode"]],
             "period": period,
             "report_period": {"mode": "latest"},
+            "report_scope": report_scope,
+            "limit_hint": _extract_limit(question),
         }
         return "report", intent, entity_hints, _build_routing_evidence(question, query_mode="report", intent=intent, entity_hints=entity_hints, entities=entities)
 
@@ -2172,9 +2211,10 @@ def _semantic_query_v3_3_two_step_bundle(
                 )
             )
         elif sub_intent in {"report_industry", "report_holding", "report_concept", "institution_holding", "report_style", "report_nav_change"}:
+            child_question = _child_question_for_sub_intent(question, sub_intent, [detail_fundcode])
             child_results.append(
                 _semantic_query_v3_3_strict(
-                    _child_question_for_sub_intent(question, sub_intent, [detail_fundcode]),
+                    child_question,
                     config_obj=config_obj,
                     classification={
                         **classification,
@@ -2182,7 +2222,12 @@ def _semantic_query_v3_3_two_step_bundle(
                         "intent": sub_intent,
                         "intent_candidates": [sub_intent],
                         "from_candidates": ["tb_ths_etf_report_year", "tb_ths_etf_report_quarter"],
-                        "entity_hints": {**detail_hints, "report_period": {"mode": "latest"}},
+                        "entity_hints": {
+                            **detail_hints,
+                            "report_period": {"mode": "latest"},
+                            "report_scope": resolve_report_scope(question, sub_intent, classification.get("entity_hints") or {}),
+                            "limit_hint": _extract_limit(question),
+                        },
                     },
                     apply_override=False,
                 )
@@ -2282,6 +2327,7 @@ def _child_classification_for_sub_intent(
     fundcodes: list[str],
 ) -> dict[str, Any]:
     if sub_intent in {"report_industry", "report_holding", "report_concept", "institution_holding", "report_style", "report_nav_change"}:
+        report_scope = resolve_report_scope(question, sub_intent, parent_classification.get("entity_hints") or {})
         return {
             **parent_classification,
             "recognized_query_mode": "report",
@@ -2292,6 +2338,8 @@ def _child_classification_for_sub_intent(
                 "fundcodes": fundcodes,
                 "period": _period_from_question(question),
                 "report_period": {"mode": "latest"},
+                "report_scope": report_scope,
+                "limit_hint": _extract_limit(question),
             },
         }
     return {
@@ -2532,6 +2580,21 @@ def _v3_3_intent_override(question: str) -> dict[str, Any] | None:
             "composite_execution": "multi_child_bundle",
             "from_candidates": ["tb_ths_etf_base"],
             "entity_hints": {"fundcodes": fundcodes, "period": period},
+        }
+
+    if fundcodes and "季报" in question and "持仓" in question and not any(word in question for word in ("重仓股", "重仓证券", "前十大", "行业", "概念")):
+        return {
+            "recognized_query_mode": "composite",
+            "intent": "composite_single",
+            "composite_type": "composite_single",
+            "composite_execution": "multi_child_bundle",
+            "from_candidates": ["tb_ths_etf_report_quarter"],
+            "entity_hints": {
+                "fundcodes": fundcodes,
+                "period": period,
+                "sub_intents": ["report_industry", "report_concept"],
+                "report_scope": "quarter_latest",
+            },
         }
 
     if fundcodes and len(composite_sub_intents) >= 2 and report_sub_intents and _v3_3_has_multi_intent_separator(question):

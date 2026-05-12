@@ -21,9 +21,16 @@ V3_2_REQUIRED_KEYS = {
     "expand",
 }
 V3_3_REQUIRED_KEYS = V3_2_REQUIRED_KEYS | {"ast_schema_version"}
-V3_3_OPTIONAL_KEYS = {"grammar_fragment_id", "compiler_rule_id", "profile", "performance_rows", "timeseries_semantics"}
+V3_3_OPTIONAL_KEYS = {
+    "grammar_fragment_id",
+    "compiler_rule_id",
+    "profile",
+    "performance_rows",
+    "timeseries_semantics",
+    "report_scope",
+}
 V3_3_SCHEMA_VERSIONS = {"v3_2_base_ast", "v3_3_structured_query"}
-V3_3_PROFILES = {"derived_performance_table", "derived_return_list", "rank_list", "composite_single"}
+V3_3_PROFILES = {"derived_performance_table", "derived_return_list", "composite_single"}
 DERIVED_ALIAS_LABELS = {
     "1w": "近1周收益率",
     "1m": "近1月收益率",
@@ -91,6 +98,7 @@ def validate_v3_2_ast_draft(
     _normalize_v3_2_answer_fields(normalized, alias_map)
     _validate_v3_2_answer_fields(normalized, selection_context, expectations)
     _validate_v3_2_where(normalized, selection_context, expectations, generation_bundle)
+    _normalize_report_array_order_by(normalized, expectations)
     _validate_v3_2_order_by(normalized, selection_context, expectations)
     _validate_v3_2_sub_intents(normalized, expectations)
     provenance_diff = _build_v3_2_provenance_diff(
@@ -134,7 +142,8 @@ def validate_v3_3_ast_draft(
         base_draft = {
             key: value
             for key, value in normalized.items()
-            if key not in {"ast_schema_version", "grammar_fragment_id", "compiler_rule_id", "timeseries_semantics"}
+            if key
+            not in {"ast_schema_version", "grammar_fragment_id", "compiler_rule_id", "timeseries_semantics", "report_scope"}
         }
         validation = validate_v3_2_ast_draft(
             base_draft,
@@ -144,6 +153,7 @@ def validate_v3_3_ast_draft(
         )
         validated_ast = validation["validated_ast"]
         validated_ast["ast_schema_version"] = ast_schema_version
+        _apply_v3_3_report_contract(validated_ast, expectations)
         if "timeseries_semantics" in normalized:
             validated_ast["timeseries_semantics"] = normalized["timeseries_semantics"]
         if "grammar_fragment_id" in normalized:
@@ -173,10 +183,12 @@ def validate_v3_3_ast_draft(
     _normalize_v3_2_answer_fields(normalized, alias_map)
     _validate_v3_3_answer_fields(normalized, alias_map, selection_context, expectations)
     _validate_v3_2_where(normalized, selection_context, expectations, generation_bundle)
+    _normalize_report_array_order_by(normalized, expectations)
     _validate_v3_3_order_by(normalized, selection_context, expectations)
     _validate_v3_2_sub_intents(normalized, expectations)
     if "performance_rows" in normalized:
         _validate_v3_3_performance_rows(normalized, alias_map, expectations)
+    _apply_v3_3_report_contract(normalized, expectations)
     provenance_diff = _build_v3_2_provenance_diff(
         draft_before_validation,
         normalized,
@@ -190,6 +202,26 @@ def validate_v3_3_ast_draft(
         "provenance_diff": provenance_diff,
         "validator_applied_defaults": {"baseline_fields_added": defaults},
     }
+
+
+def _apply_v3_3_report_contract(ast: dict[str, Any], expectations: dict[str, Any]) -> None:
+    report_scope = expectations.get("report_scope")
+    if not report_scope:
+        return
+    ast["report_scope"] = report_scope
+    expected_expand = expectations.get("expected_expand")
+    if expected_expand is not None:
+        ast["expand"] = deepcopy(expected_expand)
+
+
+def _normalize_report_array_order_by(ast: dict[str, Any], expectations: dict[str, Any]) -> None:
+    expected_expand = expectations.get("expected_expand")
+    if not isinstance(expected_expand, dict):
+        return
+    order_by = ast.get("order_by")
+    expected_order_by = expected_expand.get("order_by")
+    if isinstance(order_by, dict) and isinstance(expected_order_by, dict) and order_by == expected_order_by:
+        ast["order_by"] = None
 
 
 def _validate_v3_3_shape(ast: dict[str, Any]) -> tuple[str, dict[str, str]]:
@@ -343,8 +375,6 @@ def _validate_v3_3_order_by(ast: dict[str, Any], selection_context: dict[str, An
         raise ValueError("order_by must be an object or null")
     field = order_by.get("field")
     _reject_legacy_yield_field(field)
-    if isinstance(field, str) and field.endswith("_fund_origin"):
-        raise ValueError("rank_list order_by must use numeric _fund field, not _fund_origin")
     if order_by.get("direction") not in {"asc", "desc"}:
         raise ValueError("order_by direction must be asc or desc")
     if field not in set(selection_context["sortable_fields"]) | set((expectations.get("v3_3") or {}).get("required_derived_aliases") or []):

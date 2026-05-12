@@ -5,6 +5,7 @@ from typing import Any
 
 from .candidates import PERIOD_FIELDS
 from .capability_registry import COMPARE_FIELDS, LIST_BASELINE_FIELDS, field_meta, get_selection_context
+from .report_scope import default_report_expand, report_collection, resolve_report_scope
 
 
 IDENTITY_CONTEXT_FIELDS = {"fundcode", "ths_fund_extended_inner_short_name_fund"}
@@ -42,6 +43,9 @@ def build_generation_bundle(
     phase: str = "v3.2",
 ) -> dict[str, Any]:
     selection_context = get_selection_context(query_mode, intent, phase=phase)
+    report_scope = resolve_report_scope(question, intent, entity_hints) if query_mode == "report" else None
+    if report_scope:
+        selection_context["collection"] = report_collection(intent, report_scope, selection_context["collection"])
     evidence = _build_evidence(question, query_mode=query_mode, intent=intent, entity_hints=entity_hints)
     expectations = _build_expectations(
         question,
@@ -50,6 +54,12 @@ def build_generation_bundle(
         entity_hints=entity_hints,
         phase=phase,
     )
+    if report_scope:
+        expand = default_report_expand(question, intent, report_scope)
+        expectations["report_scope"] = report_scope
+        expectations["expected_expand"] = expand
+        evidence["report_scope"] = report_scope
+        evidence["report_period"] = entity_hints.get("report_period")
     if phase == "v3.3":
         _apply_v3_3_derived_contract(question, query_mode, intent, entity_hints, selection_context, evidence, expectations)
         expected_timeseries_modes = _expected_timeseries_modes(question, query_mode=query_mode, intent=intent, entity_hints=entity_hints)
@@ -110,6 +120,8 @@ def _strict_validation_contract(expectations: dict[str, Any]) -> dict[str, Any]:
         "expected_limit": expectations.get("expected_limit"),
         "expected_sub_intents": list(expectations.get("expected_sub_intents") or []),
         "expected_timeseries_modes": dict(expectations.get("expected_timeseries_modes") or {}),
+        "report_scope": expectations.get("report_scope"),
+        "expected_expand": expectations.get("expected_expand"),
     }
     contract.update(expectations.get("v3_3") or {})
     return contract
@@ -217,16 +229,12 @@ def _v3_3_profile(question: str, query_mode: str, intent: str) -> str:
         return "composite_single"
     if query_mode == "compare":
         return "derived_return_list"
-    if "排名" in question and any(word in question for word in ("排第几", "排多少", "名次")):
-        return "rank_list"
     if query_mode in {"filter", "search"} or any(word in question for word in ("前", "top", "哪些", "筛选", "超过", "最高", "最低", "排序")):
         return "derived_return_list"
     return "derived_performance_table"
 
 
 def _v3_3_required_aliases(profile: str, period: str, question: str) -> list[str]:
-    if profile == "rank_list":
-        return []
     if period == "all":
         return [f"return_{item}" for item in ("1w", "1m", "3m", "6m", "1y", "2y", "3y", "5y", "ytd", "std")]
     return [f"return_{period}"]
@@ -359,12 +367,9 @@ def _required_select_fields(
             fields.append(order_by["field"])
         return fields
     if query_mode == "report":
-        if intent == "report_holding":
-            return ["ths_top_held_stock_code_fund", "ths_top_stock_mv_to_fnv_fund"]
-        if intent == "report_industry":
-            return ["ths_top_n_top_industry_name_fund", "ths_top_n_top_industry_mv_to_equity_fund"]
-        if intent == "report_concept":
-            return ["ths_zcgnmc_fund"]
+        expand = default_report_expand(question, intent, resolve_report_scope(question, intent, entity_hints))
+        if expand:
+            return [expand["field"], *expand.get("paired_fields", [])]
         if intent == "institution_holding":
             return ["ths_org_investor_total_held_ratio_fund", "ths_org_investor_total_held_shares_fund"]
         if intent == "report_style":
@@ -431,12 +436,9 @@ def _display_default_fields(
     if query_mode in {"search", "filter"}:
         return list(LIST_BASELINE_FIELDS)
     if query_mode == "report":
-        if intent == "report_holding":
-            return ["ths_top_held_stock_code_fund", "ths_top_stock_mv_to_fnv_fund"]
-        if intent == "report_industry":
-            return ["ths_top_n_top_industry_name_fund", "ths_top_n_top_industry_mv_to_equity_fund"]
-        if intent == "report_concept":
-            return ["ths_zcgnmc_fund"]
+        expand = default_report_expand(question, intent, resolve_report_scope(question, intent, entity_hints))
+        if expand:
+            return [expand["field"], *expand.get("paired_fields", [])]
         if intent == "institution_holding":
             return ["ths_org_investor_total_held_ratio_fund", "ths_org_investor_total_held_shares_fund"]
         if intent == "report_style":

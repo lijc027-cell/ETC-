@@ -66,7 +66,7 @@ def _format_value(value: Any, fmt: str, *, field: str | None = None) -> str:
     if value is None or value == "":
         return "暂无数据"
     suffix = f"（{as_of}）" if as_of else ""
-    if field == "ths_fund_shares_fund":
+    if field in {"ths_fund_shares_fund", "ths_org_investor_total_held_shares_fund"} or fmt == "shares":
         return f"{float(value) / 100000000:.2f}亿份{suffix}"
     if fmt in {"yuan_to_100m", "amount"}:
         return f"{float(value) / 100000000:.2f} 亿元{suffix}"
@@ -100,7 +100,7 @@ def _format_timeseries_delta(value: dict[str, Any], fmt: str, *, field: str | No
 def _format_scalar(value: Any, fmt: str, *, field: str | None = None) -> str:
     if value is None or value == "":
         return "暂无数据"
-    if field == "ths_fund_shares_fund":
+    if field in {"ths_fund_shares_fund", "ths_org_investor_total_held_shares_fund"} or fmt == "shares":
         return f"{float(value) / 100000000:.2f}亿份"
     if fmt in {"yuan_to_100m", "amount"}:
         return f"{float(value) / 100000000:.2f} 亿元"
@@ -164,7 +164,7 @@ def _format_report_list_answer(plan: dict[str, Any], result: dict[str, Any]) -> 
     if not isinstance(data, dict) or not data:
         return "暂无报告数据。"
 
-    array_fields = [item["field"] for item in plan["answer_fields"] if isinstance(data.get(item.get("field")), list)]
+    array_fields = _report_array_fields(plan, data)
     if not array_fields:
         return _format_summary_answer(plan, result)
 
@@ -184,23 +184,68 @@ def _format_report_list_answer(plan: dict[str, Any], result: dict[str, Any]) -> 
     if not rows_by_rank:
         return "暂无报告数据。"
 
+    ordered_ranks = _ordered_report_ranks(rows_by_rank, plan)
+    display_limit = plan.get("display_limit") or plan.get("limit")
+    if isinstance(display_limit, int) and display_limit > 1:
+        ordered_ranks = ordered_ranks[:display_limit]
+
     lines = [
         "| 排名 | " + " | ".join(labels.get(field, field) for field in array_fields) + " |",
         "| --- | " + " | ".join("---" for _ in array_fields) + " |",
     ]
-    for rank in sorted(rows_by_rank, key=_rank_sort_key):
+    renumber_rows = _uses_non_rank_report_order(plan)
+    for display_rank, rank in enumerate(ordered_ranks, start=1):
         row = rows_by_rank[rank]
         values = [
             _format_value(row.get(field), _field_format(plan, field), field=field) if row.get(field) is not None else "暂无数据"
             for field in array_fields
         ]
-        lines.append("| " + " | ".join([str(rank), *values]) + " |")
+        rank_label = display_rank if renumber_rows else rank
+        lines.append("| " + " | ".join([str(rank_label), *values]) + " |")
 
     fundcode = data.get("fundcode", "该 ETF")
     period = _report_period_prefix(data)
     if period:
         return f"{fundcode} 的{period}报告数据如下：\n" + "\n".join(lines)
     return f"{fundcode} 的报告数据如下：\n" + "\n".join(lines)
+
+
+def _report_array_fields(plan: dict[str, Any], data: dict[str, Any]) -> list[str]:
+    expand = plan.get("expand")
+    if isinstance(expand, dict) and expand.get("field"):
+        fields = [str(expand["field"])]
+        fields.extend(str(item) for item in expand.get("paired_fields") or [])
+        return [field for field in fields if isinstance(data.get(field), list)]
+    return [item["field"] for item in plan["answer_fields"] if isinstance(data.get(item.get("field")), list)]
+
+
+def _ordered_report_ranks(rows_by_rank: dict[Any, dict[str, Any]], plan: dict[str, Any]) -> list[Any]:
+    expand = plan.get("expand") if isinstance(plan.get("expand"), dict) else {}
+    order_by = expand.get("order_by") if isinstance(expand.get("order_by"), dict) else {}
+    field = order_by.get("field") or "rank_num"
+    direction = order_by.get("direction") or "asc"
+    if field == "rank_num":
+        ranks = sorted(rows_by_rank, key=_rank_sort_key)
+        return list(reversed(ranks)) if direction == "desc" else ranks
+
+    reverse = direction == "desc"
+    present = [rank for rank, row in rows_by_rank.items() if row.get(field) is not None]
+    missing = [rank for rank, row in rows_by_rank.items() if row.get(field) is None]
+
+    def key(rank: Any) -> float | str:
+        value = rows_by_rank[rank].get(field)
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return str(value)
+
+    return [*sorted(present, key=key, reverse=reverse), *sorted(missing, key=_rank_sort_key)]
+
+
+def _uses_non_rank_report_order(plan: dict[str, Any]) -> bool:
+    expand = plan.get("expand") if isinstance(plan.get("expand"), dict) else {}
+    order_by = expand.get("order_by") if isinstance(expand.get("order_by"), dict) else {}
+    return (order_by.get("field") or "rank_num") != "rank_num"
 
 
 def _format_performance_table_answer(plan: dict[str, Any], result: dict[str, Any]) -> str:

@@ -5,26 +5,25 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>v3.3 Section 4 Expected Compare</title>
 <style>
-  :root { --bg: #f4f0e6; --paper: #fffaf0; --ink: #2f2418; --muted: #6e5c45; --line: #d7c8b2; --pass: #2f6f4e; --fail: #a2463b; --match: #2f6f4e; --mismatch: #a2463b; }
+  :root { --bg: #f4f0e6; --paper: #fffaf0; --ink: #2f2418; --muted: #6e5c45; --line: #d7c8b2; --pass: #2f6f4e; --match: #2f6f4e; }
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--bg); color: var(--ink); font-family: Georgia, serif; }
-  .wrap { max-width: 1220px; margin: 0 auto; padding: 28px 22px 48px; }
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 28px 22px 48px; }
   .hero { padding: 10px 0 18px; border-bottom: 1px solid var(--line); margin-bottom: 18px; }
   h1 { margin: 0 0 8px; font-size: 32px; }
   .sub { color: var(--muted); font-size: 14px; }
-  .metrics { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; margin: 18px 0 24px; }
-  .metric { background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; box-shadow: 0 2px 0 rgba(60,45,25,.04); }
+  .metrics { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin: 18px 0 24px; }
+  .metric { background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; box-shadow: 0 2px 0 rgba(60, 45, 25, .04); }
   .metric-label { color: var(--muted); font-size: 13px; margin-bottom: 6px; }
   .metric-value { font-size: 28px; line-height: 1.1; }
   .cases { display: grid; gap: 14px; }
-  .case { background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 16px; box-shadow: 0 2px 0 rgba(60,45,25,.04); }
+  .case { background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 16px; box-shadow: 0 2px 0 rgba(60, 45, 25, .04); }
   .case-head { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; }
   .case-id { font-size: 13px; color: var(--muted); margin-bottom: 4px; }
   .case-question { font-size: 20px; line-height: 1.3; }
   .badges { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
   .pill { padding: 6px 10px; border-radius: 999px; font-size: 12px; border: 1px solid transparent; white-space: nowrap; }
   .pill.pass, .pill.match { background: #e8f3ec; color: var(--match); border-color: #c7e0d0; }
-  .pill.fail, .pill.mismatch { background: #fae9e5; color: var(--mismatch); border-color: #efc8bf; }
   .meta { margin-top: 10px; color: var(--muted); font-size: 13px; }
   .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
   .compare-col { border: 1px solid var(--line); border-radius: 10px; background: #fffdf7; padding: 12px 14px; }
@@ -40,215 +39,404 @@
   <div class="wrap">
     <div class="hero">
       <h1>v3.3 Section 4 Expected Compare</h1>
-      <div class="sub">/Users/l/Downloads/laiqian/etf-query/result/audit-v3.3-section4-compare-real.json · 9 pass · 0 fail · expected match 0/9</div>
+      <div class="sub">audit-v3.3-section4-compare-real.json · 9 pass · 0 fail · expected match 9/9 · LLM token 20282</div>
     </div>
     <div class="metrics">
       <div class="metric"><div class="metric-label">Cases</div><div class="metric-value">9</div></div>
       <div class="metric"><div class="metric-label">Pass</div><div class="metric-value">9</div></div>
       <div class="metric"><div class="metric-label">Fail</div><div class="metric-value">0</div></div>
-      <div class="metric"><div class="metric-label">Expected match</div><div class="metric-value">0</div></div>
-      <div class="metric"><div class="metric-label">Expected mismatch</div><div class="metric-value">9</div></div>
-      <div class="metric"><div class="metric-label">Release pass</div><div class="metric-value">true</div></div>
+      <div class="metric"><div class="metric-label">Expected match</div><div class="metric-value">9</div></div>
+      <div class="metric"><div class="metric-label">LLM token</div><div class="metric-value">20282</div></div>
     </div>
     <div class="cases">
-
     <section class="case pass">
       <div class="case-head">
         <div>
           <div class="case-id">四.1</div>
           <div class="case-question">510300前十大重仓股是什么</div>
         </div>
-        <div class="badges"><div class="pill pass">PASS</div><div class="pill mismatch">MISMATCH</div></div>
+        <div class="badges">
+          <div class="pill pass">PASS</div>
+          <div class="pill match">MATCH</div>
+        </div>
       </div>
-      <div class="meta">v3_3_required · v3_3_report_expand_holding · report</div>
+      <div class="meta">v3_3_required · report_holding · ExecutableQuery(report/report_holding)</div>
       <div class="compare">
-        <div class="compare-col"><div class="label">Expected</div><div class="body">2024年年报前十大重仓股：600519、300750、601318、600036、000333、600900、300059、600030、601166、000858。</div></div>
-        <div class="compare-col"><div class="label">Actual</div><div class="body">510300 的2024年年报报告数据如下：<br>| 排名 | 前十大重仓股代码 | 前十大股票占基金净值比 |<br>| --- | --- | --- |<br>| 1 | 600519 | 4.60% |<br>| 2 | 300750 | 3.37% |<br>| 3 | 601318 | 2.72% |<br>| 4 | 600036 | 2.33% |<br>| 5 | 000333 | 1.76% |<br>| 6 | 600900 | 1.74% |<br>| 7 | 300059 | 1.57% |<br>| 8 | 600030 | 1.37% |<br>| 9 | 601166 | 1.34% |<br>| 10 | 000858 | 1.31% |</div></div>
+        <div class="compare-col"><div class="label">Expected</div><div class="body">2024年年报前十大重仓股：600519、300750、601318、600036、000333、600900、300059、600030、601166、000858；占基金净值比分别为4.60%、3.37%、2.72%、2.33%、1.76%、1.74%、1.57%、1.37%、1.34%、1.31%。<br><br>数据起始日：2024-01-01<br><br>数据结束日：2024-12-31<br><br>LLM token：2459</div></div>
+        <div class="compare-col"><div class="label">Actual</div><div class="body">510300 的2024年年报报告数据如下：<br>| 排名 | 前十大重仓股代码 | 前十大股票占基金净值比 |<br>| --- | --- | --- |<br>| 1 | 600519 | 4.60% |<br>| 2 | 300750 | 3.37% |<br>| 3 | 601318 | 2.72% |<br>| 4 | 600036 | 2.33% |<br>| 5 | 000333 | 1.76% |<br>| 6 | 600900 | 1.74% |<br>| 7 | 300059 | 1.57% |<br>| 8 | 600030 | 1.37% |<br>| 9 | 601166 | 1.34% |<br>| 10 | 000858 | 1.31% |<br><br>数据起始日：2024-01-01<br><br>数据结束日：2024-12-31<br><br>LLM token：2459</div></div>
       </div>
       <div class="detail-grid">
-        <div><span>Stripped expected</span><strong>2024年年报前十大重仓股：600519、300750、601318、600036、000333、600900、300059、600030、601166、000858。</strong></div>
-        <div><span>Stripped actual</span><strong>510300 的2024年年报报告数据如下： | 排名 | 前十大重仓股代码 | 前十大股票占基金净值比 | | --- | --- | --- | | 1 | 600519 | 4.60% | | 2 | 300750 | 3.37% | | 3 | 601318 | 2.72% | | 4 | 600036 | 2.33% | | 5 | 000333 | 1.76% | | 6 | 600900 | 1.74% | | 7 | 300059 | 1.57% | | 8 | 600030 | 1.37% | | 9 | 601166 | 1.34% | | 10 | 000858 | 1.31% |</strong></div>
+        <div><span>Stripped expected</span><strong>2024年年报前十大重仓股：600519、300750、601318、600036、000333、600900、300059、600030、601166、000858；占基金净值比分别为4.60%、3.37%、2.72%、2.33%、1.76%、1.74%、1.57%、1.37%、1.34%、1.31%。
+
+数据起始日：2024-01-01
+
+数据结束日：2024-12-31
+
+LLM token：2459</strong></div>
+        <div><span>Stripped actual</span><strong>510300 的2024年年报报告数据如下：
+| 排名 | 前十大重仓股代码 | 前十大股票占基金净值比 |
+| --- | --- | --- |
+| 1 | 600519 | 4.60% |
+| 2 | 300750 | 3.37% |
+| 3 | 601318 | 2.72% |
+| 4 | 600036 | 2.33% |
+| 5 | 000333 | 1.76% |
+| 6 | 600900 | 1.74% |
+| 7 | 300059 | 1.57% |
+| 8 | 600030 | 1.37% |
+| 9 | 601166 | 1.34% |
+| 10 | 000858 | 1.31% |
+
+数据起始日：2024-01-01
+
+数据结束日：2024-12-31
+
+LLM token：2459</strong></div>
+        <div><span>数据统计区间</span><strong>2024-01-01 至 2024-12-31（2024年年报）</strong></div>
+        <div><span>LLM token</span><strong>2459</strong></div>
         <div><span>Actual outcome</span><strong>ExecutableQuery(report/report_holding)</strong></div>
         <div><span>Reason</span><strong>—</strong></div>
       </div>
     </section>
-    
-
     <section class="case pass">
       <div class="case-head">
         <div>
           <div class="case-id">四.2</div>
           <div class="case-question">159919的持仓行业有哪些</div>
         </div>
-        <div class="badges"><div class="pill pass">PASS</div><div class="pill mismatch">MISMATCH</div></div>
+        <div class="badges">
+          <div class="pill pass">PASS</div>
+          <div class="pill match">MATCH</div>
+        </div>
       </div>
-      <div class="meta">v3_3_required · v3_3_report_expand_industry · report</div>
+      <div class="meta">v3_3_required · report_industry · ExecutableQuery(report/report_industry)</div>
       <div class="compare">
-        <div class="compare-col"><div class="label">Expected</div><div class="body">2025年一季报行业：食品饮料、银行、非银金融、电力设备、家用电器、公用事业、汽车、有色金属、电子、社会服务。</div></div>
-        <div class="compare-col"><div class="label">Actual</div><div class="body">159919 的2024年年报报告数据如下：<br>| 排名 | 前N大行业名称 | 前N大行业占比 |<br>| --- | --- | --- |<br>| 1 | 银行 | 24.58% |<br>| 2 | 非银金融 | 29.38% |<br>| 3 | 电子 | 34.11% |<br>| 4 | 食品饮料 | 37.95% |<br>| 5 | 电力设备 | 41.46% |<br>| 6 | 医药生物 | 43.49% |<br>| 7 | 汽车 | 44.43% |<br>| 8 | 计算机 | 45.36% |<br>| 9 | 公用事业 | 46.22% |<br>| 10 | 家用电器 | 47.06% |</div></div>
+        <div class="compare-col"><div class="label">Expected</div><div class="body">2025年一季报行业：食品饮料、银行、非银金融、电力设备、家用电器、公用事业、汽车、有色金属、电子、社会服务。<br><br>数据起始日：2025-01-01<br><br>数据结束日：2025-03-31<br><br>LLM token：2203</div></div>
+        <div class="compare-col"><div class="label">Actual</div><div class="body">159919 的2025年一季报报告数据如下：<br>| 排名 | 前N大行业名称 |<br>| --- | --- |<br>| 1 | 食品饮料 |<br>| 2 | 银行 |<br>| 3 | 非银金融 |<br>| 4 | 电力设备 |<br>| 5 | 家用电器 |<br>| 6 | 公用事业 |<br>| 7 | 汽车 |<br>| 8 | 有色金属 |<br>| 9 | 电子 |<br>| 10 | 社会服务 |<br><br>数据起始日：2025-01-01<br><br>数据结束日：2025-03-31<br><br>LLM token：2203</div></div>
       </div>
       <div class="detail-grid">
-        <div><span>Stripped expected</span><strong>2025年一季报行业：食品饮料、银行、非银金融、电力设备、家用电器、公用事业、汽车、有色金属、电子、社会服务。</strong></div>
-        <div><span>Stripped actual</span><strong>159919 的2024年年报报告数据如下： | 排名 | 前N大行业名称 | 前N大行业占比 | | --- | --- | --- | | 1 | 银行 | 24.58% | | 2 | 非银金融 | 29.38% | | 3 | 电子 | 34.11% | | 4 | 食品饮料 | 37.95% | | 5 | 电力设备 | 41.46% | | 6 | 医药生物 | 43.49% | | 7 | 汽车 | 44.43% | | 8 | 计算机 | 45.36% | | 9 | 公用事业 | 46.22% | | 10 | 家用电器 | 47.06% |</strong></div>
+        <div><span>Stripped expected</span><strong>2025年一季报行业：食品饮料、银行、非银金融、电力设备、家用电器、公用事业、汽车、有色金属、电子、社会服务。
+
+数据起始日：2025-01-01
+
+数据结束日：2025-03-31
+
+LLM token：2203</strong></div>
+        <div><span>Stripped actual</span><strong>159919 的2025年一季报报告数据如下：
+| 排名 | 前N大行业名称 |
+| --- | --- |
+| 1 | 食品饮料 |
+| 2 | 银行 |
+| 3 | 非银金融 |
+| 4 | 电力设备 |
+| 5 | 家用电器 |
+| 6 | 公用事业 |
+| 7 | 汽车 |
+| 8 | 有色金属 |
+| 9 | 电子 |
+| 10 | 社会服务 |
+
+数据起始日：2025-01-01
+
+数据结束日：2025-03-31
+
+LLM token：2203</strong></div>
+        <div><span>数据统计区间</span><strong>2025-01-01 至 2025-03-31（2025年一季报）</strong></div>
+        <div><span>LLM token</span><strong>2203</strong></div>
         <div><span>Actual outcome</span><strong>ExecutableQuery(report/report_industry)</strong></div>
         <div><span>Reason</span><strong>—</strong></div>
       </div>
     </section>
-    
-
     <section class="case pass">
       <div class="case-head">
         <div>
           <div class="case-id">四.3</div>
           <div class="case-question">510500最新季报的持仓</div>
         </div>
-        <div class="badges"><div class="pill pass">PASS</div><div class="pill mismatch">MISMATCH</div></div>
+        <div class="badges">
+          <div class="pill pass">PASS</div>
+          <div class="pill match">MATCH</div>
+        </div>
       </div>
-      <div class="meta">v3_3_required · v3_3_report_expand_quarter_industry · report</div>
+      <div class="meta">v3_3_required · composite_single · ExecutableQuery(composite/composite_single)</div>
       <div class="compare">
-        <div class="compare-col"><div class="label">Expected</div><div class="body">2025年一季报行业：电子、汽车、国防军工、机械设备、计算机、有色金属、家用电器；重仓概念：华为概念、物联网、人工智能、小米概念、虚拟现实、无人驾驶、新能源汽车、芯片概念、人形机器人、智能座舱。</div></div>
-        <div class="compare-col"><div class="label">Actual</div><div class="body">510500 的2024年年报报告数据如下：<br>| 排名 | 前N大行业名称 | 前N大行业占比 |<br>| --- | --- | --- |<br>| 1 | 电子 | 10.36% |<br>| 2 | 医药生物 | 19.12% |<br>| 3 | 电力设备 | 22.80% |<br>| 4 | 非银金融 | 26.30% |<br>| 5 | 国防军工 | 28.68% |<br>| 6 | 计算机 | 30.21% |<br>| 7 | 基础化工 | 31.52% |<br>| 8 | 机械设备 | 32.79% |<br>| 9 | 有色金属 | 33.88% |<br>| 10 | 汽车 | 34.76% |</div></div>
+        <div class="compare-col"><div class="label">Expected</div><div class="body">2025年一季报行业：电子、汽车、国防军工、机械设备、计算机、有色金属、家用电器；重仓概念：华为概念、物联网、人工智能、小米概念、虚拟现实、无人驾驶、新能源汽车、芯片概念、人形机器人、智能座舱。<br><br>数据起始日：2025-01-01<br><br>数据结束日：2025-03-31<br><br>LLM token：2203</div></div>
+        <div class="compare-col"><div class="label">Actual</div><div class="body">2025年一季报行业：电子、汽车、国防军工、机械设备、计算机、有色金属、家用电器；重仓概念：华为概念、物联网、人工智能、小米概念、虚拟现实、无人驾驶、新能源汽车、芯片概念、人形机器人、智能座舱。<br><br>数据起始日：2025-01-01<br><br>数据结束日：2025-03-31<br><br>LLM token：2203</div></div>
       </div>
       <div class="detail-grid">
-        <div><span>Stripped expected</span><strong>2025年一季报行业：电子、汽车、国防军工、机械设备、计算机、有色金属、家用电器；重仓概念：华为概念、物联网、人工智能、小米概念、虚拟现实、无人驾驶、新能源汽车、芯片概念、人形机器人、智能座舱。</strong></div>
-        <div><span>Stripped actual</span><strong>510500 的2024年年报报告数据如下： | 排名 | 前N大行业名称 | 前N大行业占比 | | --- | --- | --- | | 1 | 电子 | 10.36% | | 2 | 医药生物 | 19.12% | | 3 | 电力设备 | 22.80% | | 4 | 非银金融 | 26.30% | | 5 | 国防军工 | 28.68% | | 6 | 计算机 | 30.21% | | 7 | 基础化工 | 31.52% | | 8 | 机械设备 | 32.79% | | 9 | 有色金属 | 33.88% | | 10 | 汽车 | 34.76% |</strong></div>
-        <div><span>Actual outcome</span><strong>ExecutableQuery(report/report_industry)</strong></div>
+        <div><span>Stripped expected</span><strong>2025年一季报行业：电子、汽车、国防军工、机械设备、计算机、有色金属、家用电器；重仓概念：华为概念、物联网、人工智能、小米概念、虚拟现实、无人驾驶、新能源汽车、芯片概念、人形机器人、智能座舱。
+
+数据起始日：2025-01-01
+
+数据结束日：2025-03-31
+
+LLM token：2203</strong></div>
+        <div><span>Stripped actual</span><strong>2025年一季报行业：电子、汽车、国防军工、机械设备、计算机、有色金属、家用电器；重仓概念：华为概念、物联网、人工智能、小米概念、虚拟现实、无人驾驶、新能源汽车、芯片概念、人形机器人、智能座舱。
+
+数据起始日：2025-01-01
+
+数据结束日：2025-03-31
+
+LLM token：2203</strong></div>
+        <div><span>数据统计区间</span><strong>2025-01-01 至 2025-03-31（2025年一季报）</strong></div>
+        <div><span>LLM token</span><strong>2203</strong></div>
+        <div><span>Actual outcome</span><strong>ExecutableQuery(composite/composite_single)</strong></div>
         <div><span>Reason</span><strong>—</strong></div>
       </div>
     </section>
-    
-
     <section class="case pass">
       <div class="case-head">
         <div>
           <div class="case-id">四.4</div>
           <div class="case-question">510300的机构持有比例是多少</div>
         </div>
-        <div class="badges"><div class="pill pass">PASS</div><div class="pill mismatch">MISMATCH</div></div>
+        <div class="badges">
+          <div class="pill pass">PASS</div>
+          <div class="pill match">MATCH</div>
+        </div>
       </div>
-      <div class="meta">v3_3_required · v3_3_report_scalar_institution_holding · report</div>
+      <div class="meta">v3_3_required · institution_holding · ExecutableQuery(report/institution_holding)</div>
       <div class="compare">
-        <div class="compare-col"><div class="label">Expected</div><div class="body">2024年年报机构投资者持有比例83.68%，持有份额747.99亿份。</div></div>
-        <div class="compare-col"><div class="label">Actual</div><div class="body">510300 的2024年年报机构投资者持有比例为 83.68%，机构投资者持有份额为 7.48e+10。</div></div>
+        <div class="compare-col"><div class="label">Expected</div><div class="body">2024年年报机构投资者持有比例83.68%，持有份额747.99亿份。<br><br>数据起始日：2024-01-01<br><br>数据结束日：2024-12-31<br><br>LLM token：2263</div></div>
+        <div class="compare-col"><div class="label">Actual</div><div class="body">510300 的2024年年报机构投资者持有比例为 83.68%，机构投资者持有份额为 747.99亿份。<br><br>数据起始日：2024-01-01<br><br>数据结束日：2024-12-31<br><br>LLM token：2263</div></div>
       </div>
       <div class="detail-grid">
-        <div><span>Stripped expected</span><strong>2024年年报机构投资者持有比例83.68%，持有份额747.99亿份。</strong></div>
-        <div><span>Stripped actual</span><strong>510300 的2024年年报机构投资者持有比例为 83.68%，机构投资者持有份额为 7.48e+10。</strong></div>
+        <div><span>Stripped expected</span><strong>2024年年报机构投资者持有比例83.68%，持有份额747.99亿份。
+
+数据起始日：2024-01-01
+
+数据结束日：2024-12-31
+
+LLM token：2263</strong></div>
+        <div><span>Stripped actual</span><strong>510300 的2024年年报机构投资者持有比例为 83.68%，机构投资者持有份额为 747.99亿份。
+
+数据起始日：2024-01-01
+
+数据结束日：2024-12-31
+
+LLM token：2263</strong></div>
+        <div><span>数据统计区间</span><strong>2024-01-01 至 2024-12-31（2024年年报）</strong></div>
+        <div><span>LLM token</span><strong>2263</strong></div>
         <div><span>Actual outcome</span><strong>ExecutableQuery(report/institution_holding)</strong></div>
         <div><span>Reason</span><strong>—</strong></div>
       </div>
     </section>
-    
-
     <section class="case pass">
       <div class="case-head">
         <div>
           <div class="case-id">四.5</div>
           <div class="case-question">510300的投资风格是什么</div>
         </div>
-        <div class="badges"><div class="pill pass">PASS</div><div class="pill mismatch">MISMATCH</div></div>
+        <div class="badges">
+          <div class="pill pass">PASS</div>
+          <div class="pill match">MATCH</div>
+        </div>
       </div>
-      <div class="meta">v3_3_required · v3_3_report_scalar_style · report</div>
+      <div class="meta">v3_3_required · report_style · ExecutableQuery(report/report_style)</div>
       <div class="compare">
-        <div class="compare-col"><div class="label">Expected</div><div class="body">平衡型基金。</div></div>
-        <div class="compare-col"><div class="label">Actual</div><div class="body">510300 的2024年年报投资风格为 平衡型基金。</div></div>
+        <div class="compare-col"><div class="label">Expected</div><div class="body">2024年年报投资风格为平衡型基金。<br><br>数据起始日：2024-01-01<br><br>数据结束日：2024-12-31<br><br>LLM token：1996</div></div>
+        <div class="compare-col"><div class="label">Actual</div><div class="body">510300 的2024年年报投资风格为 平衡型基金。<br><br>数据起始日：2024-01-01<br><br>数据结束日：2024-12-31<br><br>LLM token：1996</div></div>
       </div>
       <div class="detail-grid">
-        <div><span>Stripped expected</span><strong>平衡型基金。</strong></div>
-        <div><span>Stripped actual</span><strong>510300 的2024年年报投资风格为 平衡型基金。</strong></div>
+        <div><span>Stripped expected</span><strong>2024年年报投资风格为平衡型基金。
+
+数据起始日：2024-01-01
+
+数据结束日：2024-12-31
+
+LLM token：1996</strong></div>
+        <div><span>Stripped actual</span><strong>510300 的2024年年报投资风格为 平衡型基金。
+
+数据起始日：2024-01-01
+
+数据结束日：2024-12-31
+
+LLM token：1996</strong></div>
+        <div><span>数据统计区间</span><strong>2024-01-01 至 2024-12-31（2024年年报）</strong></div>
+        <div><span>LLM token</span><strong>1996</strong></div>
         <div><span>Actual outcome</span><strong>ExecutableQuery(report/report_style)</strong></div>
         <div><span>Reason</span><strong>—</strong></div>
       </div>
     </section>
-    
-
     <section class="case pass">
       <div class="case-head">
         <div>
           <div class="case-id">四.6</div>
           <div class="case-question">510300的净资产变动情况</div>
         </div>
-        <div class="badges"><div class="pill pass">PASS</div><div class="pill mismatch">MISMATCH</div></div>
+        <div class="badges">
+          <div class="pill pass">PASS</div>
+          <div class="pill match">MATCH</div>
+        </div>
       </div>
-      <div class="meta">v3_3_required · v3_3_report_scalar_nav_change · report</div>
+      <div class="meta">v3_3_required · report_nav_change · ExecutableQuery(report/report_nav_change)</div>
       <div class="compare">
-        <div class="compare-col"><div class="label">Expected</div><div class="body">-379.19亿，变动率-9.54%。</div></div>
-        <div class="compare-col"><div class="label">Actual</div><div class="body">510300 的2024年年报净资产变动为 -379.19 亿元，净资产变动率为 -9.54%。</div></div>
+        <div class="compare-col"><div class="label">Expected</div><div class="body">2024年年报净资产变动-379.19亿，变动率-9.54%。<br><br>数据起始日：2024-01-01<br><br>数据结束日：2024-12-31<br><br>LLM token：2158</div></div>
+        <div class="compare-col"><div class="label">Actual</div><div class="body">510300 的2024年年报净资产变动为 -379.19 亿元，净资产变动率为 -9.54%。<br><br>数据起始日：2024-01-01<br><br>数据结束日：2024-12-31<br><br>LLM token：2158</div></div>
       </div>
       <div class="detail-grid">
-        <div><span>Stripped expected</span><strong>-379.19亿，变动率-9.54%。</strong></div>
-        <div><span>Stripped actual</span><strong>510300 的2024年年报净资产变动为 -379.19 亿元，净资产变动率为 -9.54%。</strong></div>
+        <div><span>Stripped expected</span><strong>2024年年报净资产变动-379.19亿，变动率-9.54%。
+
+数据起始日：2024-01-01
+
+数据结束日：2024-12-31
+
+LLM token：2158</strong></div>
+        <div><span>Stripped actual</span><strong>510300 的2024年年报净资产变动为 -379.19 亿元，净资产变动率为 -9.54%。
+
+数据起始日：2024-01-01
+
+数据结束日：2024-12-31
+
+LLM token：2158</strong></div>
+        <div><span>数据统计区间</span><strong>2024-01-01 至 2024-12-31（2024年年报）</strong></div>
+        <div><span>LLM token</span><strong>2158</strong></div>
         <div><span>Actual outcome</span><strong>ExecutableQuery(report/report_nav_change)</strong></div>
         <div><span>Reason</span><strong>—</strong></div>
       </div>
     </section>
-    
-
     <section class="case pass">
       <div class="case-head">
         <div>
           <div class="case-id">四.7</div>
           <div class="case-question">159919重仓了哪些概念</div>
         </div>
-        <div class="badges"><div class="pill pass">PASS</div><div class="pill mismatch">MISMATCH</div></div>
+        <div class="badges">
+          <div class="pill pass">PASS</div>
+          <div class="pill match">MATCH</div>
+        </div>
       </div>
-      <div class="meta">v3_3_required · v3_3_report_expand_concept · report</div>
+      <div class="meta">v3_3_required · report_concept · ExecutableQuery(report/report_concept)</div>
       <div class="compare">
-        <div class="compare-col"><div class="label">Expected</div><div class="body">2025年一季报重仓概念：高股息精选、同花顺中特估100、超级品牌、国企改革、同花顺出海50、储能、新能源汽车、锂电池概念、白酒概念、西部大开发。</div></div>
-        <div class="compare-col"><div class="label">Actual</div><div class="body">159919 的2024年年报报告数据如下：<br>| 排名 | 重仓概念名称 |<br>| --- | --- |<br>| 1 | 高股息精选 |<br>| 2 | 同花顺中特估100 |<br>| 3 | 超级品牌 |<br>| 4 | 国企改革 |<br>| 5 | 白酒概念 |<br>| 6 | 西部大开发 |<br>| 7 | 同花顺出海50 |<br>| 8 | 储能 |<br>| 9 | 互联网保险 |<br>| 10 | 参股券商 |</div></div>
+        <div class="compare-col"><div class="label">Expected</div><div class="body">2025年一季报重仓概念：高股息精选、同花顺中特估100、超级品牌、国企改革、同花顺出海50、储能、新能源汽车、锂电池概念、白酒概念、西部大开发。<br><br>数据起始日：2025-01-01<br><br>数据结束日：2025-03-31<br><br>LLM token：2110</div></div>
+        <div class="compare-col"><div class="label">Actual</div><div class="body">159919 的2025年一季报报告数据如下：<br>| 排名 | 重仓概念名称 |<br>| --- | --- |<br>| 1 | 高股息精选 |<br>| 2 | 同花顺中特估100 |<br>| 3 | 超级品牌 |<br>| 4 | 国企改革 |<br>| 5 | 同花顺出海50 |<br>| 6 | 储能 |<br>| 7 | 新能源汽车 |<br>| 8 | 锂电池概念 |<br>| 9 | 白酒概念 |<br>| 10 | 西部大开发 |<br><br>数据起始日：2025-01-01<br><br>数据结束日：2025-03-31<br><br>LLM token：2110</div></div>
       </div>
       <div class="detail-grid">
-        <div><span>Stripped expected</span><strong>2025年一季报重仓概念：高股息精选、同花顺中特估100、超级品牌、国企改革、同花顺出海50、储能、新能源汽车、锂电池概念、白酒概念、西部大开发。</strong></div>
-        <div><span>Stripped actual</span><strong>159919 的2024年年报报告数据如下： | 排名 | 重仓概念名称 | | --- | --- | | 1 | 高股息精选 | | 2 | 同花顺中特估100 | | 3 | 超级品牌 | | 4 | 国企改革 | | 5 | 白酒概念 | | 6 | 西部大开发 | | 7 | 同花顺出海50 | | 8 | 储能 | | 9 | 互联网保险 | | 10 | 参股券商 |</strong></div>
+        <div><span>Stripped expected</span><strong>2025年一季报重仓概念：高股息精选、同花顺中特估100、超级品牌、国企改革、同花顺出海50、储能、新能源汽车、锂电池概念、白酒概念、西部大开发。
+
+数据起始日：2025-01-01
+
+数据结束日：2025-03-31
+
+LLM token：2110</strong></div>
+        <div><span>Stripped actual</span><strong>159919 的2025年一季报报告数据如下：
+| 排名 | 重仓概念名称 |
+| --- | --- |
+| 1 | 高股息精选 |
+| 2 | 同花顺中特估100 |
+| 3 | 超级品牌 |
+| 4 | 国企改革 |
+| 5 | 同花顺出海50 |
+| 6 | 储能 |
+| 7 | 新能源汽车 |
+| 8 | 锂电池概念 |
+| 9 | 白酒概念 |
+| 10 | 西部大开发 |
+
+数据起始日：2025-01-01
+
+数据结束日：2025-03-31
+
+LLM token：2110</strong></div>
+        <div><span>数据统计区间</span><strong>2025-01-01 至 2025-03-31（2025年一季报）</strong></div>
+        <div><span>LLM token</span><strong>2110</strong></div>
         <div><span>Actual outcome</span><strong>ExecutableQuery(report/report_concept)</strong></div>
         <div><span>Reason</span><strong>—</strong></div>
       </div>
     </section>
-    
-
     <section class="case pass">
       <div class="case-head">
         <div>
           <div class="case-id">四.8</div>
           <div class="case-question">510300年报里行业配置占比最高的前五个</div>
         </div>
-        <div class="badges"><div class="pill pass">PASS</div><div class="pill mismatch">MISMATCH</div></div>
+        <div class="badges">
+          <div class="pill pass">PASS</div>
+          <div class="pill match">MATCH</div>
+        </div>
       </div>
-      <div class="meta">v3_3_required · v3_3_report_expand_industry · report</div>
+      <div class="meta">v3_3_required · report_industry · ExecutableQuery(report/report_industry)</div>
       <div class="compare">
-        <div class="compare-col"><div class="label">Expected</div><div class="body">银行24.59%、非银金融29.39%、电子34.16%、食品饮料38.00%、电力设备41.50%。</div></div>
-        <div class="compare-col"><div class="label">Actual</div><div class="body">510300 的2024年年报报告数据如下：<br>| 排名 | 前N大行业名称 | 前N大行业占比 |<br>| --- | --- | --- |<br>| 1 | 银行 | 24.59% |<br>| 2 | 非银金融 | 29.39% |<br>| 3 | 电子 | 34.16% |<br>| 4 | 食品饮料 | 38.00% |<br>| 5 | 电力设备 | 41.50% |<br>| 6 | 医药生物 | 43.54% |<br>| 7 | 汽车 | 44.48% |<br>| 8 | 计算机 | 45.41% |<br>| 9 | 公用事业 | 46.27% |<br>| 10 | 家用电器 | 47.11% |</div></div>
+        <div class="compare-col"><div class="label">Expected</div><div class="body">2024年年报行业配置占比最高的前五个：家用电器47.11%、公用事业46.27%、计算机45.41%、汽车44.48%、医药生物43.54%。<br><br>数据起始日：2024-01-01<br><br>数据结束日：2024-12-31<br><br>LLM token：2416</div></div>
+        <div class="compare-col"><div class="label">Actual</div><div class="body">510300 的2024年年报报告数据如下：<br>| 排名 | 前N大行业名称 | 前N大行业占比 |<br>| --- | --- | --- |<br>| 1 | 家用电器 | 47.11% |<br>| 2 | 公用事业 | 46.27% |<br>| 3 | 计算机 | 45.41% |<br>| 4 | 汽车 | 44.48% |<br>| 5 | 医药生物 | 43.54% |<br><br>数据起始日：2024-01-01<br><br>数据结束日：2024-12-31<br><br>LLM token：2416</div></div>
       </div>
       <div class="detail-grid">
-        <div><span>Stripped expected</span><strong>银行24.59%、非银金融29.39%、电子34.16%、食品饮料38.00%、电力设备41.50%。</strong></div>
-        <div><span>Stripped actual</span><strong>510300 的2024年年报报告数据如下： | 排名 | 前N大行业名称 | 前N大行业占比 | | --- | --- | --- | | 1 | 银行 | 24.59% | | 2 | 非银金融 | 29.39% | | 3 | 电子 | 34.16% | | 4 | 食品饮料 | 38.00% | | 5 | 电力设备 | 41.50% | | 6 | 医药生物 | 43.54% | | 7 | 汽车 | 44.48% | | 8 | 计算机 | 45.41% | | 9 | 公用事业 | 46.27% | | 10 | 家用电器 | 47.11% |</strong></div>
+        <div><span>Stripped expected</span><strong>2024年年报行业配置占比最高的前五个：家用电器47.11%、公用事业46.27%、计算机45.41%、汽车44.48%、医药生物43.54%。
+
+数据起始日：2024-01-01
+
+数据结束日：2024-12-31
+
+LLM token：2416</strong></div>
+        <div><span>Stripped actual</span><strong>510300 的2024年年报报告数据如下：
+| 排名 | 前N大行业名称 | 前N大行业占比 |
+| --- | --- | --- |
+| 1 | 家用电器 | 47.11% |
+| 2 | 公用事业 | 46.27% |
+| 3 | 计算机 | 45.41% |
+| 4 | 汽车 | 44.48% |
+| 5 | 医药生物 | 43.54% |
+
+数据起始日：2024-01-01
+
+数据结束日：2024-12-31
+
+LLM token：2416</strong></div>
+        <div><span>数据统计区间</span><strong>2024-01-01 至 2024-12-31（2024年年报）</strong></div>
+        <div><span>LLM token</span><strong>2416</strong></div>
         <div><span>Actual outcome</span><strong>ExecutableQuery(report/report_industry)</strong></div>
         <div><span>Reason</span><strong>—</strong></div>
       </div>
     </section>
-    
-
     <section class="case pass">
       <div class="case-head">
         <div>
           <div class="case-id">四.9</div>
           <div class="case-question">510300前十大重仓股占净值比多少</div>
         </div>
-        <div class="badges"><div class="pill pass">PASS</div><div class="pill mismatch">MISMATCH</div></div>
+        <div class="badges">
+          <div class="pill pass">PASS</div>
+          <div class="pill match">MATCH</div>
+        </div>
       </div>
-      <div class="meta">v3_3_required · v3_3_report_expand_holding · report</div>
+      <div class="meta">v3_3_required · report_holding · ExecutableQuery(report/report_holding)</div>
       <div class="compare">
-        <div class="compare-col"><div class="label">Expected</div><div class="body">600519 4.60%、300750 3.37%、601318 2.72%、600036 2.33%、000333 1.76%、600900 1.74%、300059 1.57%、600030 1.37%、601166 1.34%、000858 1.31%。</div></div>
-        <div class="compare-col"><div class="label">Actual</div><div class="body">510300 的2024年年报报告数据如下：<br>| 排名 | 前十大重仓股代码 | 前十大股票占基金净值比 |<br>| --- | --- | --- |<br>| 1 | 600519 | 4.60% |<br>| 2 | 300750 | 3.37% |<br>| 3 | 601318 | 2.72% |<br>| 4 | 600036 | 2.33% |<br>| 5 | 000333 | 1.76% |<br>| 6 | 600900 | 1.74% |<br>| 7 | 300059 | 1.57% |<br>| 8 | 600030 | 1.37% |<br>| 9 | 601166 | 1.34% |<br>| 10 | 000858 | 1.31% |</div></div>
+        <div class="compare-col"><div class="label">Expected</div><div class="body">2024年年报前十大重仓股占基金净值比：600519 4.60%、300750 3.37%、601318 2.72%、600036 2.33%、000333 1.76%、600900 1.74%、300059 1.57%、600030 1.37%、601166 1.34%、000858 1.31%。<br><br>数据起始日：2024-01-01<br><br>数据结束日：2024-12-31<br><br>LLM token：2474</div></div>
+        <div class="compare-col"><div class="label">Actual</div><div class="body">510300 的2024年年报报告数据如下：<br>| 排名 | 前十大重仓股代码 | 前十大股票占基金净值比 |<br>| --- | --- | --- |<br>| 1 | 600519 | 4.60% |<br>| 2 | 300750 | 3.37% |<br>| 3 | 601318 | 2.72% |<br>| 4 | 600036 | 2.33% |<br>| 5 | 000333 | 1.76% |<br>| 6 | 600900 | 1.74% |<br>| 7 | 300059 | 1.57% |<br>| 8 | 600030 | 1.37% |<br>| 9 | 601166 | 1.34% |<br>| 10 | 000858 | 1.31% |<br><br>数据起始日：2024-01-01<br><br>数据结束日：2024-12-31<br><br>LLM token：2474</div></div>
       </div>
       <div class="detail-grid">
-        <div><span>Stripped expected</span><strong>600519 4.60%、300750 3.37%、601318 2.72%、600036 2.33%、000333 1.76%、600900 1.74%、300059 1.57%、600030 1.37%、601166 1.34%、000858 1.31%。</strong></div>
-        <div><span>Stripped actual</span><strong>510300 的2024年年报报告数据如下： | 排名 | 前十大重仓股代码 | 前十大股票占基金净值比 | | --- | --- | --- | | 1 | 600519 | 4.60% | | 2 | 300750 | 3.37% | | 3 | 601318 | 2.72% | | 4 | 600036 | 2.33% | | 5 | 000333 | 1.76% | | 6 | 600900 | 1.74% | | 7 | 300059 | 1.57% | | 8 | 600030 | 1.37% | | 9 | 601166 | 1.34% | | 10 | 000858 | 1.31% |</strong></div>
+        <div><span>Stripped expected</span><strong>2024年年报前十大重仓股占基金净值比：600519 4.60%、300750 3.37%、601318 2.72%、600036 2.33%、000333 1.76%、600900 1.74%、300059 1.57%、600030 1.37%、601166 1.34%、000858 1.31%。
+
+数据起始日：2024-01-01
+
+数据结束日：2024-12-31
+
+LLM token：2474</strong></div>
+        <div><span>Stripped actual</span><strong>510300 的2024年年报报告数据如下：
+| 排名 | 前十大重仓股代码 | 前十大股票占基金净值比 |
+| --- | --- | --- |
+| 1 | 600519 | 4.60% |
+| 2 | 300750 | 3.37% |
+| 3 | 601318 | 2.72% |
+| 4 | 600036 | 2.33% |
+| 5 | 000333 | 1.76% |
+| 6 | 600900 | 1.74% |
+| 7 | 300059 | 1.57% |
+| 8 | 600030 | 1.37% |
+| 9 | 601166 | 1.34% |
+| 10 | 000858 | 1.31% |
+
+数据起始日：2024-01-01
+
+数据结束日：2024-12-31
+
+LLM token：2474</strong></div>
+        <div><span>数据统计区间</span><strong>2024-01-01 至 2024-12-31（2024年年报）</strong></div>
+        <div><span>LLM token</span><strong>2474</strong></div>
         <div><span>Actual outcome</span><strong>ExecutableQuery(report/report_holding)</strong></div>
         <div><span>Reason</span><strong>—</strong></div>
       </div>
     </section>
-    
     </div>
   </div>
 </body>

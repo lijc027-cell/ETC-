@@ -1381,3 +1381,56 @@ def test_semantic_query_v3_agent_mode_marks_llm_ast_status_in_dry_run():
     result = semantic_query_v3("搜索中证500", root=ROOT, dry_run=True, no_llm=False)
 
     assert result["v3"]["llm_ast_status"] == "skipped"
+
+
+def test_api_query_response_hides_debug_by_default(monkeypatch):
+    from etf_agent import api
+
+    def fake_query(question, *, root, dry_run, no_llm, phase):
+        return {
+            "question": question,
+            "answer": "沪深300ETF（510300）是一只股票型ETF。",
+            "v3": {"recognized_query_mode": "basic_info", "intent": "basic_info"},
+            "query_plan": {"collection": "tb_ths_etf_base"},
+            "result": {"data": [{"fundcode": "510300"}]},
+        }
+
+    monkeypatch.setattr(api, "semantic_query_v3", fake_query)
+
+    response = api.run_query({"question": "510300是什么"})
+
+    assert response["ok"] is True
+    assert response["answer"] == "沪深300ETF（510300）是一只股票型ETF。"
+    assert response["mode"] == "basic_info"
+    assert "query_plan" not in response
+    assert "result" not in response
+
+
+def test_api_query_response_can_include_debug(monkeypatch):
+    from etf_agent import api
+
+    def fake_query(question, *, root, dry_run, no_llm, phase):
+        return {
+            "question": question,
+            "answer": "answer",
+            "v3": {"recognized_query_mode": "basic_info", "intent": "basic_info"},
+            "query_plan": {"collection": "tb_ths_etf_base"},
+            "result": {"data": []},
+        }
+
+    monkeypatch.setattr(api, "semantic_query_v3", fake_query)
+
+    response = api.run_query({"question": "510300是什么", "include_debug": True})
+
+    assert response["query_plan"] == {"collection": "tb_ths_etf_base"}
+    assert response["result"] == {"data": []}
+
+
+def test_api_openapi_spec_documents_query_endpoint():
+    from etf_agent.api import openapi_spec
+
+    spec = openapi_spec()
+
+    assert spec["openapi"].startswith("3.")
+    assert "/v1/query" in spec["paths"]
+    assert "question" in spec["components"]["schemas"]["QueryRequest"]["required"]

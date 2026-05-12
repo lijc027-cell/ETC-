@@ -11,7 +11,7 @@ from etf_agent.ast_generator import generate_full_ast_draft_with_llm
 from etf_agent.ast_validator import validate_v3_3_ast_draft
 from etf_agent.formatter import format_answer
 from etf_agent.generation_context import build_generation_bundle
-from etf_agent.v3 import _compile_ast_to_plan, build_v3_1_ast, extract_v3_1_entity_hints, semantic_query_v3
+from etf_agent.v3 import _compile_ast_to_plan, _v3_3_intent_override, build_v3_1_ast, extract_v3_1_entity_hints, semantic_query_v3
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -166,6 +166,196 @@ def test_v3_3_report_holding_contract_requires_stock_code_with_net_value_ratio()
     assert "ths_top_stock_mv_to_fnv_fund" in contract["required_select_fields"]
     assert "ths_top_held_stock_code_fund" in contract["required_answer_fields"]
     assert "ths_top_stock_mv_to_fnv_fund" in contract["required_answer_fields"]
+
+
+def test_v3_3_report_generation_bundle_defaults_industry_to_quarter_scope():
+    bundle = build_generation_bundle(
+        "159919的持仓行业有哪些",
+        query_mode="report",
+        intent="report_industry",
+        entity_hints={"fundcodes": ["159919"], "period": "1y", "report_period": {"mode": "latest"}},
+        phase="v3.3",
+    )
+
+    assert bundle["selection_context"]["collection"] == "tb_ths_etf_report_quarter"
+    assert bundle["llm_context"]["capability"]["from"] == "tb_ths_etf_report_quarter"
+    assert bundle["validator_expectations"]["report_scope"] == "quarter_latest"
+
+
+def test_v3_3_latest_quarter_holding_routes_to_industry_and_concept_bundle():
+    classification = _v3_3_intent_override("510500最新季报的持仓")
+
+    assert classification["recognized_query_mode"] == "composite"
+    assert classification["composite_execution"] == "multi_child_bundle"
+    assert classification["entity_hints"]["sub_intents"] == ["report_industry", "report_concept"]
+
+
+def test_v3_3_report_compile_adds_quarter_scope_filter_sort_and_expand_plan():
+    ast = {
+        "ast_schema_version": "v3_3_structured_query",
+        "intent": "report_industry",
+        "sub_intents": [],
+        "from": "tb_ths_etf_report_quarter",
+        "select": [
+            "fundcode",
+            "year_num",
+            "type_num",
+            "ths_top_n_top_industry_name_fund",
+            "ths_top_n_top_industry_mv_to_equity_fund",
+        ],
+        "where": [{"field": "fundcode", "op": "eq", "value": "159919"}],
+        "order_by": None,
+        "limit": 10,
+        "output_style": "report_list",
+        "answer_fields": [
+            {"field": "fundcode", "label": "基金代码", "format": "plain"},
+            {"field": "year_num", "label": "年份", "format": "plain"},
+            {"field": "type_num", "label": "报告期类型", "format": "plain"},
+            {"field": "ths_top_n_top_industry_name_fund", "label": "前N大行业名称", "format": "plain"},
+            {"field": "ths_top_n_top_industry_mv_to_equity_fund", "label": "前N大行业占比", "format": "percent"},
+        ],
+        "report_period": {"mode": "latest"},
+        "report_scope": "quarter_latest",
+        "expand": {
+            "field": "ths_top_n_top_industry_name_fund",
+            "paired_fields": [],
+            "order_by": {"field": "rank_num", "direction": "asc"},
+        },
+    }
+
+    plan = _compile_ast_to_plan(ast)
+
+    assert plan["collection"] == "tb_ths_etf_report_quarter"
+    assert plan["filter"]["type_num"] == {"$in": [1, 2, 3]}
+    assert plan["sort"] == [["year_num", -1], ["type_num", -1]]
+    assert plan["report_scope"] == "quarter_latest"
+    assert plan["expand"]["field"] == "ths_top_n_top_industry_name_fund"
+    assert plan["expand"]["paired_fields"] == []
+
+
+def test_v3_3_report_validator_normalizes_report_array_order_by_to_expand():
+    bundle = build_generation_bundle(
+        "510300年报里行业配置占比最高的前五个",
+        query_mode="report",
+        intent="report_industry",
+        entity_hints={"fundcodes": ["510300"], "period": "1y", "report_period": {"mode": "latest"}, "limit_hint": 5},
+        phase="v3.3",
+    )
+    draft = {
+        "ast_schema_version": "v3_3_structured_query",
+        "intent": "report_industry",
+        "sub_intents": [],
+        "from": "tb_ths_etf_report_year",
+        "select": ["ths_top_n_top_industry_name_fund", "ths_top_n_top_industry_mv_to_equity_fund"],
+        "where": [{"field": "fundcode", "op": "eq", "value": "510300"}],
+        "order_by": {"field": "ths_top_n_top_industry_mv_to_equity_fund", "direction": "desc"},
+        "limit": 5,
+        "output_style": "report_list",
+        "answer_fields": [
+            {"field": "ths_top_n_top_industry_name_fund", "format": "plain"},
+            {"field": "ths_top_n_top_industry_mv_to_equity_fund", "format": "percent"},
+        ],
+        "timeseries_semantics": None,
+        "report_period": {"mode": "latest"},
+        "expand": None,
+    }
+
+    validation = validate_v3_3_ast_draft(
+        draft,
+        query_mode="report",
+        intent="report_industry",
+        generation_bundle=bundle,
+    )
+
+    assert validation["validated_ast"]["order_by"] is None
+    assert validation["validated_ast"]["expand"]["order_by"] == {
+        "field": "ths_top_n_top_industry_mv_to_equity_fund",
+        "direction": "desc",
+    }
+
+
+def test_v3_3_report_list_formatter_honors_expand_limit_and_paired_fields():
+    plan = {
+        "filter": {"fundcode": "510300"},
+        "limit": 5,
+        "output_style": "report_list",
+        "answer_fields": [
+            {"field": "fundcode", "label": "基金代码", "format": "plain"},
+            {"field": "year_num", "label": "年份", "format": "plain"},
+            {"field": "type_num", "label": "报告期类型", "format": "plain"},
+            {"field": "ths_top_n_top_industry_name_fund", "label": "前N大行业名称", "format": "plain"},
+            {"field": "ths_top_n_top_industry_mv_to_equity_fund", "label": "前N大行业占比", "format": "percent"},
+        ],
+        "expand": {
+            "field": "ths_top_n_top_industry_name_fund",
+            "paired_fields": ["ths_top_n_top_industry_mv_to_equity_fund"],
+            "order_by": {"field": "ths_top_n_top_industry_mv_to_equity_fund", "direction": "desc"},
+        },
+    }
+    result = {
+        "success": True,
+        "data": {
+            "fundcode": "510300",
+            "year_num": 2024,
+            "type_num": 4,
+            "ths_top_n_top_industry_name_fund": [
+                {"rank_num": 1, "value": "银行"},
+                {"rank_num": 2, "value": "非银金融"},
+                {"rank_num": 3, "value": "电子"},
+                {"rank_num": 4, "value": "食品饮料"},
+                {"rank_num": 5, "value": "电力设备"},
+                {"rank_num": 6, "value": "医药生物"},
+            ],
+            "ths_top_n_top_industry_mv_to_equity_fund": [
+                {"rank_num": 1, "value": 24.59},
+                {"rank_num": 2, "value": 29.39},
+                {"rank_num": 3, "value": 34.16},
+                {"rank_num": 4, "value": 38.00},
+                {"rank_num": 5, "value": 41.50},
+                {"rank_num": 6, "value": 43.54},
+            ],
+        },
+    }
+
+    answer = format_answer(plan, result)
+
+    assert "43.54%" in answer
+    assert "41.50%" in answer
+    assert "24.59%" not in answer
+    assert "银行" not in answer
+    assert "| 1 | 医药生物 | 43.54% |" in answer
+    assert "| 6 | 医药生物 | 43.54% |" not in answer
+
+
+def test_v3_3_report_scalar_formatter_formats_report_amount_units():
+    plan = {
+        "filter": {"fundcode": "510300"},
+        "output_style": "summary",
+        "answer_fields": [
+            {"field": "fundcode", "label": "基金代码", "format": "plain"},
+            {"field": "year_num", "label": "年份", "format": "plain"},
+            {"field": "type_num", "label": "报告期类型", "format": "plain"},
+            {"field": "ths_org_investor_total_held_shares_fund", "label": "机构投资者持有份额", "format": "plain"},
+            {"field": "ths_fanv_chg_fund", "label": "净资产变动", "format": "amount"},
+        ],
+    }
+    result = {
+        "success": True,
+        "data": {
+            "fundcode": "510300",
+            "year_num": 2024,
+            "type_num": 4,
+            "ths_org_investor_total_held_shares_fund": 74799000000.0,
+            "ths_fanv_chg_fund": -37919000000.0,
+        },
+    }
+
+    answer = format_answer(plan, result)
+
+    assert "747.99亿份" in answer
+    assert "-379.19 亿元" in answer
+    assert "7.48e+10" not in answer
+    assert "e+" not in answer
 
 
 def test_v3_3_fund_share_formatter_uses_100m_share_units_for_latest_two_change():
@@ -491,7 +681,7 @@ def test_v3_3_semantic_query_executes_report_array_ast(monkeypatch):
         ],
         "where": [{"field": "fundcode", "op": "eq", "value": "510300"}],
         "order_by": None,
-        "limit": 1,
+        "limit": 10,
         "output_style": "report_list",
         "answer_fields": [
             {"field": "fundcode", "format": "plain"},
@@ -1209,7 +1399,7 @@ def test_v3_3_validator_rejects_legacy_yield_field_as_return_semantics():
         )
 
 
-def test_v3_3_validator_rejects_rank_origin_order_by():
+def test_v3_3_validator_rejects_rank_list_profile():
     bundle = build_generation_bundle(
         "今年以来同类排名的ETF按名次排序",
         query_mode="filter",
@@ -1245,13 +1435,32 @@ def test_v3_3_validator_rejects_rank_origin_order_by():
         performance_rows=[],
     )
 
-    with pytest.raises(ValueError, match="_fund_origin"):
+    with pytest.raises(ValueError, match="rank_list"):
         validate_v3_3_ast_draft(
             draft,
             query_mode="filter",
             intent="filter",
             generation_bundle=bundle,
         )
+
+
+def test_v3_3_generation_bundle_does_not_advertise_rank_list_profile():
+    bundle = build_generation_bundle(
+        "今年以来同类排名的ETF按名次排序",
+        query_mode="filter",
+        intent="filter",
+        entity_hints={
+            "fundcodes": [],
+            "period": "ytd",
+            "filters": [],
+            "order_by": {"field": "ths_yeild_rank_ytd_fund", "direction": "asc"},
+            "limit_hint": 10,
+        },
+        phase="v3.3",
+    )
+
+    contract = bundle["llm_context"]["strict_validation_contract"]
+    assert "rank_list" not in contract.get("allowed_profiles", [])
 
 
 def test_v3_3_semantic_query_compiles_and_executes_derived_performance(monkeypatch):
