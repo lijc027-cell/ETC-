@@ -28,6 +28,10 @@ V3_3_OPTIONAL_KEYS = {
     "performance_rows",
     "timeseries_semantics",
     "report_scope",
+    "search_scope",
+    "search_keyword",
+    "has_explicit_period",
+    "limit_source",
 }
 V3_3_SCHEMA_VERSIONS = {"v3_2_base_ast", "v3_3_structured_query"}
 V3_3_PROFILES = {"derived_performance_table", "derived_return_list", "composite_single"}

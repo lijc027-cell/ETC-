@@ -575,13 +575,16 @@ def _looks_like_named_single_query(question: str) -> bool:
 def extract_v3_1_entity_hints(question: str) -> dict[str, Any]:
     filters = _extract_filters(question)
     order_by = _extract_order_by(question)
+    search_scope = _extract_search_scope(question, filters)
     return {
         "fundcodes": _extract_fundcodes(question),
         "filters": filters,
         "limit_hint": _extract_limit(question),
         "order_by": order_by,
-        "search_keyword": _extract_search_keyword(question),
+        "search_keyword": _extract_search_keyword(question, filters=filters, search_scope=search_scope),
+        "search_scope": search_scope,
         "period": _period_from_question(question),
+        "has_explicit_period": _has_explicit_period(question),
         "wants_compare": _has_compare_signal(question),
     }
 
@@ -736,12 +739,28 @@ def _extract_limit(question: str) -> int | None:
         return int(match.group(1))
     if any(word in question for word in ("哪只", "哪一只", "哪支")) and any(word in question for word in ("最好", "最高", "最低", "最强", "最优")):
         return 1
+    if any(word in question for word in ("多给一些", "多展示一些")):
+        return 20
+    if any(word in question for word in ("再多一些", "更多")):
+        return 30
     if "全部" in question or "所有" in question:
         return 50
     return None
 
 
-def _extract_search_keyword(question: str) -> str:
+def _extract_search_scope(question: str, filters: list[dict[str, Any]]) -> str:
+    if any(word in question for word in ("名字里带", "名字里", "名称包含", "基金名带", "基金名称包含")):
+        return "name_contains"
+    if any(item.get("field") == "ths_name_of_tracking_index_fund" for item in filters):
+        return "tracking_index"
+    return "generic"
+
+
+def _extract_search_keyword(question: str, *, filters: list[dict[str, Any]] | None = None, search_scope: str = "generic") -> str:
+    if search_scope == "tracking_index":
+        for item in filters or []:
+            if item.get("field") == "ths_name_of_tracking_index_fund":
+                return str(item.get("raw_value") or item.get("value") or "").strip()
     cleaned = question
     cleaned = re.sub(r"[\"“”'‘’]", "", cleaned)
     for word in (
@@ -751,6 +770,9 @@ def _extract_search_keyword(question: str) -> str:
         "找一下",
         "找",
         "有没有",
+        "名称包含",
+        "基金名称包含",
+        "基金名带",
         "名字里带",
         "名字叫",
         "名字",
@@ -764,6 +786,12 @@ def _extract_search_keyword(question: str) -> str:
         "ETF",
         "基金",
         "产品",
+        "多给一些",
+        "多展示一些",
+        "再多一些",
+        "更多",
+        "全部",
+        "所有",
         "一下",
         "哪些",
         "有什么",
@@ -895,23 +923,29 @@ def build_v3_1_ast(query_mode: str, entity_hints: dict[str, Any], question: str)
 
 
 def _build_search_ast(entity_hints: dict[str, Any]) -> dict[str, Any]:
+    limit_hint = entity_hints.get("limit_hint")
     return {
         "intent": "search",
         "from": "tb_ths_etf_base",
         "select": list(LIST_BASELINE_FIELDS),
         "where": [{"field": "__search_text__", "op": "contains", "value": entity_hints.get("search_keyword", "")}],
         "order_by": {"field": "ths_fund_scale_fund", "direction": "desc"},
-        "limit": min(int(entity_hints.get("limit_hint") or 20), 50),
+        "limit": min(int(limit_hint or 10), 50),
         "output_style": "list",
         "answer_fields": _field_metas(LIST_BASELINE_FIELDS),
         "report_period": None,
         "expand": None,
+        "search_keyword": entity_hints.get("search_keyword", ""),
+        "search_scope": entity_hints.get("search_scope", "generic"),
+        "has_explicit_period": bool(entity_hints.get("has_explicit_period")),
+        "limit_source": "all" if limit_hint == 50 else "explicit" if limit_hint else "default",
     }
 
 
 def _build_filter_ast(entity_hints: dict[str, Any], question: str) -> dict[str, Any]:
     order_by = entity_hints.get("order_by") or {"field": "ths_fund_scale_fund", "direction": "desc"}
     filters = [_ast_clause(clause) for clause in entity_hints.get("filters") or []]
+    limit_hint = entity_hints.get("limit_hint")
     select = list(LIST_BASELINE_FIELDS)
     for clause in filters:
         field = clause["field"]
@@ -937,6 +971,7 @@ def _build_filter_ast(entity_hints: dict[str, Any], question: str) -> dict[str, 
         "answer_fields": _field_metas(display_fields),
         "report_period": None,
         "expand": None,
+        "limit_source": "all" if limit_hint == 50 else "explicit" if limit_hint else "default",
     }
 
 
@@ -1055,6 +1090,14 @@ def _compile_ast_to_plan(ast: dict[str, Any]) -> dict[str, Any]:
         "output_style": ast.get("output_style", "summary"),
         "timeseries_semantics": ast.get("timeseries_semantics"),
     }
+    if ast.get("intent") == "search":
+        plan["search_keyword"] = ast.get("search_keyword") or _search_keyword_from_ast(ast)
+        plan["search_scope"] = ast.get("search_scope", "generic")
+        plan["has_explicit_period"] = bool(ast.get("has_explicit_period"))
+        plan["limit_source"] = ast.get("limit_source") or ("all" if ast.get("limit") == 50 else None)
+    elif ast.get("output_style") == "list":
+        plan["has_explicit_period"] = bool(ast.get("has_explicit_period"))
+        plan["limit_source"] = ast.get("limit_source") or ("all" if ast.get("limit") == 50 else None)
     if report_scope:
         plan["collection"] = report_collection(ast.get("intent", ""), report_scope, plan["collection"])
         plan["report_scope"] = report_scope
@@ -1085,6 +1128,28 @@ def _compile_ast_to_plan(ast: dict[str, Any]) -> dict[str, Any]:
             plan["filter"].setdefault(clause["field"], {})[_mongo_compare_op(op)] = clause["value"]
     _apply_report_scope_to_plan(ast, plan)
     return plan
+
+
+def _apply_search_contract_to_ast(ast: dict[str, Any], entity_hints: dict[str, Any]) -> None:
+    if ast.get("intent") != "search":
+        return
+    ast["search_scope"] = entity_hints.get("search_scope", "generic")
+    ast["search_keyword"] = entity_hints.get("search_keyword", _search_keyword_from_ast(ast))
+    ast["has_explicit_period"] = bool(entity_hints.get("has_explicit_period"))
+    limit_hint = entity_hints.get("limit_hint")
+    if limit_hint == 50:
+        ast["limit_source"] = "all"
+    elif limit_hint:
+        ast["limit_source"] = "explicit"
+    else:
+        ast["limit_source"] = "default"
+
+
+def _search_keyword_from_ast(ast: dict[str, Any]) -> str:
+    for clause in ast.get("where", []):
+        if clause.get("field") == "__search_text__":
+            return str(clause.get("value") or "")
+    return ""
 
 
 def _apply_report_scope_to_plan(ast: dict[str, Any], plan: dict[str, Any]) -> None:
@@ -1463,6 +1528,7 @@ def _semantic_query_v3_2_strict(question: str, *, config_obj, classification: di
         )
 
     validated_ast = validation["validated_ast"]
+    _apply_search_contract_to_ast(validated_ast, entity_hints)
     try:
         plan = _compile_ast_to_plan(validated_ast)
         mongo_params = _mongo_params_for_plan(plan)
@@ -1617,6 +1683,7 @@ def _semantic_query_v3_3_strict(
         )
 
     validated_ast = validation["validated_ast"]
+    _apply_search_contract_to_ast(validated_ast, entity_hints)
     try:
         compiled_kind, compiled_query = _compile_v3_3_query(validated_ast)
         if compiled_kind == "derived_performance":
@@ -1965,6 +2032,7 @@ def _run_v3_2_child(
             generation_bundle=generation_bundle,
         )
         validated_ast = validation["validated_ast"]
+        _apply_search_contract_to_ast(validated_ast, entity_hints)
         plan = _compile_ast_to_plan(validated_ast)
         mongo_params = _mongo_params_for_plan(plan)
         result = _execute_v3_plan(plan, config_obj, dry_run=False, no_llm=False)
@@ -3080,8 +3148,9 @@ def _append_runtime_metadata(answer: str, *, result: dict[str, Any], usage: dict
     usage_payload = _normalize_usage(usage)
     total_tokens = sum(item["total_tokens"] for item in usage_payload)
     data_window = _result_data_window(result)
+    has_inline_data_window = "数据截至 " in answer or "数据区间：" in answer
     footer = [
-        *(_format_data_window_footer(data_window) if data_window else []),
+        *(_format_data_window_footer(data_window) if data_window and not has_inline_data_window else []),
         f"LLM token：{total_tokens}",
     ]
     return "\n\n".join([answer, *footer])

@@ -36,18 +36,36 @@ def to_jsonable(value):
     return value
 
 
-def compile_filter(raw_filter):
+def search_fields(scope):
+    if scope == "name_contains":
+        return ["ths_fund_extended_inner_short_name_fund"]
+    if scope == "tracking_index":
+        return ["ths_name_of_tracking_index_fund", "ths_tracking_index_code_fund"]
+    return [
+        "ths_fund_extended_inner_short_name_fund",
+        "ths_name_of_tracking_index_fund",
+        "ths_tracking_index_code_fund",
+    ]
+
+
+def search_pattern(scope, keyword):
+    text = str(keyword)
+    if scope == "tracking_index":
+        return ".*".join(re.escape(char) for char in text if char.strip())
+    return re.escape(text)
+
+
+def compile_filter(raw_filter, search_scope):
     clauses = []
     query = {}
     post_filters = []
     for field, value in raw_filter.items():
         if field == "__search_text__" and isinstance(value, dict) and "$contains" in value:
-            keyword = re.escape(str(value["$contains"]))
+            keyword = search_pattern(search_scope, value["$contains"])
             clauses.append({
                 "$or": [
-                    {"ths_fund_extended_inner_short_name_fund": {"$regex": keyword, "$options": "i"}},
-                    {"ths_name_of_tracking_index_fund": {"$regex": keyword, "$options": "i"}},
-                    {"ths_tracking_index_code_fund": {"$regex": keyword, "$options": "i"}},
+                    {field: {"$regex": keyword, "$options": "i"}}
+                    for field in search_fields(search_scope)
                 ]
             })
         elif isinstance(value, dict) and any(op in value for op in ("$gt", "$gte", "$lt", "$lte")):
@@ -126,23 +144,33 @@ def main():
         collection = db[plan["collection"]]
         projection = {field: 1 for field in plan["projection"]}
         projection["_id"] = 0
-        query_filter, post_filters = compile_filter(plan["filter"])
+        query_filter, post_filters = compile_filter(plan["filter"], plan.get("search_scope", "generic"))
         sort_spec = plan.get("sort", [])
 
         if sort_spec or post_filters:
             documents = list(collection.find(query_filter, projection))
             documents = apply_post_filters(documents, post_filters)
             documents = sort_documents(documents, sort_spec)
+            total_count = len(documents)
             if plan["limit"] == 1:
                 result = documents[0] if documents else None
             else:
                 result = documents[:plan["limit"]]
         elif plan["limit"] == 1:
             result = collection.find_one(query_filter, projection)
+            total_count = 1 if result else 0
         else:
             result = list(collection.find(query_filter, projection).limit(plan["limit"]))
+            total_count = collection.count_documents(query_filter)
 
-        out = {"success": True, "data": to_jsonable(result)}
+        returned_count = len(result) if isinstance(result, list) else 1 if result else 0
+        out = {
+            "success": True,
+            "data": to_jsonable(result),
+            "total_count": total_count,
+            "returned_count": returned_count,
+            "has_more": total_count > returned_count,
+        }
     except Exception as exc:
         out = {
             "success": False,
@@ -243,7 +271,15 @@ def fake_result(plan: dict[str, Any]) -> dict[str, Any]:
     if plan["filter"].get("fundcode") == "000001":
         return {"success": True, "data": None}
     if plan.get("output_style") in {"list", "compare"} or plan["limit"] > 1:
-        return {"success": True, "data": _fake_rows(plan)}
+        rows = _fake_rows(plan)
+        total_count = max(len(rows), int(plan.get("limit") or len(rows)))
+        return {
+            "success": True,
+            "data": rows,
+            "total_count": total_count,
+            "returned_count": len(rows),
+            "has_more": total_count > len(rows),
+        }
     values = {"fundcode": plan["filter"].get("fundcode")}
     for field in plan["projection"]:
         if field == "fundcode":
@@ -292,7 +328,7 @@ def _execute_local_snapshot_query(plan: dict[str, Any]) -> dict[str, Any] | None
     if documents is None:
         return None
 
-    query_filter, post_filters = _compile_local_filter(plan.get("filter") or {})
+    query_filter, post_filters = _compile_local_filter(plan.get("filter") or {}, plan.get("search_scope", "generic"))
     projection = list(plan.get("projection") or [])
     sort_spec = list(plan.get("sort") or [])
     limit = int(plan.get("limit") or 1)
@@ -303,11 +339,13 @@ def _execute_local_snapshot_query(plan: dict[str, Any]) -> dict[str, Any] | None
     if sort_spec:
         rows = _sort_local_documents(rows, sort_spec)
 
+    total_count = len(rows)
     if limit == 1:
         result = _project_local_document(rows[0], projection) if rows else None
     else:
         result = [_project_local_document(doc, projection) for doc in rows[:limit]]
-    return {"success": True, "data": result}
+    returned_count = len(result) if isinstance(result, list) else 1 if result else 0
+    return {"success": True, "data": result, "total_count": total_count, "returned_count": returned_count, "has_more": total_count > returned_count}
 
 
 @lru_cache(maxsize=1)
@@ -333,12 +371,12 @@ def _snapshot_documents(snapshot: dict[str, Any], collection: str | None) -> lis
     return None
 
 
-def _compile_local_filter(raw_filter: dict[str, Any]) -> tuple[dict[str, Any], list[tuple[str, dict[str, Any]]]]:
+def _compile_local_filter(raw_filter: dict[str, Any], search_scope: str = "generic") -> tuple[dict[str, Any], list[tuple[str, dict[str, Any]]]]:
     query: dict[str, Any] = {}
     post_filters: list[tuple[str, dict[str, Any]]] = []
     for field, value in raw_filter.items():
         if field == "__search_text__" and isinstance(value, dict) and "$contains" in value:
-            query[field] = {"$contains": str(value["$contains"])}
+            query[field] = {"$contains": str(value["$contains"]), "$scope": search_scope}
         elif isinstance(value, dict) and any(op in value for op in ("$gt", "$gte", "$lt", "$lte")):
             post_filters.append((field, dict(value)))
         else:
@@ -349,7 +387,7 @@ def _compile_local_filter(raw_filter: dict[str, Any]) -> tuple[dict[str, Any], l
 def _matches_local_filter(document: dict[str, Any], query_filter: dict[str, Any]) -> bool:
     for field, expected in query_filter.items():
         if field == "__search_text__" and isinstance(expected, dict):
-            if not _matches_search_text(document, str(expected.get("$contains") or "")):
+            if not _matches_search_text(document, str(expected.get("$contains") or ""), str(expected.get("$scope") or "generic")):
                 return False
             continue
         value = document.get(field)
@@ -368,14 +406,28 @@ def _matches_local_filter(document: dict[str, Any], query_filter: dict[str, Any]
     return True
 
 
-def _matches_search_text(document: dict[str, Any], keyword: str) -> bool:
+def _matches_search_text(document: dict[str, Any], keyword: str, search_scope: str = "generic") -> bool:
     if not keyword:
         return True
-    pattern = re.escape(keyword)
-    for field in ("ths_fund_extended_inner_short_name_fund", "ths_name_of_tracking_index_fund", "ths_tracking_index_code_fund"):
+    pattern = _search_pattern(search_scope, keyword)
+    for field in _search_fields(search_scope):
         if re.search(pattern, str(document.get(field) or ""), re.I):
             return True
     return False
+
+
+def _search_pattern(search_scope: str, keyword: str) -> str:
+    if search_scope == "tracking_index":
+        return ".*".join(re.escape(char) for char in str(keyword) if char.strip())
+    return re.escape(keyword)
+
+
+def _search_fields(search_scope: str) -> tuple[str, ...]:
+    if search_scope == "name_contains":
+        return ("ths_fund_extended_inner_short_name_fund",)
+    if search_scope == "tracking_index":
+        return ("ths_name_of_tracking_index_fund", "ths_tracking_index_code_fund")
+    return ("ths_fund_extended_inner_short_name_fund", "ths_name_of_tracking_index_fund", "ths_tracking_index_code_fund")
 
 
 def _matches_post_filters(document: dict[str, Any], post_filters: list[tuple[str, dict[str, Any]]]) -> bool:

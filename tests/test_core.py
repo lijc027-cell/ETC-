@@ -902,6 +902,7 @@ def test_v3_1_entity_hints_extract_search_filter_compare_signals():
     compare = extract_v3_1_entity_hints("对比510300、510500和159919")
 
     assert search["search_keyword"] == "医药"
+    assert search["search_scope"] == "name_contains"
     assert scale_filter["filters"] == [
         {"field": "ths_fund_scale_fund", "op": "gt", "value": 1000000000}
     ]
@@ -912,6 +913,15 @@ def test_v3_1_search_keyword_strips_trailing_structural_particle():
     hints = extract_v3_1_entity_hints('有没有ETF名字里带"红利"的')
 
     assert hints["search_keyword"] == "红利"
+    assert hints["search_scope"] == "name_contains"
+
+
+def test_v3_1_tracking_index_search_phrase_uses_tracking_scope():
+    result = classify_v3_query("我想找跟踪科创50的ETF", {}, [])
+
+    assert result["recognized_query_mode"] == "search"
+    assert result["entity_hints"]["search_scope"] == "tracking_index"
+    assert result["entity_hints"]["search_keyword"] == "科创50"
 
 
 def test_v3_1_filter_extracts_tracking_index_before_de_particle():
@@ -962,12 +972,32 @@ def test_build_v3_1_search_ast_uses_contains_and_fixed_list_columns():
     assert ast["intent"] == "search"
     assert ast["output_style"] == "list"
     assert ast["where"] == [{"field": "__search_text__", "op": "contains", "value": "中证500"}]
+    assert ast["limit"] == 10
+    assert ast["search_scope"] == "generic"
     assert ast["select"] == [
         "fundcode",
         "ths_fund_extended_inner_short_name_fund",
         "ths_fund_scale_fund",
         "ths_manage_fee_rate_fund",
     ]
+
+
+def test_v3_1_search_limit_phrases():
+    assert extract_v3_1_entity_hints("搜索中证500")["limit_hint"] is None
+    assert extract_v3_1_entity_hints("搜索中证500多给一些")["limit_hint"] == 20
+    assert extract_v3_1_entity_hints("搜索中证500更多")["limit_hint"] == 30
+    assert extract_v3_1_entity_hints("搜索中证500全部")["limit_hint"] == 50
+
+
+def test_compile_search_plan_carries_scope_for_name_contains():
+    from etf_agent.v3 import _compile_ast_to_plan
+
+    ast = build_v3_1_ast("search", extract_v3_1_entity_hints("有没有名字里带医药的ETF"), "有没有名字里带医药的ETF")
+
+    plan = _compile_ast_to_plan(ast)
+
+    assert plan["search_scope"] == "name_contains"
+    assert plan["limit"] == 10
 
 
 def test_build_v3_1_filter_ast_extracts_limit_order_and_filters():
@@ -1005,6 +1035,127 @@ def test_semantic_query_v3_1_dry_run_formats_search_filter_and_compare():
     assert filtered["v3_ast"]["where"][0]["field"] == "ths_fund_scale_fund"
     assert compare["v3"]["recognized_query_mode"] == "compare"
     assert "| 指标 | 510300 | 510500 | 159919 |" in compare["answer"]
+
+
+def test_search_list_answer_summarizes_scope_counts_and_cutoff_date():
+    plan = {
+        "output_style": "list",
+        "limit": 10,
+        "search_keyword": "沪深300",
+        "search_scope": "generic",
+        "filter": {"__search_text__": {"$contains": "沪深300"}},
+        "answer_fields": [
+            {"field": "fundcode", "label": "基金代码", "format": "plain"},
+            {"field": "ths_fund_extended_inner_short_name_fund", "label": "基金简称", "format": "plain"},
+            {"field": "ths_fund_scale_fund", "label": "基金规模", "format": "amount"},
+        ],
+    }
+    result = {
+        "success": True,
+        "data": [
+            {
+                "fundcode": "510300",
+                "ths_fund_extended_inner_short_name_fund": "沪深300ETF",
+                "ths_fund_scale_fund": [{"btime": "2026-05-11", "value": 168660000000}],
+            }
+        ],
+        "total_count": 48,
+        "returned_count": 10,
+        "has_more": True,
+    }
+
+    answer = format_answer(plan, result)
+
+    assert answer.startswith("共找到 48 只名称、跟踪指数或指数代码与“沪深300”相关的 ETF，默认按基金规模从高到低展示前 10 只。")
+    assert "还有更多结果，可缩小条件或指定展示数量。" in answer
+    assert "数据截至 2026-05-11。" in answer
+    assert "数据起始日" not in answer
+    assert "| 基金代码 | 基金简称 | 基金规模 |" in answer
+
+
+def test_search_list_answer_distinguishes_name_contains_scope():
+    plan = {
+        "output_style": "list",
+        "limit": 10,
+        "search_keyword": "医药",
+        "search_scope": "name_contains",
+        "filter": {"__search_text__": {"$contains": "医药"}},
+        "answer_fields": [
+            {"field": "fundcode", "label": "基金代码", "format": "plain"},
+            {"field": "ths_fund_extended_inner_short_name_fund", "label": "基金简称", "format": "plain"},
+        ],
+    }
+    result = {
+        "success": True,
+        "data": [{"fundcode": "512010", "ths_fund_extended_inner_short_name_fund": "医药ETF"}],
+        "total_count": 24,
+        "returned_count": 10,
+        "has_more": True,
+    }
+
+    answer = format_answer(plan, result)
+
+    assert answer.startswith("共找到 24 只基金名称包含“医药”的 ETF，默认按基金规模从高到低展示前 10 只。")
+
+
+def test_filter_list_answer_uses_shared_summary_counts_sort_and_filters():
+    plan = {
+        "output_style": "list",
+        "limit": 10,
+        "filter": {"ths_fund_invest_type_fund": "股票型"},
+        "sort": [["ths_fund_scale_fund", -1], ["fundcode", 1]],
+        "answer_fields": [
+            {"field": "fundcode", "label": "基金代码", "format": "plain"},
+            {"field": "ths_fund_extended_inner_short_name_fund", "label": "基金简称", "format": "plain"},
+            {"field": "ths_fund_scale_fund", "label": "基金规模", "format": "amount"},
+        ],
+    }
+    result = {
+        "success": True,
+        "data": [
+            {
+                "fundcode": "510300",
+                "ths_fund_extended_inner_short_name_fund": "沪深300ETF",
+                "ths_fund_scale_fund": [{"btime": "2026-05-11", "value": 168660000000}],
+            }
+        ],
+        "total_count": 1444,
+        "returned_count": 10,
+        "has_more": True,
+    }
+
+    answer = format_answer(plan, result)
+
+    assert answer.startswith("共找到 1444 只符合条件的 ETF，按基金规模从高到低展示前 10 只。")
+    assert "筛选条件：基金类型为 股票型。" in answer
+    assert "还有更多结果，可缩小条件或指定展示数量。" in answer
+    assert "数据截至 2026-05-11。" in answer
+
+
+def test_filter_list_answer_describes_all_limit_as_capped_display():
+    plan = {
+        "output_style": "list",
+        "limit": 50,
+        "limit_source": "all",
+        "filter": {"ths_fund_scale_fund": {"$gt": 1000000000}},
+        "sort": [["ths_fund_scale_fund", -1], ["fundcode", 1]],
+        "answer_fields": [
+            {"field": "fundcode", "label": "基金代码", "format": "plain"},
+            {"field": "ths_fund_scale_fund", "label": "基金规模", "format": "amount"},
+        ],
+    }
+    result = {
+        "success": True,
+        "data": [{"fundcode": "510300", "ths_fund_scale_fund": 168660000000}],
+        "total_count": 300,
+        "returned_count": 50,
+        "has_more": True,
+    }
+
+    answer = format_answer(plan, result)
+
+    assert answer.startswith("共找到 300 只符合条件的 ETF，按基金规模从高到低最多展示 50 只。")
+    assert "全部结果" not in answer
 
 
 def test_semantic_query_v3_1_compare_reports_missing_codes_in_dry_run():

@@ -131,7 +131,142 @@ def _format_list_answer(plan: dict[str, Any], result: dict[str, Any]) -> str:
     ]
     for row in rows:
         lines.append("| " + " | ".join(_format_value(row.get(field), _field_format(plan, field), field=field) for field in fields) + " |")
-    return "\n".join(lines)
+    body = "\n".join(lines)
+    prefix = _list_summary(plan, result)
+    footer = _list_date_footer(plan, result)
+    parts = [item for item in (prefix, body, footer) if item]
+    return "\n\n".join(parts)
+
+
+def _list_summary(plan: dict[str, Any], result: dict[str, Any]) -> str:
+    if "__search_text__" not in (plan.get("filter") or {}):
+        return _filter_list_summary(plan, result)
+
+    limit = int(plan.get("limit") or result.get("returned_count") or 0)
+    keyword = str(plan.get("search_keyword") or _search_keyword_from_filter(plan) or "")
+    total = result.get("total_count")
+    has_more = bool(result.get("has_more"))
+    limit_text = f"最多展示 {limit} 只" if plan.get("limit_source") == "all" else f"默认按基金规模从高到低展示前 {limit} 只"
+    if isinstance(total, int):
+        scope = plan.get("search_scope") or "generic"
+        if scope == "name_contains":
+            first = f"共找到 {total} 只基金名称包含“{keyword}”的 ETF，{limit_text}。"
+        elif scope == "tracking_index":
+            first = f"共找到 {total} 只跟踪指数匹配或相关于“{keyword}”的 ETF，{limit_text}。"
+        else:
+            first = f"共找到 {total} 只名称、跟踪指数或指数代码与“{keyword}”相关的 ETF，{limit_text}。"
+    else:
+        first = f"以下为按基金规模从高到低展示的前 {limit} 只 ETF。"
+    if has_more:
+        return first + "\n还有更多结果，可缩小条件或指定展示数量。"
+    return first
+
+
+def _filter_list_summary(plan: dict[str, Any], result: dict[str, Any]) -> str:
+    limit = int(plan.get("limit") or result.get("returned_count") or 0)
+    total = result.get("total_count")
+    has_more = bool(result.get("has_more"))
+    sort_phrase = _list_sort_phrase(plan)
+    limit_phrase = f"最多展示 {limit} 只" if plan.get("limit_source") == "all" else f"展示前 {limit} 只"
+    if isinstance(total, int):
+        first = f"共找到 {total} 只符合条件的 ETF，{sort_phrase}{limit_phrase}。"
+    else:
+        first = f"以下为{sort_phrase}{limit_phrase}的 ETF。"
+    filter_text = _filter_conditions_text(plan)
+    if filter_text:
+        first += f"\n筛选条件：{filter_text}。"
+    if has_more:
+        return first + "\n还有更多结果，可缩小条件或指定展示数量。"
+    return first
+
+
+def _list_sort_phrase(plan: dict[str, Any]) -> str:
+    sort = plan.get("sort") or []
+    if not sort:
+        return ""
+    primary = sort[0]
+    if not isinstance(primary, (list, tuple)) or len(primary) != 2:
+        return ""
+    field, direction = primary
+    label = _field_label(plan, str(field))
+    direction_text = "从高到低" if direction == -1 else "从低到高"
+    return f"按{label}{direction_text}"
+
+
+def _filter_conditions_text(plan: dict[str, Any]) -> str:
+    clauses = []
+    for field, expected in (plan.get("filter") or {}).items():
+        if field in {"__search_text__"}:
+            continue
+        label = _field_label(plan, str(field))
+        clauses.append(_filter_condition_text(label, str(field), expected))
+    return "，".join(item for item in clauses if item)
+
+
+def _filter_condition_text(label: str, field: str, expected: Any) -> str:
+    if isinstance(expected, dict):
+        if "$in" in expected:
+            return f"{label}属于 {', '.join(str(item) for item in expected['$in'])}"
+        parts = []
+        op_labels = {"$gt": "大于", "$gte": "不低于", "$lt": "小于", "$lte": "不高于"}
+        for op in ("$gt", "$gte", "$lt", "$lte"):
+            if op in expected:
+                parts.append(f"{label}{op_labels[op]} {_format_filter_scalar(expected[op], field)}")
+        return "且".join(parts)
+    return f"{label}为 {expected}"
+
+
+def _format_filter_scalar(value: Any, field: str) -> str:
+    fmt = _FIELD_FORMAT_HINTS.get(field, "plain")
+    return _format_scalar(value, fmt, field=field)
+
+
+def _field_label(plan: dict[str, Any], field: str) -> str:
+    labels = chinese_mapping({"answer_fields": plan.get("answer_fields") or []})
+    return labels.get(field) or _FIELD_LABEL_HINTS.get(field) or field
+
+
+_FIELD_LABEL_HINTS = {
+    "fundcode": "基金代码",
+    "ths_fund_extended_inner_short_name_fund": "基金简称",
+    "ths_fund_scale_fund": "基金规模",
+    "ths_current_mv_fund": "总市值",
+    "ths_manage_fee_rate_fund": "管理费率",
+    "ths_mandate_fee_rate_fund": "托管费率",
+    "ths_fund_invest_type_fund": "基金类型",
+    "ths_fund_listed_exchange_fund": "上市地点",
+    "ths_fund_establishment_date_fund": "成立日期",
+    "ths_name_of_tracking_index_fund": "跟踪指数",
+    "ths_yeild_1y_fund": "近1年收益率",
+    "ths_yeild_ytd_fund": "今年以来收益率",
+}
+
+
+_FIELD_FORMAT_HINTS = {
+    "ths_fund_scale_fund": "amount",
+    "ths_current_mv_fund": "amount",
+    "ths_manage_fee_rate_fund": "percent",
+    "ths_mandate_fee_rate_fund": "percent",
+    "ths_yeild_1y_fund": "percent",
+    "ths_yeild_ytd_fund": "percent",
+}
+
+
+def _search_keyword_from_filter(plan: dict[str, Any]) -> str:
+    value = (plan.get("filter") or {}).get("__search_text__")
+    if isinstance(value, dict):
+        return str(value.get("$contains") or "")
+    return ""
+
+
+def _list_date_footer(plan: dict[str, Any], result: dict[str, Any]) -> str:
+    data_window = _result_data_window(result)
+    if not data_window:
+        return ""
+    start, end = data_window
+    if plan.get("has_explicit_period") and start != end:
+        return f"数据区间：{start} 至 {end}。"
+    return f"数据截至 {end}。"
 
 
 def _format_compare_answer(plan: dict[str, Any], result: dict[str, Any]) -> str:
@@ -493,6 +628,28 @@ def _rank_sort_key(rank: Any) -> tuple[int, Any]:
         return (0, int(rank))
     except (TypeError, ValueError):
         return (1, str(rank))
+
+
+def _result_data_window(result: dict[str, Any]) -> tuple[str, str] | None:
+    data = result.get("data")
+    dates = sorted(_collect_btime_values(data))
+    if not dates:
+        return None
+    return dates[0], dates[-1]
+
+
+def _collect_btime_values(value: Any) -> set[str]:
+    dates: set[str] = set()
+    if isinstance(value, dict):
+        for key, item in value.items():
+            if key in {"btime", "date"} and isinstance(item, str) and item:
+                dates.add(item[:10])
+            else:
+                dates.update(_collect_btime_values(item))
+    elif isinstance(value, list):
+        for item in value:
+            dates.update(_collect_btime_values(item))
+    return dates
 
 
 def _latest_value(value: Any) -> tuple[Any, str]:

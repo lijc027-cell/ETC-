@@ -306,7 +306,7 @@ def _field_cards(fields: list[str]) -> list[dict[str, str]]:
 
 def _limit_policy(query_mode: str) -> dict[str, int]:
     if query_mode == "search":
-        return {"default": 20, "max": 50}
+        return {"default": 10, "max": 50}
     if query_mode == "compare":
         return {"default": 10, "max": 10}
     if query_mode == "filter":
