@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from etf_agent import semantic_query_v3
+from scripts.audit_answer_format import format_audit_answer, llm_total_tokens
 
 
 OUT_JSON = ROOT / "result" / "audit-v3.3-section10-compare-real.json"
@@ -108,7 +109,7 @@ def main() -> int:
 
 def _record(case: dict[str, Any], result: dict[str, Any]) -> dict[str, Any]:
     v3 = result.get("v3") or {}
-    actual_answer = _strip_runtime_footers(str(result.get("answer") or ""))
+    actual_answer = format_audit_answer(str(result.get("answer") or ""), result=result)
     checks = _checks(case, result, actual_answer)
     business_checks = _business_checks(case, result, actual_answer)
     passed = all(item["pass"] for item in checks) and all(business_checks.values())
@@ -132,7 +133,7 @@ def _record(case: dict[str, Any], result: dict[str, Any]) -> dict[str, Any]:
         "failure_stage": result.get("failure_stage") or v3.get("failure_stage"),
         "failure_reason": result.get("failure_reason") or v3.get("failure_reason"),
         "query_summary": _query_summary(result),
-        "llm_total_tokens": _llm_total_tokens(result),
+        "llm_total_tokens": llm_total_tokens(result),
         "user_visible_answer": actual_answer,
         "checks": checks,
         "business_checks": business_checks,
@@ -149,7 +150,7 @@ def _checks(case: dict[str, Any], result: dict[str, Any], actual_answer: str) ->
         {"name": "intent matches", "pass": v3.get("intent") == case["intent"]},
         {"name": "ast generation mode is llm_ast_draft", "pass": v3.get("ast_generation_mode") == "llm_ast_draft"},
         {"name": "answer is non-empty", "pass": bool(actual_answer.strip())},
-        {"name": "runtime footers removed", "pass": all(token not in actual_answer for token in ("查询起始时间", "查询结束时间", "LLM token"))},
+        {"name": "runtime footers removed", "pass": all(token not in actual_answer for token in ("查询起始时间", "查询结束时间"))},
         {
             "name": "keeps real data dates when present",
             "pass": requires_clarification or ("数据截至" in actual_answer) or ("数据起始日" in actual_answer) or ("数据结束日" in actual_answer) or ("最新" in actual_answer) or ("当前" in actual_answer),
@@ -240,25 +241,6 @@ def _summary(records: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
-def _llm_total_tokens(result: dict[str, Any]) -> int | None:
-    values: list[int] = []
-    _collect_token_values(result.get("llm_usage"), values)
-    _collect_token_values((result.get("v3") or {}).get("llm_usage"), values)
-    _collect_token_values(result.get("result"), values)
-    return sum(values) if values else None
-
-
-def _collect_token_values(value: Any, values: list[int]) -> None:
-    if isinstance(value, dict):
-        if isinstance(value.get("total_tokens"), int):
-            values.append(value["total_tokens"])
-        for item in value.values():
-            _collect_token_values(item, values)
-    elif isinstance(value, list):
-        for item in value:
-            _collect_token_values(item, values)
-
-
 def _load_expected_answers() -> dict[str, str]:
     path = ROOT / "result" / "codex-etf-query-answers.md"
     lines = path.read_text(encoding="utf-8").splitlines()
@@ -288,19 +270,6 @@ def _load_expected_answers() -> dict[str, str]:
     if missing:
         raise RuntimeError(f"missing Section 10 expected answers in {path}: {missing}")
     return expected
-
-
-def _strip_runtime_footers(text: str) -> str:
-    kept: list[str] = []
-    for line in str(text).splitlines():
-        if line.startswith("查询起始时间："):
-            continue
-        if line.startswith("查询结束时间："):
-            continue
-        if line.startswith("LLM token："):
-            continue
-        kept.append(line)
-    return "\n".join(kept).strip()
 
 
 def _compact(text: str) -> str:

@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from etf_agent import semantic_query_v3
+from scripts.audit_answer_format import format_audit_answer, llm_total_tokens
 
 
 OUT_JSON = ROOT / "result" / "audit-v3.3-section12-compare-real.json"
@@ -118,7 +119,7 @@ def _record(case: dict[str, Any], result: dict[str, Any]) -> dict[str, Any]:
     v3 = result.get("v3") or {}
     routing = v3.get("routing_result") or {}
     validated_ast = result.get("validated_ast") or {}
-    actual_answer = _strip_runtime_footers(str(result.get("answer") or ""))
+    actual_answer = format_audit_answer(str(result.get("answer") or ""), result=result)
     checks = _checks(case, result, actual_answer)
     passed = all(item["pass"] for item in checks)
     actual_type = routing.get("type") or _fallback_type(v3, result)
@@ -144,6 +145,7 @@ def _record(case: dict[str, Any], result: dict[str, Any]) -> dict[str, Any]:
         "failure_stage": result.get("failure_stage") or v3.get("failure_stage"),
         "failure_reason": result.get("failure_reason") or v3.get("failure_reason"),
         "query_summary": json.dumps(result.get("query_plan") or {}, ensure_ascii=False, sort_keys=True),
+        "llm_total_tokens": llm_total_tokens(result),
         "user_visible_answer": actual_answer,
         "checks": checks,
         "business_checks": _business_checks(case, result, actual_answer),
@@ -162,7 +164,7 @@ def _checks(case: dict[str, Any], result: dict[str, Any], actual_answer: str) ->
         {"name": "recognized_query_mode matches", "pass": _mode_matches(case["recognized_query_mode"], actual_mode, actual_type)},
         {"name": "intent/failure reason matches", "pass": actual_intent == case["intent"]},
         {"name": "answer is non-empty", "pass": bool(actual_answer.strip())},
-        {"name": "runtime footers removed", "pass": all(token not in actual_answer for token in ("查询起始时间", "查询结束时间", "LLM token"))},
+        {"name": "runtime footers removed", "pass": all(token not in actual_answer for token in ("查询起始时间", "查询结束时间"))},
         {"name": "business checks pass", "pass": all(_business_checks(case, result, actual_answer).values())},
     ]
 
@@ -246,19 +248,6 @@ def _load_expected_answers() -> dict[str, str]:
     if missing:
         raise RuntimeError(f"missing Section 12 expected answers in {path}: {missing}")
     return expected
-
-
-def _strip_runtime_footers(text: str) -> str:
-    kept: list[str] = []
-    for line in str(text).splitlines():
-        if line.startswith("查询起始时间："):
-            continue
-        if line.startswith("查询结束时间："):
-            continue
-        if line.startswith("LLM token："):
-            continue
-        kept.append(line)
-    return "\n".join(kept).strip()
 
 
 def _compact(text: str) -> str:

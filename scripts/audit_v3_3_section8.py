@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from etf_agent import semantic_query_v3
+from scripts.audit_answer_format import format_audit_answer
 
 
 OUT_JSON = ROOT / "result" / "audit-v3.3-section8-compare-real.json"
@@ -56,7 +57,7 @@ def _record(question_id: str, question: str, expected_outcome: str, expected_ans
     v3 = result.get("v3") or {}
     plan = result.get("query_plan") or {}
     query_result = result.get("result") or {}
-    actual_answer = _strip_llm_token(str(result.get("answer") or ""))
+    actual_answer = format_audit_answer(str(result.get("answer") or ""), result=result)
     checks = _checks(question_id, result, actual_answer)
     passed = all(item["pass"] for item in checks)
     answer_match = expected_answer in _compact(actual_answer)
@@ -376,13 +377,6 @@ def _table_html(lines: list[str]) -> str:
     head_html = "".join(f"<th>{html.escape(cell)}</th>" for cell in head)
     body_html = "\n".join("<tr>" + "".join(f"<td>{html.escape(cell)}</td>" for cell in row) + "</tr>" for row in body)
     return f"<table><thead><tr>{head_html}</tr></thead><tbody>{body_html}</tbody></table>"
-
-
-def _strip_llm_token(answer: str) -> str:
-    marker = "\n\nLLM token："
-    if marker in answer:
-        return answer.split(marker, 1)[0]
-    return answer
 
 
 def _compact(text: str) -> str:

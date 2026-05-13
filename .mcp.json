@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "etf-query": {
+      "command": ".venv/bin/python",
+      "args": ["etf_mcp_server.py"]
+    }
+  }
+}

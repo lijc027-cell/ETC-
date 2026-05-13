@@ -1,0 +1,2237 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>v3.3 Full Release Audit</title>
+<style>
+  :root { --bg: #f4f0e6; --paper: #fffaf0; --ink: #2f2418; --muted: #6e5c45; --line: #d7c8b2; --pass: #2f6f4e; --fail: #9f2f2f; --skip: #70655b; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: Georgia, serif; }
+  .wrap { max-width: 1320px; margin: 0 auto; padding: 28px 22px 48px; }
+  .hero { padding: 10px 0 18px; border-bottom: 1px solid var(--line); margin-bottom: 18px; }
+  h1 { margin: 0 0 8px; font-size: 32px; }
+  .sub { color: var(--muted); font-size: 14px; line-height: 1.5; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin: 18px 0 24px; }
+  .stat { background: var(--paper); border: 1px solid var(--line); padding: 14px 16px; border-radius: 6px; }
+  .stat .k { color: var(--muted); font-size: 12px; }
+  .stat .v { margin-top: 6px; font-size: 26px; }
+  .cases { display: grid; gap: 16px; }
+  .card { background: var(--paper); border: 1px solid var(--line); border-radius: 6px; padding: 18px; }
+  .head { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; margin-bottom: 10px; }
+  .qid { font-size: 20px; line-height: 1.35; }
+  .badge { font-size: 12px; padding: 3px 8px; border-radius: 999px; border: 1px solid var(--line); white-space: nowrap; }
+  .pass { color: var(--pass); }
+  .fail { color: var(--fail); }
+  .skip { color: var(--skip); }
+  .meta { color: var(--muted); font-size: 13px; margin-bottom: 14px; line-height: 1.5; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .panel { border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+  .panel h3 { margin: 0; padding: 10px 12px; font-size: 14px; background: rgba(0,0,0,0.03); }
+  .panel pre { margin: 0; padding: 12px; white-space: pre-wrap; word-break: break-word; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; line-height: 1.5; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { border-top: 1px solid var(--line); padding: 8px 10px; text-align: left; vertical-align: top; }
+  th { background: rgba(0,0,0,0.035); }
+  @media (max-width: 900px) { .cols { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="hero">
+      <h1>v3.3 Full Release Audit</h1>
+      <div class="sub">result/audit-v3.3-results-real.json · expected result/codex-etf-query-answers.md · 78 pass · 4 fail · LLM 总 token 数：310090</div>
+    </div>
+    <div class="grid">
+      <div class="stat"><div class="k">Total Cases</div><div class="v">87</div></div>
+      <div class="stat"><div class="k">Scoped Cases</div><div class="v">82</div></div>
+      <div class="stat"><div class="k">Passed</div><div class="v">78</div></div>
+      <div class="stat"><div class="k">Failed</div><div class="v">4</div></div>
+      <div class="stat"><div class="k">LLM Tokens</div><div class="v">310090</div></div>
+    </div>
+    <div class="cases">
+    <section class="card">
+      <div class="head">
+        <div class="qid">一.1 510300是什么</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_2_required · bucket=v3_2_compatibility_baseline · expected=covered_single_basic_info · actual=ExecutableQuery(single/basic_info) · tokens=2138</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>沪深300ETF（510300），股票型ETF，跟踪沪深300指数，管理人为华泰柏瑞基金。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>510300 的基金简称为 沪深300ETF，跟踪指数名称为 沪深300指数，基金规模为 1656.77 亿元（2026-05-12）。
+
+数据截至 2026-05-12。
+LLM token：2138</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">一.2 帮我查一下510500的基本信息</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_2_required · bucket=v3_2_compatibility_baseline · expected=covered_single_basic_info · actual=ExecutableQuery(single/basic_info) · tokens=2158</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>中证500ETF（510500），交易代码510500.SH，契约型开放式，股票型，跟踪中证小盘500指数，成立日2013-02-06，上市地点上交所，管理人为南方基金，管理费0.15%，托管费0.05%。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>510500 的基金简称为 中证500ETF，跟踪指数名称为 中证小盘500指数，基金规模为 476.50 亿元（2026-05-12）。
+
+数据截至 2026-05-12。
+LLM token：2158</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">一.3 159919这只基金跟踪什么指数</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_2_required · bucket=v3_2_compatibility_baseline · expected=covered_single_tracking_index · actual=ExecutableQuery(single/tracking_index) · tokens=1940</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>沪深300ETF（159919）跟踪沪深300指数，跟踪指数代码000300。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>159919 的跟踪指数代码为 000300，跟踪指数名称为 沪深300指数。
+
+LLM token：1940</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">一.4 工银沪深300ETF的费率和基金经理是什么</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_2_required · bucket=v3_2_compatibility_baseline · expected=covered_single_fee_and_manager · actual=ExecutableQuery(single/fee_and_manager) · tokens=2251</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>工银沪深300ETF（510350）管理费率0.15%，托管费率0.05%，现任基金经理刘伟琳。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>510350 的管理费率为 0.15%，托管费率为 0.05%，基金经理(现任)为 刘伟琳，基金管理人为 工银瑞信基金。
+
+LLM token：2251</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">一.5 510300的成立日期是什么时候</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_2_required · bucket=v3_2_compatibility_baseline · expected=v3_2_basic_info_extended · actual=ExecutableQuery(single/basic_info_extended) · tokens=2197</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>2012-05-04。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>510300 的成立日期为 2012-05-04，基金简称为 沪深300ETF。
+
+LLM token：2197</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">一.6 510300在哪上市的</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_2_required · bucket=v3_2_compatibility_baseline · expected=v3_2_basic_info_extended · actual=ExecutableQuery(single/basic_info_extended) · tokens=2182</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>上交所。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>510300 的上市地点为 上交所，基金简称为 沪深300ETF。
+
+LLM token：2182</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">一.7 510300现在能申购吗</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_2_required · bucket=v3_2_compatibility_baseline · expected=v3_2_basic_info_extended · actual=ExecutableQuery(single/basic_info_extended) · tokens=2193</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>开放申购|开放赎回。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>510300 的申购赎回状态为 开放申购|开放赎回，基金简称为 沪深300ETF。
+
+LLM token：2193</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">一.8 510300的联接基金代码是多少</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_2_required · bucket=v3_2_compatibility_baseline · expected=v3_2_basic_info_extended · actual=ExecutableQuery(single/basic_info_extended) · tokens=2196</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>006131.OF,022699.OF,022948.OF,460300.OF。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>510300 的ETF关联联接基金代码为 006131.OF,022699.OF,022948.OF,460300.OF，基金简称为 沪深300ETF。
+
+LLM token：2196</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">一.9 510300的投资目标和策略是什么</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_2_required · bucket=v3_2_compatibility_baseline · expected=v3_2_investment_profile · actual=ExecutableQuery(single/investment_profile) · tokens=2166</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>投资目标：紧密跟踪标的指数，追求跟踪偏离度和跟踪误差最小化。投资策略：完全复制法，必要时辅以股指期货、转融通证券出借、存托凭证等策略管理跟踪误差。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>510300 的投资目标为 紧密跟踪标的指数表现，追求跟踪偏离度和跟踪误差的最小化。本基金力争将日均跟踪偏离度控制在0.2%以内,年化跟踪误差控制在2%以内。，投资策略为 　　本基金主要采取完全复制法，即完全按照标的指数的成份股组成及其权重构建基金股票投资组合，并根据标的指数成份股及其权重的变动进行相应调整。但在因特殊情况（如流动性不足）导致无法获得足够数量的股票时，基金管理人将运用其他合理的投资方法构建本基金的实际投资组合，追求尽可能贴近目标指数的表现。
+　　特殊情况包括但不限于以下情形：（1）法律法规的限制；（2）标的指数成份股流动性严重不足；（3）标的指数的成份股票长期停牌；（4）其它合理原因导致本基金管理人对标的指数的跟踪构成严重制约等。
+　　本基金投资股指期货将根据风险管理的原则，以套期保值为目的，对冲系统性风险和某些特殊情况下的流动性风险等，主要采用流动性好、交易活跃的股指期货合约，通过多头或空头套期保值等策略进行套期保值操作。本基金力争利用股指期货的杠杆作用，降低股票仓位频繁调整的交易成本和跟踪误差，达到有效跟踪标的指数的目的。
+　　1、决策依据有关法律、法规、基金合同和标的指数的相关规定是基金管理人运用基金财产的决策依据。
+　　2、投资管理体制本基金管理人实行投资决策委员会领导下的基金经理团队制。投资决策委员会负责决定有关指数重大调整的应对决策、其他重大组合调整决策以及重大的单项投资决策；基金经理决定日常指数跟踪维护过程中的组合构建、调整决策以及每日申购、赎回清单的编制决策。
+　　3、投资程序研究、决策、组合构建、交易、评估、组合维护的有机配合共同构成了本基金的投资管理程序。严格的投资管理程序可以保证投资理念的正确执行，避免重大风险的发生。
+　　（1）研究：依托公司整体研究平台，数量分析师整合外部信息以及券商等外部研究力量的研究成果开展指数跟踪、成份股公司行为等相关信息的搜集与分析、流动性分析、误差及其归因分析等工作，撰写研究报告，作为基金投资决策的重要依据。
+　　（2）投资决策：投资决策委员会依据数量分析师提供的研究报告，定期召开或遇重大事项时召开投资决策会议，决策相关事项。基金经理根据投资决策委员会的决议，每日进行基金投资管理的日常决策。
+　　（3）组合构建：根据标的指数，结合研究报告，基金经理以完全复制指数成份股权重方法构建组合。在追求跟踪误差和偏离度最小化的前提下，基金经理将采取适当的方法，以降低买入成本、控制投资风险。
+　　（4）交易执行：集中交易室负责具体的交易执行，同时履行一线监控的职责。
+　　（5）投资绩效评估：数量分析师定期和不定期对基金进行投资绩效评估，并提供相关报告。绩效评估能够确认组合是否实现了投资预期、组合误差的来源及投资策略成功与否，基金经理可以据此检讨投资策略，进而调整投资组合。
+　　（6）组合监控与调整：基金经理将跟踪标的指数变动，结合成份股基本面情况、流动性状况、基金申购和赎回的现金流量情况以及组合投资绩效评估的结果，对投资组合进行监控和调整，密切跟踪标的指数。
+　　基金管理人在确保基金份额持有人利益的前提下有权根据环境变化和实际需要对上述投资程序做出调整，并在基金招募说明书及其更新中公告。
+　　4、参与转融通证券出借业务策略为更好实现投资目标，在加强风险防范并遵守审慎原则的前提下，本基金可根据投资管理需要参与转融通证券出借业务。
+　　本基金将在分析市场情况、投资者类型与结构、基金历史申赎情况、出借证券流动性情况等因素的基础上合理确定出借证券的范围、期限和比例。
+　　5、存托凭证投资策略本基金将根据投资目标和股票投资策略，基于对基础证券投资价值的深入研究判断，进行存托凭证的投资。，基金简称为 沪深300ETF。
+
+LLM token：2166</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">一.10 510300的业绩比较基准是什么</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_2_required · bucket=v3_2_compatibility_baseline · expected=v3_2_basic_info_extended · actual=ExecutableQuery(single/basic_info_extended) · tokens=2198</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>沪深300指数。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>510300 的业绩比较基准为 沪深300指数，基金简称为 沪深300ETF。
+
+LLM token：2198</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">一.11 510300的风险收益特征是什么</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_2_required · bucket=v3_2_compatibility_baseline · expected=v3_2_investment_profile · actual=ExecutableQuery(single/investment_profile) · tokens=2092</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>股票型指数基金，风险和收益高于混合型、债券型和货币市场基金，特征与标的指数基本一致。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>510300 的风险收益特征为 本基金属于股票型基金中的指数型基金，股票最低仓位为95%，并采用完全复制的被动式投资策略：一方面，相对于混合型基金、债券型基金与货币市场基金而言，其风险和收益较高，属于股票型基金中高风险、高收益的产品；另一方面，相对于采用抽样复制的指数型基金而言，其风险和收益特征将更能与标的指数保持基本一致。，基金简称为 沪深300ETF。
+
+LLM token：2092</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">一.12 510300的管理人是谁</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_2_required · bucket=v3_2_compatibility_baseline · expected=covered_single_manager · actual=ExecutableQuery(single/manager) · tokens=1900</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>华泰柏瑞基金。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>510300 的基金经理(现任)为 柳军，基金管理人为 华泰柏瑞基金。
+
+LLM token：1900</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">二.1 510300今年的收益率是多少</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_2_required · bucket=v3_2_compatibility_baseline · expected=covered_single_performance · actual=ExecutableQuery(single/performance) · tokens=5120</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>今年以来收益率7.15%。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>沪深300ETF（510300）今年以来收益率为7.15%。
+
+数据截至 2026-05-12。
+LLM token：5120</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">二.2 159919近1年收益，同类排名第几</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_2_required · bucket=v3_2_compatibility_baseline · expected=covered_single_performance · actual=ExecutableQuery(single/performance) · tokens=5254</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>近1年收益率30.43%，同类排名7238/22995，ETF排名602.0。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>沪深300ETF（159919）近1年收益率为30.43%，同类排名7238/22995。
+
+数据截至 2026-05-12。
+LLM token：5254</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">二.3 510500成立以来收益怎么样</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_2_required · bucket=v3_2_compatibility_baseline · expected=covered_single_performance · actual=ExecutableQuery(single/performance) · tokens=5109</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>成立以来收益率196.28%，同类排名392/1157，ETF排名37.0。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>中证500ETF（510500）成立以来收益率为196.28%。
+
+数据截至 2026-05-12。
+LLM token：5109</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">二.4 510300近3个月涨了多少</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_2_required · bucket=v3_2_compatibility_baseline · expected=covered_single_performance · actual=ExecutableQuery(single/performance) · tokens=5132</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>近3个月收益率4.95%。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>沪深300ETF（510300）近3月收益率为4.95%。
+
+数据截至 2026-05-12。
+LLM token：5132</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">二.5 510300各周期的收益率给我看看</div>
+        <div class="badge fail">FAIL</div>
+      </div>
+      <div class="meta">scope=v3_2_required · bucket=v3_2_compatibility_baseline · expected=covered_single_performance · actual=ExecutableQueryFailed(validator:missing requested semantic field: 近1周收益率) · tokens=0</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>近1周2.93%，同类排名7983/25912，ETF排名795.0；近1月6.84%，同类排名7557/25671，ETF排名697.0；近3个月4.95%，同类排名6338/25347，ETF排名552.0；近6个月7.04%，同类排名8813/24560，ETF排名723.0；近1年30.51%，同类排名7224/22995，ETF排名597.0；近2年42.34%，同类排名5788/20623，ETF排名504.0；近3年35.21%，同类排名4619/17962，ETF排名379.0；近5年8.63%，同类排名7856/11917，ETF排名294.0；今年以来7.15%，同类排名8834/24942，ETF排名771.0；成立以来131.66%，同类排名566/953，ETF排名127.0。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>v3.3 查询失败：validator - missing requested semantic field: 近1周收益率
+
+LLM token：0</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">二.6 510300近2年ETF排第几</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_2_required · bucket=v3_2_compatibility_baseline · expected=covered_single_performance · actual=ExecutableQuery(single/performance) · tokens=5150</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>第504.0名。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>沪深300ETF（510300）近2年ETF排名为第504.0名。
+
+数据截至 2026-05-12。
+LLM token：5150</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">二.7 510300今年在同类基金里排多少</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_2_required · bucket=v3_2_compatibility_baseline · expected=covered_single_performance · actual=ExecutableQuery(single/performance) · tokens=5146</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>8834/24942。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>沪深300ETF（510300）今年以来同类排名为8834/24942。
+
+数据截至 2026-05-12。
+LLM token：5146</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">二.8 510300近半年收益率和同类平均比怎么样</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_3_required · bucket=v3_3_new_fragments · expected=UnsupportedQuery(blocked_by_verification) · actual=UnsupportedQuery(blocked_by_verification) · tokens=0</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>近半年收益率7.04%。远端同类平均最新值为216.55%（2026-05-12），但口径不是近半年，不能直接对比。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>当前版本暂不支持该查询类型。
+
+LLM token：0</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">二.9 510300近5年收益率是多少，排名如何</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_2_required · bucket=v3_2_compatibility_baseline · expected=covered_single_performance · actual=ExecutableQuery(single/performance) · tokens=5354</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>近5年收益率8.63%，同类排名7856/11917，ETF排名294.0。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>沪深300ETF（510300）近5年收益率为8.63%，同类排名7856/11917，ETF排名294.0。
+
+数据截至 2026-05-12。
+LLM token：5354</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">二.10 成立以来收益最好的沪深300ETF是哪只</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_2_required · bucket=v3_2_compatibility_baseline · expected=covered_filter_sort · actual=ExecutableQuery(filter/filter) · tokens=5905</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>510330 沪深300ETF华夏，成立以来收益率165.58%。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>远端库中，跟踪指数名称精确为沪深300指数的ETF里，成立以来收益率最高的是510330 沪深300ETF华夏，成立以来收益率165.58%。
+
+数据截至 2026-05-12。
+LLM token：5905</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">三.1 510300的基金规模多大</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_2_required · bucket=v3_2_compatibility_baseline · expected=covered_single_fund_scale · actual=ExecutableQuery(single/fund_scale) · tokens=2051</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>1656.77亿，日期2026-05-12。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>510300 的基金规模为 1656.77 亿元（2026-05-12）。
+
+数据截至 2026-05-12。
+LLM token：2051</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">三.2 510300总市值多少</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_2_required · bucket=v3_2_compatibility_baseline · expected=covered_single_fund_scale · actual=ExecutableQuery(single/fund_scale) · tokens=2036</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>1656.23亿。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>510300 的总市值为 1656.23 亿元。
+
+LLM token：2036</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">三.3 510300最新净值是多少</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_2_required · bucket=v3_2_compatibility_baseline · expected=covered_single_fund_scale · actual=ExecutableQuery(single/fund_scale) · tokens=2036</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>4.9646，日期2026-05-12。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>510300 的单位净值为 4.965（2026-05-12）。
+
+数据截至 2026-05-12。
+LLM token：2036</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">三.4 510300的份额有多少</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_2_required · bucket=v3_2_compatibility_baseline · expected=covered_single_fund_scale · actual=ExecutableQuery(single/fund_scale) · tokens=2045</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>333.72亿份，日期2026-05-12。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>510300 的基金份额为 333.72亿份（2026-05-12）。
+
+数据截至 2026-05-12。
+LLM token：2045</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">三.5 510300的净值增长率是多少</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_2_required · bucket=v3_2_compatibility_baseline · expected=covered_single_fund_scale · actual=ExecutableQuery(single/fund_scale) · tokens=2052</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>-0.08%，日期2026-05-12。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>510300 的单位净值增长率为 -0.08%（2026-05-12）。
+
+数据截至 2026-05-12。
+LLM token：2052</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">三.6 510300的基金份额最近有变化吗</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_3_required · bucket=v3_3_new_fragments · expected=v3_3_timeseries_latest_two · actual=ExecutableQuery(single/fund_scale) · tokens=2156</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>最新可直接查到的基金份额是333.72亿份，日期2026-05-12。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>510300 的基金份额为 333.72亿份（2026-05-12），较前一期 339.46亿份（2026-05-11）减少 -5.74亿份（-1.69%）。
+
+数据截至 2026-05-12。
+LLM token：2156</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">四.1 510300前十大重仓股是什么</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_3_required · bucket=v3_3_new_fragments · expected=v3_3_report_expand_holding · actual=ExecutableQuery(report/report_holding) · tokens=2459</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>2024年年报前十大重仓股：600519、300750、601318、600036、000333、600900、300059、600030、601166、000858。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>510300 的2024年年报报告数据如下：</pre>
+<table><thead><tr><th>排名</th><th>前十大重仓股代码</th><th>前十大股票占基金净值比</th></tr></thead><tbody><tr><td>1</td><td>600519</td><td>4.60%</td></tr>
+<tr><td>2</td><td>300750</td><td>3.37%</td></tr>
+<tr><td>3</td><td>601318</td><td>2.72%</td></tr>
+<tr><td>4</td><td>600036</td><td>2.33%</td></tr>
+<tr><td>5</td><td>000333</td><td>1.76%</td></tr>
+<tr><td>6</td><td>600900</td><td>1.74%</td></tr>
+<tr><td>7</td><td>300059</td><td>1.57%</td></tr>
+<tr><td>8</td><td>600030</td><td>1.37%</td></tr>
+<tr><td>9</td><td>601166</td><td>1.34%</td></tr>
+<tr><td>10</td><td>000858</td><td>1.31%</td></tr></tbody></table>
+<pre>LLM token：2459</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">四.2 159919的持仓行业有哪些</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_3_required · bucket=v3_3_new_fragments · expected=v3_3_report_expand_industry · actual=ExecutableQuery(report/report_industry) · tokens=2203</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>2025年一季报行业：食品饮料、银行、非银金融、电力设备、家用电器、公用事业、汽车、有色金属、电子、社会服务。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>159919 的2025年一季报报告数据如下：</pre>
+<table><thead><tr><th>排名</th><th>前N大行业名称</th></tr></thead><tbody><tr><td>1</td><td>食品饮料</td></tr>
+<tr><td>2</td><td>银行</td></tr>
+<tr><td>3</td><td>非银金融</td></tr>
+<tr><td>4</td><td>电力设备</td></tr>
+<tr><td>5</td><td>家用电器</td></tr>
+<tr><td>6</td><td>公用事业</td></tr>
+<tr><td>7</td><td>汽车</td></tr>
+<tr><td>8</td><td>有色金属</td></tr>
+<tr><td>9</td><td>电子</td></tr>
+<tr><td>10</td><td>社会服务</td></tr></tbody></table>
+<pre>LLM token：2203</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">四.3 510500最新季报的持仓</div>
+        <div class="badge fail">FAIL</div>
+      </div>
+      <div class="meta">scope=v3_3_required · bucket=v3_3_new_fragments · expected=v3_3_report_expand_quarter_industry · actual=ExecutableQuery(composite/composite_single) · tokens=4313</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>2025年一季报行业：电子、汽车、国防军工、机械设备、计算机、有色金属、家用电器；重仓概念：华为概念、物联网、人工智能、小米概念、虚拟现实、无人驾驶、新能源汽车、芯片概念、人形机器人、智能座舱。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>持仓方面，2025年一季报显示，主要行业包括电子、汽车、国防军工、机械设备、计算机和有色金属；重仓概念包括华为概念、物联网、人工智能、小米概念和虚拟现实。
+
+LLM token：4313</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">四.4 510300的机构持有比例是多少</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_3_required · bucket=v3_3_new_fragments · expected=v3_3_report_scalar_institution_holding · actual=ExecutableQuery(report/institution_holding) · tokens=2239</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>2024年年报机构投资者持有比例83.68%，持有份额747.99亿份。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>510300 的2024年年报机构投资者持有比例为 83.68%，机构投资者持有份额为 747.99亿份。
+
+LLM token：2239</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">四.5 510300的投资风格是什么</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_3_required · bucket=v3_3_new_fragments · expected=v3_3_report_scalar_style · actual=ExecutableQuery(report/report_style) · tokens=1996</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>平衡型基金。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>510300 的2024年年报投资风格为 平衡型基金。
+
+LLM token：1996</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">四.6 510300的净资产变动情况</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_3_required · bucket=v3_3_new_fragments · expected=v3_3_report_scalar_nav_change · actual=ExecutableQuery(report/report_nav_change) · tokens=2172</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>-379.19亿，变动率-9.54%。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>510300 的2024年年报净资产变动为 -379.19 亿元，净资产变动率为 -9.54%。
+
+LLM token：2172</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">四.7 159919重仓了哪些概念</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_3_required · bucket=v3_3_new_fragments · expected=v3_3_report_expand_concept · actual=ExecutableQuery(report/report_concept) · tokens=2110</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>2025年一季报重仓概念：高股息精选、同花顺中特估100、超级品牌、国企改革、同花顺出海50、储能、新能源汽车、锂电池概念、白酒概念、西部大开发。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>159919 的2025年一季报报告数据如下：</pre>
+<table><thead><tr><th>排名</th><th>重仓概念名称</th></tr></thead><tbody><tr><td>1</td><td>高股息精选</td></tr>
+<tr><td>2</td><td>同花顺中特估100</td></tr>
+<tr><td>3</td><td>超级品牌</td></tr>
+<tr><td>4</td><td>国企改革</td></tr>
+<tr><td>5</td><td>同花顺出海50</td></tr>
+<tr><td>6</td><td>储能</td></tr>
+<tr><td>7</td><td>新能源汽车</td></tr>
+<tr><td>8</td><td>锂电池概念</td></tr>
+<tr><td>9</td><td>白酒概念</td></tr>
+<tr><td>10</td><td>西部大开发</td></tr></tbody></table>
+<pre>LLM token：2110</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">四.8 510300年报里行业配置占比最高的前五个</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_3_required · bucket=v3_3_new_fragments · expected=v3_3_report_expand_industry · actual=ExecutableQuery(report/report_industry) · tokens=2416</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>银行24.59%、非银金融29.39%、电子34.16%、食品饮料38.00%、电力设备41.50%。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>510300 的2024年年报报告数据如下：</pre>
+<table><thead><tr><th>排名</th><th>前N大行业名称</th><th>前N大行业占比</th></tr></thead><tbody><tr><td>1</td><td>家用电器</td><td>47.11%</td></tr>
+<tr><td>2</td><td>公用事业</td><td>46.27%</td></tr>
+<tr><td>3</td><td>计算机</td><td>45.41%</td></tr>
+<tr><td>4</td><td>汽车</td><td>44.48%</td></tr>
+<tr><td>5</td><td>医药生物</td><td>43.54%</td></tr></tbody></table>
+<pre>LLM token：2416</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">四.9 510300前十大重仓股占净值比多少</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_3_required · bucket=v3_3_new_fragments · expected=v3_3_report_expand_holding · actual=ExecutableQuery(report/report_holding) · tokens=2474</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>600519 4.60%、300750 3.37%、601318 2.72%、600036 2.33%、000333 1.76%、600900 1.74%、300059 1.57%、600030 1.37%、601166 1.34%、000858 1.31%。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>510300 的2024年年报报告数据如下：</pre>
+<table><thead><tr><th>排名</th><th>前十大重仓股代码</th><th>前十大股票占基金净值比</th></tr></thead><tbody><tr><td>1</td><td>600519</td><td>4.60%</td></tr>
+<tr><td>2</td><td>300750</td><td>3.37%</td></tr>
+<tr><td>3</td><td>601318</td><td>2.72%</td></tr>
+<tr><td>4</td><td>600036</td><td>2.33%</td></tr>
+<tr><td>5</td><td>000333</td><td>1.76%</td></tr>
+<tr><td>6</td><td>600900</td><td>1.74%</td></tr>
+<tr><td>7</td><td>300059</td><td>1.57%</td></tr>
+<tr><td>8</td><td>600030</td><td>1.37%</td></tr>
+<tr><td>9</td><td>601166</td><td>1.34%</td></tr>
+<tr><td>10</td><td>000858</td><td>1.31%</td></tr></tbody></table>
+<pre>LLM token：2474</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">五.1 510300的基金经理是谁</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_2_required · bucket=v3_2_compatibility_baseline · expected=covered_single_manager · actual=ExecutableQuery(single/manager) · tokens=1895</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>柳军。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>510300 的基金经理(现任)为 柳军，基金管理人为 华泰柏瑞基金。
+
+LLM token：1895</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">五.2 510300现任基金经理管理了多久</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_3_required · bucket=v3_3_new_fragments · expected=v3_3_manager_detail · actual=ExecutableQuery(single/manager_detail) · tokens=2046</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>自2012-05-04起任职，5123天。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>沪深300ETF（510300）现任基金经理柳军，自2012-05-04起任职，任职5123天，任职期间年化回报6.18%，任职基金总规模3388.01亿元。当前远端库仅返回现任基金经理信息，未提供更早历史更换记录。
+
+LLM token：2046</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">五.3 510300基金经理的历史业绩怎么样</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_3_required · bucket=v3_3_new_fragments · expected=v3_3_manager_detail · actual=ExecutableQuery(single/manager_detail) · tokens=2040</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>任职期间年化回报6.18%。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>沪深300ETF（510300）现任基金经理柳军，自2012-05-04起任职，任职5123天，任职期间年化回报6.18%，任职基金总规模3388.01亿元。当前远端库仅返回现任基金经理信息，未提供更早历史更换记录。
+
+LLM token：2040</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">五.4 510300基金经理管了多少规模的基金</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_3_required · bucket=v3_3_new_fragments · expected=v3_3_manager_detail · actual=ExecutableQuery(single/manager_detail) · tokens=2042</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>3388.01亿。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>沪深300ETF（510300）现任基金经理柳军，自2012-05-04起任职，任职5123天，任职期间年化回报6.18%，任职基金总规模3388.01亿元。当前远端库仅返回现任基金经理信息，未提供更早历史更换记录。
+
+LLM token：2042</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">五.5 510300什么时候换的基金经理</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_3_required · bucket=v3_3_new_fragments · expected=v3_3_manager_detail_timeline · actual=ExecutableQuery(single/manager_detail) · tokens=2018</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>当前远端库仅返回现任基金经理柳军，起始日2012-05-04。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>沪深300ETF（510300）现任基金经理柳军，自2012-05-04起任职，任职5123天，任职期间年化回报6.18%，任职基金总规模3388.01亿元。当前远端库仅返回现任基金经理信息，未提供更早历史更换记录。
+
+LLM token：2018</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">六.1 510300有没有分红记录</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_2_required · bucket=v3_2_compatibility_baseline · expected=covered_single_dividend · actual=ExecutableQuery(single/dividend) · tokens=1940</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>有，累计分红14次，累计分红总额263.86亿。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>510300 的累计分红总额为 263.86 亿元，累计分红次数为 14。
+
+LLM token：1940</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">六.2 159919累计分红多少</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_2_required · bucket=v3_2_compatibility_baseline · expected=covered_single_dividend · actual=ExecutableQuery(single/dividend) · tokens=1850</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>80.76亿，累计分红5次。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>159919 的累计分红总额为 80.76 亿元。
+
+LLM token：1850</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">六.3 510300分过几次红</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_2_required · bucket=v3_2_compatibility_baseline · expected=covered_single_dividend · actual=ExecutableQuery(single/dividend) · tokens=1850</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>14次。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>510300 的累计分红次数为 14。
+
+LLM token：1850</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">七.1 帮我找沪深300相关的ETF</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_2_required · bucket=v3_2_compatibility_baseline · expected=covered_search · actual=ExecutableQuery(search/search) · tokens=2032</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>共48只，规模靠前包括：510300 沪深300ETF、510310 沪深300ETF易方达、510330 沪深300ETF华夏、159919 沪深300ETF、512010 医药ETF、512070 证券保险ETF、515330 沪深300ETF天弘、515300 300红利低波ETF嘉实、515380 沪深300ETF泰康、510350 沪深300ETF工银。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>共找到 48 只名称、跟踪指数或指数代码与“沪深300”相关的 ETF，默认按基金规模从高到低展示前 10 只。
+还有更多结果，可缩小条件或指定展示数量。</pre>
+<table><thead><tr><th>基金代码</th><th>基金简称</th><th>基金规模</th><th>管理费率</th></tr></thead><tbody><tr><td>510300</td><td>沪深300ETF</td><td>1656.77 亿元（2026-05-12）</td><td>0.15%</td></tr>
+<tr><td>510310</td><td>沪深300ETF易方达</td><td>1286.62 亿元（2026-05-12）</td><td>0.15%</td></tr>
+<tr><td>510330</td><td>沪深300ETF华夏</td><td>870.51 亿元（2026-05-12）</td><td>0.15%</td></tr>
+<tr><td>159919</td><td>沪深300ETF</td><td>825.67 亿元（2026-05-12）</td><td>0.15%</td></tr>
+<tr><td>512010</td><td>医药ETF</td><td>172.50 亿元（2026-05-12）</td><td>0.50%</td></tr>
+<tr><td>512070</td><td>证券保险ETF</td><td>131.35 亿元（2026-05-12）</td><td>0.50%</td></tr>
+<tr><td>515330</td><td>沪深300ETF天弘</td><td>80.15 亿元（2026-05-12）</td><td>0.50%</td></tr>
+<tr><td>515300</td><td>300红利低波ETF嘉实</td><td>52.03 亿元（2026-05-12）</td><td>0.50%</td></tr>
+<tr><td>515380</td><td>沪深300ETF泰康</td><td>36.89 亿元（2026-05-12）</td><td>0.40%</td></tr>
+<tr><td>510350</td><td>沪深300ETF工银</td><td>35.84 亿元（2026-05-12）</td><td>0.15%</td></tr></tbody></table>
+<pre>数据截至 2026-05-12。
+LLM token：2032</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">七.2 搜索中证500</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_2_required · bucket=v3_2_compatibility_baseline · expected=covered_search · actual=ExecutableQuery(search/search) · tokens=2025</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>共38只，规模靠前包括：510500 中证500ETF、159922 中证500ETF嘉实、512500 中证500ETF华夏、510580 中证500ETF易方达、510510 中证500ETF广发、159820 中证500ETF天弘、561550 中证500增强ETF华泰柏瑞、510590 中证500ETF平安、512510 中证500ETF华泰柏瑞、560120 中证500现金流ETF华夏。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>共找到 38 只名称、跟踪指数或指数代码与“中证500”相关的 ETF，默认按基金规模从高到低展示前 10 只。
+还有更多结果，可缩小条件或指定展示数量。</pre>
+<table><thead><tr><th>基金代码</th><th>基金简称</th><th>基金规模</th><th>管理费率</th></tr></thead><tbody><tr><td>510500</td><td>中证500ETF</td><td>476.50 亿元（2026-05-12）</td><td>0.15%</td></tr>
+<tr><td>159922</td><td>中证500ETF嘉实</td><td>89.69 亿元（2026-05-12）</td><td>0.15%</td></tr>
+<tr><td>512500</td><td>中证500ETF华夏</td><td>87.92 亿元（2026-05-12）</td><td>0.15%</td></tr>
+<tr><td>510580</td><td>中证500ETF易方达</td><td>42.93 亿元（2026-05-12）</td><td>0.15%</td></tr>
+<tr><td>510510</td><td>中证500ETF广发</td><td>24.30 亿元（2026-05-12）</td><td>0.50%</td></tr>
+<tr><td>159820</td><td>中证500ETF天弘</td><td>20.26 亿元（2026-05-12）</td><td>0.50%</td></tr>
+<tr><td>561550</td><td>中证500增强ETF华泰柏瑞</td><td>14.63 亿元（2026-05-12）</td><td>0.70%</td></tr>
+<tr><td>510590</td><td>中证500ETF平安</td><td>14.01 亿元（2026-05-12）</td><td>0.50%</td></tr>
+<tr><td>512510</td><td>中证500ETF华泰柏瑞</td><td>11.35 亿元（2026-05-12）</td><td>0.15%</td></tr>
+<tr><td>560120</td><td>中证500现金流ETF华夏</td><td>10.47 亿元（2026-05-12）</td><td>0.50%</td></tr></tbody></table>
+<pre>数据截至 2026-05-12。
+LLM token：2025</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">七.3 找一下创业板ETF</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_2_required · bucket=v3_2_compatibility_baseline · expected=covered_search · actual=ExecutableQuery(search/search) · tokens=2003</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>共72只，规模靠前包括：159915 创业板ETF、159949 创业板50ETF华安、159952 创业板ETF广发、159363 创业板人工智能ETF华宝、159977 创业板ETF天弘、159948 创业板ETF南方、159682 创业板50ETF景顺、159967 创业板成长ETF华夏、159246 创业板人工智能ETF富国、159382 创业板人工智能ETF南方。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>共找到 72 只名称、跟踪指数或指数代码与“创业板”相关的 ETF，默认按基金规模从高到低展示前 10 只。
+还有更多结果，可缩小条件或指定展示数量。</pre>
+<table><thead><tr><th>基金代码</th><th>基金简称</th><th>基金规模</th><th>管理费率</th></tr></thead><tbody><tr><td>159915</td><td>创业板ETF</td><td>472.39 亿元（2026-05-12）</td><td>0.15%</td></tr>
+<tr><td>159949</td><td>创业板50ETF华安</td><td>241.45 亿元（2026-05-12）</td><td>0.50%</td></tr>
+<tr><td>159952</td><td>创业板ETF广发</td><td>103.91 亿元（2026-05-12）</td><td>0.15%</td></tr>
+<tr><td>159363</td><td>创业板人工智能ETF华宝</td><td>72.10 亿元（2026-05-12）</td><td>0.50%</td></tr>
+<tr><td>159977</td><td>创业板ETF天弘</td><td>69.52 亿元（2026-05-12）</td><td>0.15%</td></tr>
+<tr><td>159948</td><td>创业板ETF南方</td><td>46.44 亿元（2026-05-12）</td><td>0.15%</td></tr>
+<tr><td>159967</td><td>创业板成长ETF华夏</td><td>46.24 亿元（2026-05-12）</td><td>0.50%</td></tr>
+<tr><td>159682</td><td>创业板50ETF景顺</td><td>40.86 亿元（2026-05-12）</td><td>0.15%</td></tr>
+<tr><td>159246</td><td>创业板人工智能ETF富国</td><td>33.38 亿元（2026-05-12）</td><td>0.40%</td></tr>
+<tr><td>159382</td><td>创业板人工智能ETF南方</td><td>24.68 亿元（2026-05-12）</td><td>0.50%</td></tr></tbody></table>
+<pre>数据截至 2026-05-12。
+LLM token：2003</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">七.4 搜索MSCI中国A股</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_2_required · bucket=v3_2_compatibility_baseline · expected=covered_search · actual=ExecutableQuery(search/search) · tokens=2025</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>共9只，规模靠前包括：512090 MSCIA股ETF易方达、515160 MSCI中国ETF招商、512990 MSCIA股ETF华夏、512160 MSCI中国A股ETF南方、512380 MSCI中国ETF银华、512180 MSCIA股ETF建信、512520 MSCI中国ETF华泰柏瑞、515770 MSCI中国A股ETF摩根、512360 MSCIA股ETF平安。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>共找到 9 只名称、跟踪指数或指数代码与“MSCI中国A股”相关的 ETF，默认按基金规模从高到低展示前 10 只。</pre>
+<table><thead><tr><th>基金代码</th><th>基金简称</th><th>基金规模</th><th>管理费率</th></tr></thead><tbody><tr><td>512090</td><td>MSCIA股ETF易方达</td><td>6.26 亿元（2026-05-12）</td><td>0.15%</td></tr>
+<tr><td>515160</td><td>MSCI中国ETF招商</td><td>4.38 亿元（2026-05-12）</td><td>0.50%</td></tr>
+<tr><td>512990</td><td>MSCIA股ETF华夏</td><td>2.21 亿元（2026-05-12）</td><td>0.50%</td></tr>
+<tr><td>512160</td><td>MSCI中国A股ETF南方</td><td>1.99 亿元（2026-05-12）</td><td>0.50%</td></tr>
+<tr><td>512380</td><td>MSCI中国ETF银华</td><td>1.25 亿元（2026-05-12）</td><td>0.50%</td></tr>
+<tr><td>512180</td><td>MSCIA股ETF建信</td><td>0.91 亿元（2026-05-12）</td><td>0.50%</td></tr>
+<tr><td>512520</td><td>MSCI中国ETF华泰柏瑞</td><td>0.70 亿元（2026-05-12）</td><td>0.15%</td></tr>
+<tr><td>515770</td><td>MSCI中国A股ETF摩根</td><td>0.64 亿元（2026-05-12）</td><td>0.15%</td></tr>
+<tr><td>512360</td><td>MSCIA股ETF平安</td><td>0.58 亿元（2026-05-12）</td><td>0.50%</td></tr></tbody></table>
+<pre>数据截至 2026-05-12。
+LLM token：2025</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">七.5 有没有名字里带医药的ETF</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_2_required · bucket=v3_2_compatibility_baseline · expected=covered_search · actual=ExecutableQuery(search/search) · tokens=2018</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>有，共24只，规模靠前包括：512010 医药ETF、159892 恒生医药ETF华夏、159938 医药卫生ETF、159859 生物医药ETF天弘、512290 生物医药ETF国泰、159929 医药ETF汇添富、516820 医疗创新ETF平安、513200 港股通医药ETF易方达、159839 生物医药ETF汇添富、513700 港股通医药ETF鹏华。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>共找到 23 只基金名称包含“医药”的 ETF，默认按基金规模从高到低展示前 10 只。
+还有更多结果，可缩小条件或指定展示数量。</pre>
+<table><thead><tr><th>基金代码</th><th>基金简称</th><th>基金规模</th><th>管理费率</th></tr></thead><tbody><tr><td>512010</td><td>医药ETF</td><td>172.50 亿元（2026-05-12）</td><td>0.50%</td></tr>
+<tr><td>159892</td><td>恒生医药ETF华夏</td><td>57.75 亿元（2026-05-12）</td><td>0.50%</td></tr>
+<tr><td>159938</td><td>医药卫生ETF</td><td>47.80 亿元（2026-05-12）</td><td>0.50%</td></tr>
+<tr><td>159859</td><td>生物医药ETF天弘</td><td>40.18 亿元（2026-05-12）</td><td>0.50%</td></tr>
+<tr><td>512290</td><td>生物医药ETF国泰</td><td>37.38 亿元（2026-05-12）</td><td>0.50%</td></tr>
+<tr><td>159929</td><td>医药ETF汇添富</td><td>23.94 亿元（2026-05-12）</td><td>0.50%</td></tr>
+<tr><td>513200</td><td>港股通医药ETF易方达</td><td>13.93 亿元（2026-05-12）</td><td>0.15%</td></tr>
+<tr><td>159839</td><td>生物医药ETF汇添富</td><td>9.08 亿元（2026-05-12）</td><td>0.50%</td></tr>
+<tr><td>513700</td><td>港股通医药ETF鹏华</td><td>6.40 亿元（2026-05-12）</td><td>0.50%</td></tr>
+<tr><td>515950</td><td>医药50ETF富国</td><td>5.30 亿元（2026-05-12）</td><td>0.50%</td></tr></tbody></table>
+<pre>数据截至 2026-05-12。
+LLM token：2018</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">七.6 有没有ETF名字里带&quot;红利&quot;的</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_2_required · bucket=v3_2_compatibility_baseline · expected=covered_search · actual=ExecutableQuery(search/search) · tokens=2028</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>有，共76只，规模靠前包括：512890 红利低波ETF华泰柏瑞、510880 红利ETF、515450 红利低波50ETF南方、513630 港股低波红利ETF摩根、515180 红利ETF易方达、515080 中证红利ETF招商、563020 红利低波ETF易方达、159545 恒生红利低波ETF易方达、159691 港股红利ETF工银、515100 红利低波100ETF景顺。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>共找到 76 只基金名称包含“红利”的 ETF，默认按基金规模从高到低展示前 10 只。
+还有更多结果，可缩小条件或指定展示数量。</pre>
+<table><thead><tr><th>基金代码</th><th>基金简称</th><th>基金规模</th><th>管理费率</th></tr></thead><tbody><tr><td>512890</td><td>红利低波ETF华泰柏瑞</td><td>309.85 亿元（2026-05-12）</td><td>0.50%</td></tr>
+<tr><td>510880</td><td>红利ETF</td><td>195.50 亿元（2026-05-12）</td><td>0.50%</td></tr>
+<tr><td>515450</td><td>红利低波50ETF南方</td><td>178.05 亿元（2026-05-12）</td><td>0.50%</td></tr>
+<tr><td>513630</td><td>港股低波红利ETF摩根</td><td>168.89 亿元（2026-05-12）</td><td>0.50%</td></tr>
+<tr><td>515180</td><td>红利ETF易方达</td><td>148.98 亿元（2026-05-12）</td><td>0.15%</td></tr>
+<tr><td>515080</td><td>中证红利ETF招商</td><td>97.01 亿元（2026-05-12）</td><td>0.20%</td></tr>
+<tr><td>563020</td><td>红利低波ETF易方达</td><td>95.09 亿元（2026-05-12）</td><td>0.15%</td></tr>
+<tr><td>159545</td><td>恒生红利低波ETF易方达</td><td>76.54 亿元（2026-05-12）</td><td>0.15%</td></tr>
+<tr><td>159691</td><td>港股红利ETF工银</td><td>65.19 亿元（2026-05-12）</td><td>0.45%</td></tr>
+<tr><td>513920</td><td>港股通央企红利ETF华安</td><td>61.28 亿元（2026-05-12）</td><td>0.50%</td></tr></tbody></table>
+<pre>数据截至 2026-05-12。
+LLM token：2028</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">七.7 我想找跟踪科创50的ETF</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_2_required · bucket=v3_2_compatibility_baseline · expected=covered_search · actual=ExecutableQuery(search/search) · tokens=2029</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>跟踪科创50相关的ETF共19只，规模靠前包括：588000 科创50ETF华夏、588080 科创50ETF易方达、588050 科创50ETF工银、588060 科创50ETF广发、588090 科创50ETF华泰柏瑞、588460 科创50增强ETF鹏华、588180 科创50ETF国联安、588940 科创50ETF富国、589850 科创50ETF东财、588150 科创50ETF南方。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>共找到 36 只跟踪指数匹配或相关于“科创50”的 ETF，默认按基金规模从高到低展示前 10 只。
+还有更多结果，可缩小条件或指定展示数量。</pre>
+<table><thead><tr><th>基金代码</th><th>基金简称</th><th>基金规模</th><th>管理费率</th></tr></thead><tbody><tr><td>588000</td><td>科创50ETF华夏</td><td>698.89 亿元（2026-05-12）</td><td>0.15%</td></tr>
+<tr><td>588080</td><td>科创50ETF易方达</td><td>385.75 亿元（2026-05-12）</td><td>0.15%</td></tr>
+<tr><td>159781</td><td>科创创业ETF易方达</td><td>130.09 亿元（2026-05-12）</td><td>0.15%</td></tr>
+<tr><td>588050</td><td>科创50ETF工银</td><td>97.87 亿元（2026-05-12）</td><td>0.30%</td></tr>
+<tr><td>588060</td><td>科创50ETF广发</td><td>74.25 亿元（2026-05-12）</td><td>0.50%</td></tr>
+<tr><td>159783</td><td>科创创业50ETF华夏</td><td>54.11 亿元（2026-05-12）</td><td>0.15%</td></tr>
+<tr><td>588090</td><td>科创50ETF华泰柏瑞</td><td>43.89 亿元（2026-05-12）</td><td>0.50%</td></tr>
+<tr><td>159603</td><td>科创创业ETF天弘</td><td>38.03 亿元（2026-05-12）</td><td>0.50%</td></tr>
+<tr><td>159780</td><td>科创创业50ETF南方</td><td>31.66 亿元（2026-05-12）</td><td>0.15%</td></tr>
+<tr><td>588380</td><td>科创创业ETF富国</td><td>26.81 亿元（2026-05-12）</td><td>0.50%</td></tr></tbody></table>
+<pre>数据截至 2026-05-12。
+LLM token：2029</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">八.1 帮我筛选所有股票型ETF</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_2_required · bucket=v3_2_compatibility_baseline · expected=covered_filter · actual=ExecutableQuery(filter/filter) · tokens=5975</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>股票型ETF共1444只。按最新规模靠前的包括：510300 沪深300ETF、510310 沪深300ETF易方达、510330 沪深300ETF华夏、159919 沪深300ETF、588000 科创50ETF华夏、159792 港股通互联网ETF富国、512880 证券ETF国泰、513180 恒生科技ETF华夏、510500 中证500ETF、513130 恒生科技ETF华泰柏瑞。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>共找到 1444 只符合条件的 ETF，按基金规模从高到低最多展示 50 只。
+筛选条件：基金投资类型为 股票型。
+还有更多结果，可缩小条件或指定展示数量。</pre>
+<table><thead><tr><th>基金代码</th><th>基金简称</th><th>基金规模</th><th>管理费率</th><th>上市地点</th><th>基金投资类型</th><th>跟踪指数代码</th><th>跟踪指数名称</th><th>成立日期</th></tr></thead><tbody><tr><td>510300</td><td>沪深300ETF</td><td>1656.77 亿元（2026-05-12）</td><td>0.15%</td><td>上交所</td><td>股票型</td><td>000300</td><td>沪深300指数</td><td>2012-05-04</td></tr>
+<tr><td>510310</td><td>沪深300ETF易方达</td><td>1286.62 亿元（2026-05-12）</td><td>0.15%</td><td>上交所</td><td>股票型</td><td>000300</td><td>沪深300指数</td><td>2013-03-06</td></tr>
+<tr><td>510330</td><td>沪深300ETF华夏</td><td>870.51 亿元（2026-05-12）</td><td>0.15%</td><td>上交所</td><td>股票型</td><td>000300</td><td>沪深300指数</td><td>2012-12-25</td></tr>
+<tr><td>159919</td><td>沪深300ETF</td><td>825.67 亿元（2026-05-12）</td><td>0.15%</td><td>深交所</td><td>股票型</td><td>000300</td><td>沪深300指数</td><td>2012-05-07</td></tr>
+<tr><td>588000</td><td>科创50ETF华夏</td><td>698.89 亿元（2026-05-12）</td><td>0.15%</td><td>上交所</td><td>股票型</td><td>000688</td><td>上证科创板50成份指数</td><td>2020-09-28</td></tr>
+<tr><td>159792</td><td>港股通互联网ETF富国</td><td>606.47 亿元（2026-05-12）</td><td>0.15%</td><td>深交所</td><td>股票型</td><td>931637CNY00</td><td>中证港股通互联网人民币指数</td><td>2021-09-15</td></tr>
+<tr><td>512880</td><td>证券ETF国泰</td><td>568.17 亿元（2026-05-12）</td><td>0.50%</td><td>上交所</td><td>股票型</td><td>399975</td><td>中证全指证券公司指数</td><td>2016-07-26</td></tr>
+<tr><td>513180</td><td>恒生科技ETF华夏</td><td>541.37 亿元（2026-05-12）</td><td>0.50%</td><td>上交所</td><td>股票型</td><td>HSTECH</td><td>恒生科技指数</td><td>2021-05-18</td></tr>
+<tr><td>513130</td><td>恒生科技ETF华泰柏瑞</td><td>490.24 亿元（2026-05-12）</td><td>0.20%</td><td>上交所</td><td>股票型</td><td>HSTECH</td><td>恒生科技指数</td><td>2021-05-24</td></tr>
+<tr><td>510500</td><td>中证500ETF</td><td>476.50 亿元（2026-05-12）</td><td>0.15%</td><td>上交所</td><td>股票型</td><td>000905</td><td>中证小盘500指数</td><td>2013-02-06</td></tr>
+<tr><td>588200</td><td>科创芯片ETF嘉实</td><td>472.65 亿元（2026-05-12）</td><td>0.50%</td><td>上交所</td><td>股票型</td><td>000685</td><td>上证科创板芯片指数</td><td>2022-09-30</td></tr>
+<tr><td>159915</td><td>创业板ETF</td><td>472.39 亿元（2026-05-12）</td><td>0.15%</td><td>深交所</td><td>股票型</td><td>399006</td><td>创业板指数</td><td>2011-09-20</td></tr>
+<tr><td>513050</td><td>中概互联网ETF</td><td>413.09 亿元（2026-05-12）</td><td>0.60%</td><td>上交所</td><td>股票型</td><td>H30533</td><td>中证海外中国互联网50指数</td><td>2017-01-04</td></tr>
+<tr><td>510050</td><td>上证50ETF</td><td>387.30 亿元（2026-05-12）</td><td>0.15%</td><td>上交所</td><td>股票型</td><td>000016</td><td>上证50指数</td><td>2004-12-30</td></tr>
+<tr><td>588080</td><td>科创50ETF易方达</td><td>385.75 亿元（2026-05-12）</td><td>0.15%</td><td>上交所</td><td>股票型</td><td>000688</td><td>上证科创板50成份指数</td><td>2020-09-28</td></tr>
+<tr><td>512000</td><td>券商ETF华宝</td><td>375.76 亿元（2026-05-12）</td><td>0.50%</td><td>上交所</td><td>股票型</td><td>399975</td><td>中证全指证券公司指数</td><td>2016-08-30</td></tr>
+<tr><td>513330</td><td>恒生互联网ETF华夏</td><td>343.63 亿元（2026-05-12）</td><td>0.50%</td><td>上交所</td><td>股票型</td><td>HSIII</td><td>恒生互联网科技业指数</td><td>2021-01-26</td></tr>
+<tr><td>159941</td><td>纳指ETF广发</td><td>337.42 亿元（2026-05-12）</td><td>0.80%</td><td>深交所</td><td>股票型</td><td>XNDX</td><td>纳斯达克100总收益指数</td><td>2015-06-10</td></tr>
+<tr><td>563360</td><td>A500ETF华泰柏瑞</td><td>335.67 亿元（2026-05-12）</td><td>0.15%</td><td>上交所</td><td>股票型</td><td>000510</td><td>中证A500指数</td><td>2024-09-25</td></tr>
+<tr><td>159326</td><td>电网设备ETF华夏</td><td>329.36 亿元（2026-05-12）</td><td>0.50%</td><td>深交所</td><td>股票型</td><td>931994</td><td>中证电网设备主题指数</td><td>2024-08-29</td></tr>
+<tr><td>513010</td><td>恒生科技ETF易方达</td><td>326.95 亿元（2026-05-12）</td><td>0.20%</td><td>上交所</td><td>股票型</td><td>HSTECH</td><td>恒生科技指数</td><td>2021-05-18</td></tr>
+<tr><td>159352</td><td>A500ETF南方</td><td>322.76 亿元（2026-05-12）</td><td>0.15%</td><td>深交所</td><td>股票型</td><td>000510</td><td>中证A500指数</td><td>2024-09-25</td></tr>
+<tr><td>512890</td><td>红利低波ETF华泰柏瑞</td><td>309.85 亿元（2026-05-12）</td><td>0.50%</td><td>上交所</td><td>股票型</td><td>H30269</td><td>中证红利低波动指数</td><td>2018-12-19</td></tr>
+<tr><td>159570</td><td>港股通创新药ETF汇添富</td><td>301.68 亿元（2026-05-12）</td><td>0.50%</td><td>深交所</td><td>股票型</td><td>987018</td><td>国证港股通创新药指数</td><td>2023-12-28</td></tr>
+<tr><td>159636</td><td>港股通科技30ETF工银</td><td>301.42 亿元（2026-05-12）</td><td>0.45%</td><td>深交所</td><td>股票型</td><td>987008</td><td>国证港股通科技指数</td><td>2022-06-30</td></tr>
+<tr><td>512400</td><td>有色金属ETF南方</td><td>293.41 亿元（2026-05-12）</td><td>0.50%</td><td>上交所</td><td>股票型</td><td>000819</td><td>中证申万有色金属指数</td><td>2017-08-03</td></tr>
+<tr><td>515880</td><td>通信ETF国泰</td><td>278.70 亿元（2026-05-12）</td><td>0.50%</td><td>上交所</td><td>股票型</td><td>931160</td><td>中证全指通信设备指数</td><td>2019-08-16</td></tr>
+<tr><td>512170</td><td>医疗ETF华宝</td><td>272.33 亿元（2026-05-12）</td><td>0.50%</td><td>上交所</td><td>股票型</td><td>399989</td><td>中证医疗指数</td><td>2019-05-20</td></tr>
+<tr><td>159995</td><td>芯片ETF华夏</td><td>264.39 亿元（2026-05-12）</td><td>0.50%</td><td>深交所</td><td>股票型</td><td>980017</td><td>国证半导体芯片指数</td><td>2020-01-20</td></tr>
+<tr><td>159870</td><td>化工ETF鹏华</td><td>264.21 亿元（2026-05-12）</td><td>0.50%</td><td>深交所</td><td>股票型</td><td>000813</td><td>中证细分化工产业主题指数</td><td>2021-02-23</td></tr>
+<tr><td>159206</td><td>卫星ETF永赢</td><td>260.81 亿元（2026-05-12）</td><td>0.50%</td><td>深交所</td><td>股票型</td><td>980018</td><td>国证商用卫星通信产业指数</td><td>2025-03-06</td></tr>
+<tr><td>513120</td><td>港股创新药ETF广发</td><td>259.46 亿元（2026-05-12）</td><td>0.50%</td><td>上交所</td><td>股票型</td><td>931787</td><td>中证香港创新药指数</td><td>2022-07-01</td></tr>
+<tr><td>159361</td><td>A500ETF易方达</td><td>258.72 亿元（2026-05-12）</td><td>0.15%</td><td>深交所</td><td>股票型</td><td>000510</td><td>中证A500指数</td><td>2024-11-12</td></tr>
+<tr><td>159338</td><td>中证A500ETF国泰</td><td>257.37 亿元（2026-05-12）</td><td>0.15%</td><td>深交所</td><td>股票型</td><td>000510</td><td>中证A500指数</td><td>2024-09-26</td></tr>
+<tr><td>159819</td><td>人工智能ETF易方达</td><td>244.53 亿元（2026-05-12）</td><td>0.15%</td><td>深交所</td><td>股票型</td><td>930713</td><td>中证人工智能主题指数</td><td>2020-07-27</td></tr>
+<tr><td>159949</td><td>创业板50ETF华安</td><td>241.45 亿元（2026-05-12）</td><td>0.50%</td><td>深交所</td><td>股票型</td><td>399673</td><td>创业板50指数</td><td>2016-06-30</td></tr>
+<tr><td>513750</td><td>港股通非银ETF广发</td><td>240.79 亿元（2026-05-12）</td><td>0.50%</td><td>上交所</td><td>股票型</td><td>931024</td><td>中证港股通非银行金融主题指数</td><td>2023-11-10</td></tr>
+<tr><td>513500</td><td>标普500ETF</td><td>238.41 亿元（2026-05-12）</td><td>0.60%</td><td>上交所</td><td>股票型</td><td>SPX</td><td>标准普尔500指数</td><td>2013-12-05</td></tr>
+<tr><td>510180</td><td>上证180ETF</td><td>230.58 亿元（2026-05-12）</td><td>0.15%</td><td>上交所</td><td>股票型</td><td>000010</td><td>上证180指数</td><td>2006-04-13</td></tr>
+<tr><td>513090</td><td>香港证券ETF易方达</td><td>221.79 亿元（2026-05-12）</td><td>0.15%</td><td>上交所</td><td>股票型</td><td>930709</td><td>中证香港证券投资主题指数</td><td>2020-03-13</td></tr>
+<tr><td>159516</td><td>半导体设备ETF国泰</td><td>220.46 亿元（2026-05-12）</td><td>0.50%</td><td>深交所</td><td>股票型</td><td>931743</td><td>中证半导体材料设备主题指数</td><td>2023-07-19</td></tr>
+<tr><td>512050</td><td>A500ETF华夏</td><td>217.26 亿元（2026-05-12）</td><td>0.15%</td><td>上交所</td><td>股票型</td><td>000510</td><td>中证A500指数</td><td>2024-11-08</td></tr>
+<tr><td>562500</td><td>机器人ETF华夏</td><td>207.66 亿元（2026-05-12）</td><td>0.50%</td><td>上交所</td><td>股票型</td><td>H30590</td><td>中证机器人指数</td><td>2021-12-17</td></tr>
+<tr><td>159201</td><td>自由现金流ETF华夏</td><td>206.59 亿元（2026-05-12）</td><td>0.15%</td><td>深交所</td><td>股票型</td><td>980092</td><td>国证自由现金流指数</td><td>2025-02-19</td></tr>
+<tr><td>159740</td><td>恒生科技ETF大成</td><td>202.28 亿元（2026-05-12）</td><td>0.50%</td><td>深交所</td><td>股票型</td><td>HSTECH</td><td>恒生科技指数</td><td>2021-05-18</td></tr>
+<tr><td>512480</td><td>半导体ETF国联安</td><td>199.91 亿元（2026-05-12）</td><td>0.50%</td><td>上交所</td><td>股票型</td><td>H30184</td><td>中证全指半导体产品与设备指数</td><td>2019-05-08</td></tr>
+<tr><td>510880</td><td>红利ETF</td><td>195.50 亿元（2026-05-12）</td><td>0.50%</td><td>上交所</td><td>股票型</td><td>000015</td><td>上证红利指数</td><td>2006-11-17</td></tr>
+<tr><td>513980</td><td>港股科技ETF景顺</td><td>192.10 亿元（2026-05-12）</td><td>0.50%</td><td>上交所</td><td>股票型</td><td>931573</td><td>中证港股通科技指数</td><td>2021-06-21</td></tr>
+<tr><td>513100</td><td>纳指ETF国泰</td><td>189.72 亿元（2026-05-12）</td><td>0.60%</td><td>上交所</td><td>股票型</td><td>XNDX</td><td>纳斯达克100总收益指数</td><td>2013-04-25</td></tr>
+<tr><td>515450</td><td>红利低波50ETF南方</td><td>178.05 亿元（2026-05-12）</td><td>0.50%</td><td>上交所</td><td>股票型</td><td>SPCLLHCP</td><td>标普中国A股大盘红利低波50指数</td><td>2020-01-17</td></tr></tbody></table>
+<pre>数据截至 2026-05-12。
+LLM token：5975</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">八.2 找上交所规模前10的ETF</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_2_required · bucket=v3_2_compatibility_baseline · expected=covered_filter · actual=ExecutableQuery(filter/filter) · tokens=5913</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>按最新基金规模排序，上交所前10只分别是：510300 沪深300ETF（1656.77亿）、510310 沪深300ETF易方达（1286.62亿）、518880 黄金ETF华安（1152.20亿）、511360 短融ETF海富通（948.95亿）、510330 沪深300ETF华夏（870.51亿）、511880 银华日利ETF（785.08亿）、511990 华宝添益ETF（700.15亿）、588000 科创50ETF华夏（698.89亿）、511380 可转债ETF博时（594.08亿）、512880 证券ETF国泰（568.17亿）。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>共找到 873 只符合条件的 ETF，按基金规模从高到低展示前 10 只。
+筛选条件：上市地点为 上交所。
+还有更多结果，可缩小条件或指定展示数量。</pre>
+<table><thead><tr><th>基金代码</th><th>基金简称</th><th>基金规模</th><th>管理费率</th><th>上市地点</th><th>基金投资类型</th></tr></thead><tbody><tr><td>510300</td><td>沪深300ETF</td><td>1656.77 亿元（2026-05-12）</td><td>0.15%</td><td>上交所</td><td>股票型</td></tr>
+<tr><td>510310</td><td>沪深300ETF易方达</td><td>1286.62 亿元（2026-05-12）</td><td>0.15%</td><td>上交所</td><td>股票型</td></tr>
+<tr><td>518880</td><td>黄金ETF华安</td><td>1152.20 亿元（2026-05-12）</td><td>0.50%</td><td>上交所</td><td>其他</td></tr>
+<tr><td>511360</td><td>短融ETF海富通</td><td>948.95 亿元（2026-05-12）</td><td>0.15%</td><td>上交所</td><td>债券型</td></tr>
+<tr><td>510330</td><td>沪深300ETF华夏</td><td>870.51 亿元（2026-05-12）</td><td>0.15%</td><td>上交所</td><td>股票型</td></tr>
+<tr><td>511880</td><td>银华日利ETF</td><td>785.08 亿元（2026-05-12）</td><td>0.30%</td><td>上交所</td><td>货币型</td></tr>
+<tr><td>511990</td><td>华宝添益ETF</td><td>700.14 亿元（2026-05-12）</td><td>0.35%</td><td>上交所</td><td>货币型</td></tr>
+<tr><td>588000</td><td>科创50ETF华夏</td><td>698.89 亿元（2026-05-12）</td><td>0.15%</td><td>上交所</td><td>股票型</td></tr>
+<tr><td>511380</td><td>可转债ETF博时</td><td>594.08 亿元（2026-05-12）</td><td>0.15%</td><td>上交所</td><td>债券型</td></tr>
+<tr><td>512880</td><td>证券ETF国泰</td><td>568.17 亿元（2026-05-12）</td><td>0.50%</td><td>上交所</td><td>股票型</td></tr></tbody></table>
+<pre>数据截至 2026-05-12。
+LLM token：5913</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">八.3 哪些ETF管理费率最低</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_2_required · bucket=v3_2_compatibility_baseline · expected=covered_filter · actual=ExecutableQuery(filter/filter) · tokens=5845</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>当前库里最低管理费率是0.15%，共有432只。按最新规模靠前的包括：510300 沪深300ETF、510310 沪深300ETF易方达、511360 短融ETF海富通、510330 沪深300ETF华夏、159919 沪深300ETF、588000 科创50ETF华夏、159792 港股通互联网ETF富国、511380 可转债ETF博时、511220 城投债ETF海富通、510500 中证500ETF。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>当前库里最低管理费率为 0.15%，共有 432 只 ETF。默认按基金规模从高到低展示前 10 只。
+还有更多结果，可缩小条件或指定展示数量。</pre>
+<table><thead><tr><th>基金代码</th><th>基金简称</th><th>管理费率</th><th>基金规模</th></tr></thead><tbody><tr><td>510300</td><td>沪深300ETF</td><td>0.15%</td><td>1656.77 亿元（2026-05-12）</td></tr>
+<tr><td>510310</td><td>沪深300ETF易方达</td><td>0.15%</td><td>1286.62 亿元（2026-05-12）</td></tr>
+<tr><td>511360</td><td>短融ETF海富通</td><td>0.15%</td><td>948.95 亿元（2026-05-12）</td></tr>
+<tr><td>510330</td><td>沪深300ETF华夏</td><td>0.15%</td><td>870.51 亿元（2026-05-12）</td></tr>
+<tr><td>159919</td><td>沪深300ETF</td><td>0.15%</td><td>825.67 亿元（2026-05-12）</td></tr>
+<tr><td>588000</td><td>科创50ETF华夏</td><td>0.15%</td><td>698.89 亿元（2026-05-12）</td></tr>
+<tr><td>159792</td><td>港股通互联网ETF富国</td><td>0.15%</td><td>606.47 亿元（2026-05-12）</td></tr>
+<tr><td>511380</td><td>可转债ETF博时</td><td>0.15%</td><td>594.08 亿元（2026-05-12）</td></tr>
+<tr><td>511220</td><td>城投债ETF海富通</td><td>0.15%</td><td>499.31 亿元（2026-05-12）</td></tr>
+<tr><td>510500</td><td>中证500ETF</td><td>0.15%</td><td>476.50 亿元（2026-05-12）</td></tr></tbody></table>
+<pre>数据截至 2026-05-12。
+LLM token：5845</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">八.4 筛选跟踪沪深300指数的ETF，按收益率排序</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_2_required · bucket=v3_2_compatibility_baseline · expected=covered_filter · actual=ExecutableQuery(filter/filter) · tokens=5946</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>未指定周期，这里按成立以来收益率排序。靠前的有：510330 沪深300ETF华夏（165.58%）、510310 沪深300ETF易方达（155.65%）、159919 沪深300ETF（140.61%）、159925 沪深300ETF南方（131.70%）、510300 沪深300ETF（131.66%）。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>共找到 30 只符合条件的 ETF，按今年以来收益率从高到低展示前 10 只。
+筛选条件：跟踪指数为 沪深300指数。
+还有更多结果，可缩小条件或指定展示数量。</pre>
+<table><thead><tr><th>基金代码</th><th>基金简称</th><th>今年以来收益率</th><th>基金规模</th></tr></thead><tbody><tr><td>159238</td><td>沪深300增强ETF景顺</td><td>9.70%</td><td>0.48 亿元（2026-05-12）</td></tr>
+<tr><td>159393</td><td>沪深300ETF万家</td><td>8.69%</td><td>2.42 亿元（2026-05-12）</td></tr>
+<tr><td>561930</td><td>沪深300ETF招商</td><td>8.37%</td><td>1.90 亿元（2026-05-12）</td></tr>
+<tr><td>515360</td><td>沪深300ETF方正富邦</td><td>8.33%</td><td>2.63 亿元（2026-05-12）</td></tr>
+<tr><td>159300</td><td>沪深300ETF富国</td><td>7.96%</td><td>9.42 亿元（2026-05-12）</td></tr>
+<tr><td>515130</td><td>沪深300ETF博时</td><td>7.77%</td><td>1.30 亿元（2026-05-12）</td></tr>
+<tr><td>159330</td><td>沪深300ETF东财</td><td>7.53%</td><td>4.58 亿元（2026-05-12）</td></tr>
+<tr><td>510390</td><td>沪深300ETF平安</td><td>7.51%</td><td>6.05 亿元（2026-05-12）</td></tr>
+<tr><td>515380</td><td>沪深300ETF泰康</td><td>7.50%</td><td>36.89 亿元（2026-05-12）</td></tr>
+<tr><td>159673</td><td>沪深300ETF鹏华</td><td>7.44%</td><td>18.65 亿元（2026-05-12）</td></tr></tbody></table>
+<pre>数据截至 2026-05-12。
+LLM token：5946</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">八.5 找规模大于10亿的ETF</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_2_required · bucket=v3_2_compatibility_baseline · expected=covered_filter · actual=ExecutableQuery(filter/filter) · tokens=5823</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>按最新基金规模筛选，大于10亿的ETF很多。规模靠前的包括：510300 沪深300ETF、510310 沪深300ETF易方达、518880 黄金ETF华安、511360 短融ETF海富通、510330 沪深300ETF华夏、159919 沪深300ETF、511880 银华日利ETF、511990 华宝添益ETF、588000 科创50ETF华夏、159792 港股通互联网ETF富国。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>共找到 527 只符合条件的 ETF，按基金规模从高到低展示前 10 只。
+筛选条件：基金规模大于 10.00 亿元。
+还有更多结果，可缩小条件或指定展示数量。</pre>
+<table><thead><tr><th>基金代码</th><th>基金简称</th><th>基金规模</th></tr></thead><tbody><tr><td>510300</td><td>沪深300ETF</td><td>1656.77 亿元（2026-05-12）</td></tr>
+<tr><td>510310</td><td>沪深300ETF易方达</td><td>1286.62 亿元（2026-05-12）</td></tr>
+<tr><td>518880</td><td>黄金ETF华安</td><td>1152.20 亿元（2026-05-12）</td></tr>
+<tr><td>511360</td><td>短融ETF海富通</td><td>948.95 亿元（2026-05-12）</td></tr>
+<tr><td>510330</td><td>沪深300ETF华夏</td><td>870.51 亿元（2026-05-12）</td></tr>
+<tr><td>159919</td><td>沪深300ETF</td><td>825.67 亿元（2026-05-12）</td></tr>
+<tr><td>511880</td><td>银华日利ETF</td><td>785.08 亿元（2026-05-12）</td></tr>
+<tr><td>511990</td><td>华宝添益ETF</td><td>700.14 亿元（2026-05-12）</td></tr>
+<tr><td>588000</td><td>科创50ETF华夏</td><td>698.89 亿元（2026-05-12）</td></tr>
+<tr><td>159792</td><td>港股通互联网ETF富国</td><td>606.47 亿元（2026-05-12）</td></tr></tbody></table>
+<pre>数据截至 2026-05-12。
+LLM token：5823</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">八.6 筛选深交所的债券型ETF</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_2_required · bucket=v3_2_compatibility_baseline · expected=covered_filter · actual=ExecutableQuery(filter/filter) · tokens=6035</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>深交所债券型ETF共19只。按总市值靠前的包括：159600 科创债ETF嘉实、159112 科创债ETF银华、159200 科创债ETF富国、159397 信用债ETF广发、159700 科创债ETF南方、159395 信用债ETF大成、159111 科创债ETF天弘、159116 科创债ETF工银、159816 0-4年地方债ETF鹏华、159398 信用债ETF天弘。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>共找到 19 只符合条件的 ETF，按基金规模从高到低展示前 10 只。
+筛选条件：上市地点为 深交所，基金投资类型为 债券型。
+还有更多结果，可缩小条件或指定展示数量。</pre>
+<table><thead><tr><th>基金代码</th><th>基金简称</th><th>基金规模</th><th>管理费率</th><th>上市地点</th><th>基金投资类型</th><th>跟踪指数代码</th><th>跟踪指数名称</th><th>成立日期</th></tr></thead><tbody><tr><td>159600</td><td>科创债ETF嘉实</td><td>219.73 亿元（2026-05-12）</td><td>0.15%</td><td>深交所</td><td>债券型</td><td>932160</td><td>中证AAA科技创新公司债指数</td><td>2025-07-10</td></tr>
+<tr><td>159112</td><td>科创债ETF银华</td><td>201.14 亿元（2026-05-12）</td><td>0.15%</td><td>深交所</td><td>债券型</td><td>932160</td><td>中证AAA科技创新公司债指数</td><td>2025-09-17</td></tr>
+<tr><td>159200</td><td>科创债ETF富国</td><td>143.49 亿元（2026-05-12）</td><td>0.15%</td><td>深交所</td><td>债券型</td><td>932160</td><td>中证AAA科技创新公司债指数</td><td>2025-07-10</td></tr>
+<tr><td>159397</td><td>信用债ETF广发</td><td>123.83 亿元（2026-05-12）</td><td>0.15%</td><td>深交所</td><td>债券型</td><td>921128</td><td>深证基准做市信用债指数</td><td>2025-01-22</td></tr>
+<tr><td>159700</td><td>科创债ETF南方</td><td>115.81 亿元（2026-05-12）</td><td>0.15%</td><td>深交所</td><td>债券型</td><td>932160</td><td>中证AAA科技创新公司债指数</td><td>2025-07-10</td></tr>
+<tr><td>159395</td><td>信用债ETF大成</td><td>111.54 亿元（2026-05-12）</td><td>0.15%</td><td>深交所</td><td>债券型</td><td>922128</td><td>深证基准做市信用债指数(净价)</td><td>2025-01-16</td></tr>
+<tr><td>159111</td><td>科创债ETF天弘</td><td>106.10 亿元（2026-05-12）</td><td>0.15%</td><td>深交所</td><td>债券型</td><td>932160</td><td>中证AAA科技创新公司债指数</td><td>2025-09-17</td></tr>
+<tr><td>159816</td><td>0-4年地方债ETF鹏华</td><td>103.51 亿元（2026-05-12）</td><td>0.15%</td><td>深交所</td><td>债券型</td><td>931161</td><td>中证0-4年期地方政府债指数</td><td>2020-07-30</td></tr>
+<tr><td>159116</td><td>科创债ETF工银</td><td>103.18 亿元（2026-05-12）</td><td>0.15%</td><td>深交所</td><td>债券型</td><td>932160</td><td>中证AAA科技创新公司债指数</td><td>2025-09-17</td></tr>
+<tr><td>159398</td><td>信用债ETF天弘</td><td>97.72 亿元（2026-05-12）</td><td>0.15%</td><td>深交所</td><td>债券型</td><td>921128</td><td>深证基准做市信用债指数</td><td>2025-01-21</td></tr></tbody></table>
+<pre>数据截至 2026-05-12。
+LLM token：6035</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">八.7 今年以来收益排名前10的ETF</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_2_required · bucket=v3_2_compatibility_baseline · expected=covered_filter · actual=ExecutableQuery(filter/filter) · tokens=5813</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>前10只分别是：513310 中韩半导体ETF华泰柏瑞（79.55%）、588780 科创芯片设计ETF国联安（50.46%）、589210 科创芯片设计ETF广发（50.00%）、588810 科创芯片ETF富国（49.18%）、588990 科创芯片ETF博时（48.47%）、588890 科创芯片ETF南方（48.45%）、588200 科创芯片ETF嘉实（48.15%）、589100 科创芯片ETF国泰（48.13%）、588750 科创芯片ETF汇添富（47.96%）、588290 科创芯片ETF华安（47.94%）。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>共找到 1541 只符合条件的 ETF，按今年以来收益率从高到低展示前 10 只。
+还有更多结果，可缩小条件或指定展示数量。</pre>
+<table><thead><tr><th>基金代码</th><th>基金简称</th><th>今年以来收益率</th><th>基金规模</th></tr></thead><tbody><tr><td>513310</td><td>中韩半导体ETF华泰柏瑞</td><td>79.55%</td><td>100.38 亿元（2026-05-12）</td></tr>
+<tr><td>588780</td><td>科创芯片设计ETF国联安</td><td>50.46%</td><td>11.71 亿元（2026-05-12）</td></tr>
+<tr><td>589210</td><td>科创芯片设计ETF广发</td><td>50.00%</td><td>0.83 亿元（2026-05-12）</td></tr>
+<tr><td>588810</td><td>科创芯片ETF富国</td><td>49.18%</td><td>7.09 亿元（2026-05-12）</td></tr>
+<tr><td>588990</td><td>科创芯片ETF博时</td><td>48.47%</td><td>6.12 亿元（2026-05-12）</td></tr>
+<tr><td>588890</td><td>科创芯片ETF南方</td><td>48.45%</td><td>27.53 亿元（2026-05-12）</td></tr>
+<tr><td>588200</td><td>科创芯片ETF嘉实</td><td>48.15%</td><td>472.65 亿元（2026-05-12）</td></tr>
+<tr><td>589100</td><td>科创芯片ETF国泰</td><td>48.13%</td><td>7.00 亿元（2026-05-12）</td></tr>
+<tr><td>588750</td><td>科创芯片ETF汇添富</td><td>47.96%</td><td>58.19 亿元（2026-05-12）</td></tr>
+<tr><td>588290</td><td>科创芯片ETF华安</td><td>47.94%</td><td>45.02 亿元（2026-05-12）</td></tr></tbody></table>
+<pre>数据截至 2026-05-12。
+LLM token：5813</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">八.8 管理费率低于0.2%的ETF有哪些</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_2_required · bucket=v3_2_compatibility_baseline · expected=covered_filter · actual=ExecutableQuery(filter/filter) · tokens=5903</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>管理费率低于0.2%的ETF共432只，当前库里都落在0.15%这一档。按规模靠前的包括：510300 沪深300ETF、510310 沪深300ETF易方达、511360 短融ETF海富通、510330 沪深300ETF华夏、159919 沪深300ETF、588000 科创50ETF华夏、159792 港股通互联网ETF富国、511380 可转债ETF博时、511220 城投债ETF海富通、510500 中证500ETF。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>共找到 432 只符合条件的 ETF，按管理费率从低到高展示前 10 只。
+筛选条件：管理费率小于 0.20%。
+还有更多结果，可缩小条件或指定展示数量。</pre>
+<table><thead><tr><th>基金代码</th><th>基金简称</th><th>管理费率</th><th>基金规模</th></tr></thead><tbody><tr><td>510300</td><td>沪深300ETF</td><td>0.15%</td><td>1656.77 亿元（2026-05-12）</td></tr>
+<tr><td>510310</td><td>沪深300ETF易方达</td><td>0.15%</td><td>1286.62 亿元（2026-05-12）</td></tr>
+<tr><td>511360</td><td>短融ETF海富通</td><td>0.15%</td><td>948.95 亿元（2026-05-12）</td></tr>
+<tr><td>510330</td><td>沪深300ETF华夏</td><td>0.15%</td><td>870.51 亿元（2026-05-12）</td></tr>
+<tr><td>159919</td><td>沪深300ETF</td><td>0.15%</td><td>825.67 亿元（2026-05-12）</td></tr>
+<tr><td>588000</td><td>科创50ETF华夏</td><td>0.15%</td><td>698.89 亿元（2026-05-12）</td></tr>
+<tr><td>159792</td><td>港股通互联网ETF富国</td><td>0.15%</td><td>606.47 亿元（2026-05-12）</td></tr>
+<tr><td>511380</td><td>可转债ETF博时</td><td>0.15%</td><td>594.08 亿元（2026-05-12）</td></tr>
+<tr><td>511220</td><td>城投债ETF海富通</td><td>0.15%</td><td>499.31 亿元（2026-05-12）</td></tr>
+<tr><td>510500</td><td>中证500ETF</td><td>0.15%</td><td>476.50 亿元（2026-05-12）</td></tr></tbody></table>
+<pre>数据截至 2026-05-12。
+LLM token：5903</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">八.9 2024年成立的ETF有哪些</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_2_required · bucket=v3_2_compatibility_baseline · expected=v3_2_filter_date_between · actual=ExecutableQuery(filter/filter) · tokens=6291</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>2024年成立的ETF共167只。较早成立的包括：159567 港股创新药ETF银华、159530 机器人ETF易方达、159562 黄金股ETF华夏、513400 道琼斯ETF鹏华、159527 云计算ETF广发、159529 标普消费ETF景顺、159547 红利低波ETF华夏、159566 储能电池ETF易方达、159563 创业板综ETF华夏、159577 美国50ETF汇添富。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>2024 年成立的 ETF 共 167 只。默认按成立日期从早到晚展示前 10 只。
+还有更多结果，可缩小条件或指定展示数量。</pre>
+<table><thead><tr><th>基金代码</th><th>基金简称</th><th>基金规模</th><th>管理费率</th><th>上市地点</th><th>基金投资类型</th><th>跟踪指数代码</th><th>跟踪指数名称</th><th>成立日期</th></tr></thead><tbody><tr><td>159567</td><td>港股创新药ETF银华</td><td>78.27 亿元（2026-05-12）</td><td>0.50%</td><td>深交所</td><td>股票型</td><td>987018</td><td>国证港股通创新药指数</td><td>2024-01-03</td></tr>
+<tr><td>159530</td><td>机器人ETF易方达</td><td>152.12 亿元（2026-05-12）</td><td>0.50%</td><td>深交所</td><td>股票型</td><td>980022</td><td>国证机器人产业指数</td><td>2024-01-10</td></tr>
+<tr><td>159562</td><td>黄金股ETF华夏</td><td>60.66 亿元（2026-05-12）</td><td>0.15%</td><td>深交所</td><td>股票型</td><td>931238</td><td>中证沪深港黄金产业股票指数</td><td>2024-01-11</td></tr>
+<tr><td>513400</td><td>道琼斯ETF鹏华</td><td>26.06 亿元（2026-05-12）</td><td>0.50%</td><td>上交所</td><td>股票型</td><td>DJI</td><td>道琼斯工业平均指数</td><td>2024-01-17</td></tr>
+<tr><td>159527</td><td>云计算ETF广发</td><td>3.20 亿元（2026-05-12）</td><td>0.50%</td><td>深交所</td><td>股票型</td><td>930851</td><td>中证云计算与大数据主题指数</td><td>2024-01-22</td></tr>
+<tr><td>159529</td><td>标普消费ETF景顺</td><td>10.77 亿元（2026-05-12）</td><td>0.50%</td><td>深交所</td><td>股票型</td><td>暂无数据</td><td>暂无数据</td><td>2024-01-24</td></tr>
+<tr><td>159547</td><td>红利低波ETF华夏</td><td>11.44 亿元（2026-05-12）</td><td>0.15%</td><td>深交所</td><td>股票型</td><td>H30269</td><td>中证红利低波动指数</td><td>2024-01-25</td></tr>
+<tr><td>159566</td><td>储能电池ETF易方达</td><td>75.66 亿元（2026-05-12）</td><td>0.50%</td><td>深交所</td><td>股票型</td><td>980027</td><td>国证新能源电池指数</td><td>2024-01-31</td></tr>
+<tr><td>159563</td><td>创业板综ETF华夏</td><td>0.49 亿元（2026-05-12）</td><td>0.50%</td><td>深交所</td><td>股票型</td><td>399102</td><td>创业板综合指数</td><td>2024-02-01</td></tr>
+<tr><td>159577</td><td>美国50ETF汇添富</td><td>10.02 亿元（2026-05-12）</td><td>0.50%</td><td>深交所</td><td>股票型</td><td>暂无数据</td><td>暂无数据</td><td>2024-02-05</td></tr></tbody></table>
+<pre>数据截至 2026-05-12。
+LLM token：6291</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">八.10 近1年收益率超过20%的ETF</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_2_required · bucket=v3_2_compatibility_baseline · expected=covered_filter · actual=ExecutableQuery(filter/filter) · tokens=5927</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>近1年收益率超过20%的ETF很多。收益率靠前的包括：515880 通信ETF国泰（256.45%）、159583 通信ETF富国（227.79%）、515050 通信ETF华夏（212.42%）、159994 通信ETF银华（209.93%）、513310 中韩半导体ETF华泰柏瑞（198.38%）、159381 创业板人工智能ETF华夏（186.21%）、159363 创业板人工智能ETF华宝（185.50%）、159382 创业板人工智能ETF南方（184.35%）、159388 创业板人工智能ETF国泰（183.81%）、159695 通信ETF嘉实（174.88%）。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>共找到 772 只符合条件的 ETF，按近1年收益率从高到低展示前 10 只。
+筛选条件：近1年收益率大于 20.00%。
+还有更多结果，可缩小条件或指定展示数量。</pre>
+<table><thead><tr><th>基金代码</th><th>基金简称</th><th>近1年收益率</th><th>基金规模</th></tr></thead><tbody><tr><td>515880</td><td>通信ETF国泰</td><td>256.45%</td><td>278.70 亿元（2026-05-12）</td></tr>
+<tr><td>159583</td><td>通信ETF富国</td><td>227.79%</td><td>22.80 亿元（2026-05-12）</td></tr>
+<tr><td>515050</td><td>通信ETF华夏</td><td>212.42%</td><td>121.99 亿元（2026-05-12）</td></tr>
+<tr><td>159994</td><td>通信ETF银华</td><td>209.93%</td><td>27.51 亿元（2026-05-12）</td></tr>
+<tr><td>513310</td><td>中韩半导体ETF华泰柏瑞</td><td>198.38%</td><td>100.38 亿元（2026-05-12）</td></tr>
+<tr><td>159381</td><td>创业板人工智能ETF华夏</td><td>186.21%</td><td>23.20 亿元（2026-05-12）</td></tr>
+<tr><td>159363</td><td>创业板人工智能ETF华宝</td><td>185.50%</td><td>72.10 亿元（2026-05-12）</td></tr>
+<tr><td>159382</td><td>创业板人工智能ETF南方</td><td>184.35%</td><td>24.68 亿元（2026-05-12）</td></tr>
+<tr><td>159388</td><td>创业板人工智能ETF国泰</td><td>183.81%</td><td>9.36 亿元（2026-05-12）</td></tr>
+<tr><td>159695</td><td>通信ETF嘉实</td><td>174.88%</td><td>6.24 亿元（2026-05-12）</td></tr></tbody></table>
+<pre>数据截至 2026-05-12。
+LLM token：5927</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">九.1 对比510300、510500和159919</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_2_required · bucket=v3_2_compatibility_baseline · expected=covered_compare · actual=ExecutableQuery(compare/compare) · tokens=6153</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>510300：跟踪沪深300指数，管理费0.15%，托管费0.05%，最新规模1656.77亿，今年以来7.15%，近1年30.51%。510500：跟踪中证小盘500指数，管理费0.15%，托管费0.05%，最新规模476.50亿，今年以来17.73%，近1年54.27%。159919：跟踪沪深300指数，管理费0.15%，托管费0.05%，最新规模825.67亿，今年以来7.14%，近1年30.43%。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <table><thead><tr><th>指标</th><th>510300</th><th>510500</th><th>159919</th></tr></thead><tbody><tr><td>基金简称</td><td>沪深300ETF</td><td>中证500ETF</td><td>沪深300ETF</td></tr>
+<tr><td>基金规模</td><td>1656.77 亿元（2026-05-12）</td><td>476.50 亿元（2026-05-12）</td><td>825.67 亿元（2026-05-12）</td></tr>
+<tr><td>管理费率</td><td>0.15%</td><td>0.15%</td><td>0.15%</td></tr>
+<tr><td>托管费率</td><td>0.05%</td><td>0.05%</td><td>0.05%</td></tr>
+<tr><td>今年以来收益率</td><td>7.15%</td><td>17.73%</td><td>7.14%</td></tr>
+<tr><td>近1年收益率</td><td>30.51%</td><td>54.27%</td><td>30.43%</td></tr>
+<tr><td>跟踪指数名称</td><td>沪深300指数</td><td>中证小盘500指数</td><td>沪深300指数</td></tr></tbody></table>
+<pre>数据截至 2026-05-12。
+LLM token：6153</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">九.2 512880和510300哪个更好</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_2_required · bucket=v3_2_compatibility_baseline · expected=DeniedQuery(investment_advice) · actual=DeniedQuery(investment_advice) · tokens=0</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>这个问题属于主观投资判断，我不直接给“哪个更好”的推荐。客观数据上，512880 是证券ETF国泰，510300 是沪深300ETF，二者跟踪标的和风险暴露不同。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>这个属于投资建议，我不直接给推荐。
+
+LLM token：0</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">九.3 对比所有跟踪沪深300的前5只ETF，看收益和费率</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_2_required · bucket=v3_2_compatibility_baseline · expected=two_step_composite_filter_compare · actual=ExecutableQuery(compare/two_step_composite) · tokens=12157</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>这里把“前5只”按最新规模理解。分别是：510300（规模1656.77亿，费率0.15%，今年以来7.15%，近1年30.51%）、510310（1286.62亿，0.15%，7.27%，30.68%）、510330（870.51亿，0.15%，7.18%，30.52%）、159919（825.67亿，0.15%，7.14%，30.43%）、515330（80.15亿，0.50%，7.11%，30.24%）。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>这里按近1年收益率从高到低选取前5只跟踪沪深300相关 ETF，再对比它们的收益和费率。排序依据：近1年收益率。</pre>
+<table><thead><tr><th>指标</th><th>515360</th><th>159393</th><th>561930</th><th>159300</th><th>515130</th></tr></thead><tbody><tr><td>基金简称</td><td>沪深300ETF方正富邦</td><td>沪深300ETF万家</td><td>沪深300ETF招商</td><td>沪深300ETF富国</td><td>沪深300ETF博时</td></tr>
+<tr><td>管理费率</td><td>0.15%</td><td>0.15%</td><td>0.15%</td><td>0.15%</td><td>0.15%</td></tr>
+<tr><td>托管费率</td><td>0.05%</td><td>0.05%</td><td>0.05%</td><td>0.05%</td><td>0.05%</td></tr>
+<tr><td>近1年收益率</td><td>33.96%</td><td>33.56%</td><td>33.27%</td><td>32.18%</td><td>31.87%</td></tr></tbody></table>
+<pre>数据截至 2026-05-12。
+LLM token：6081</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">九.4 510300和510500比一下规模和费率</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_2_required · bucket=v3_2_compatibility_baseline · expected=covered_compare · actual=ExecutableQuery(compare/compare) · tokens=5850</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>510300 最新规模1656.77亿，管理费0.15%，托管费0.05%；510500 最新规模476.50亿，管理费0.15%，托管费0.05%。规模上510300更大，费率相同。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <table><thead><tr><th>指标</th><th>510300</th><th>510500</th></tr></thead><tbody><tr><td>基金简称</td><td>沪深300ETF</td><td>中证500ETF</td></tr>
+<tr><td>基金规模</td><td>1656.77 亿元（2026-05-12）</td><td>476.50 亿元（2026-05-12）</td></tr>
+<tr><td>管理费率</td><td>0.15%</td><td>0.15%</td></tr>
+<tr><td>托管费率</td><td>0.05%</td><td>0.05%</td></tr></tbody></table>
+<pre>数据截至 2026-05-12。
+LLM token：5850</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">九.5 对比一下510300和159919的收益率</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_2_required · bucket=v3_2_compatibility_baseline · expected=covered_compare · actual=ExecutableQuery(compare/compare) · tokens=5701</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>510300：今年以来7.15%，近1年30.51%，成立以来131.66%。159919：今年以来7.14%，近1年30.43%，成立以来140.61%。短中期差距很小，成立以来159919略高。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <table><thead><tr><th>指标</th><th>510300</th><th>159919</th></tr></thead><tbody><tr><td>基金简称</td><td>沪深300ETF</td><td>沪深300ETF</td></tr>
+<tr><td>近1年收益率</td><td>30.51%</td><td>30.43%</td></tr></tbody></table>
+<pre>数据截至 2026-05-12。
+LLM token：5701</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">十.1 帮我找跟踪沪深300指数、费率最低的ETF，然后看它的基本信息和收益</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_3_required · bucket=v3_3_new_fragments · expected=v3_3_two_step_filter_composite_single · actual=ExecutableQuery(composite/two_step_composite) · tokens=13475</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>跟踪沪深300指数的ETF里，最低管理费率是0.15%，有多只并列。按规模取其中最大的510300：沪深300ETF，股票型，跟踪沪深300指数，成立于2012-05-04，上市地上交所，管理人华泰柏瑞基金；今年以来7.15%，近1年30.51%，成立以来131.66%。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>510300 的基金简称为 沪深300ETF，跟踪指数名称为 沪深300指数，基金规模为 1656.77 亿元（2026-05-12）。
+
+沪深300ETF（510300）近1年收益率为30.51%。
+
+数据截至 2026-05-12。
+LLM token：13475</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">十.2 股票型ETF里今年收益最高的5只是哪些？对比一下</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_2_required · bucket=v3_2_compatibility_baseline · expected=two_step_composite_filter_compare · actual=ExecutableQuery(compare/two_step_composite) · tokens=11891</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>前5只分别是：513310 中韩半导体ETF华泰柏瑞（今年以来79.55%，管理费0.80%）、588780 科创芯片设计ETF国联安（50.46%，0.50%）、589210 科创芯片设计ETF广发（50.00%，0.50%）、588810 科创芯片ETF富国（49.18%，0.50%）、588990 科创芯片ETF博时（48.47%，0.50%）。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <table><thead><tr><th>指标</th><th>513310</th><th>588780</th><th>589210</th><th>588810</th><th>588990</th></tr></thead><tbody><tr><td>基金简称</td><td>中韩半导体ETF华泰柏瑞</td><td>科创芯片设计ETF国联安</td><td>科创芯片设计ETF广发</td><td>科创芯片ETF富国</td><td>科创芯片ETF博时</td></tr>
+<tr><td>今年以来收益率</td><td>79.55%</td><td>50.46%</td><td>50.00%</td><td>49.18%</td><td>48.47%</td></tr></tbody></table>
+<pre>数据截至 2026-05-12。
+LLM token：5917</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">十.3 搜索中证红利，查一下它的基本信息和持仓</div>
+        <div class="badge fail">FAIL</div>
+      </div>
+      <div class="meta">scope=v3_3_required · bucket=v3_3_new_fragments · expected=v3_3_two_step_search_composite_single_report · actual=ClarificationRequired(multiple_candidates) · tokens=4018</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>搜索“中证红利”命中20只。若按最贴近“中证红利指数”的产品看，规模靠前的是515180 红利ETF易方达：股票型，跟踪中证红利指数，成立于2019-11-26，上市地上交所，管理人易方达基金，管理费0.15%，托管费0.05%，最新规模148.98亿；2025年一季报行业主要是交通运输、煤炭、纺织服饰、汽车、商贸零售、银行，重仓概念主要是高股息精选、国企改革、回购增持再贷款概念、航运概念、煤炭概念。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>我找到多只与“中证红利”相关的 ETF，请先确认要查哪一只：</pre>
+<table><thead><tr><th>基金代码</th><th>基金简称</th><th>跟踪指数</th><th>基金规模</th><th>匹配原因</th></tr></thead><tbody><tr><td>515180</td><td>红利ETF易方达</td><td>中证红利指数</td><td>148.98 亿元</td><td>跟踪指数精确匹配，规模较大</td></tr>
+<tr><td>515080</td><td>中证红利ETF招商</td><td>中证红利指数</td><td>97.01 亿元</td><td>跟踪指数精确匹配，规模较大</td></tr>
+<tr><td>159581</td><td>红利ETF万家</td><td>中证红利指数</td><td>14.59 亿元</td><td>跟踪指数精确匹配，规模较大</td></tr>
+<tr><td>512890</td><td>红利低波ETF华泰柏瑞</td><td>中证红利低波动指数</td><td>309.85 亿元</td><td>名称或指数相关</td></tr>
+<tr><td>563020</td><td>红利低波ETF易方达</td><td>中证红利低波动指数</td><td>95.09 亿元</td><td>名称或指数相关</td></tr></tbody></table>
+<pre>确认具体基金后，我可以继续查基本信息和持仓。
+
+LLM token：4018</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">十.4 510300今年收益多少，持仓了哪些行业，基金经理是谁</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_3_required · bucket=v3_3_new_fragments · expected=v3_3_composite_cross_collection · actual=ExecutableQuery(composite/composite_single) · tokens=9273</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>今年以来收益率7.15%；2025年一季报行业包括食品饮料、银行、非银金融、电力设备、家用电器、公用事业、汽车、有色金属、电子、国防军工；现任基金经理柳军。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>沪深300ETF（510300）今年以来收益率为7.15%。
+
+510300 的基金经理(现任)为 柳军，基金管理人为 华泰柏瑞基金。
+
+持仓方面，2025年一季报显示，主要行业包括食品饮料、银行、非银金融、电力设备、家用电器和公用事业。
+
+数据截至 2026-05-12。
+LLM token：9273</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">十.5 帮我看看510500的规模大不大，费率贵不贵，收益好不好</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_3_required · bucket=v3_3_new_fragments · expected=v3_3_composite_single_scale_fee_performance · actual=ExecutableQuery(single/composite_single) · tokens=3934</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>510500 最新规模476.50亿，不算小；管理费0.15%、托管费0.05%，属于低费率档；今年以来17.73%，近1年54.27%，从收益数据看近期表现较强。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>510500 的基金简称为 中证500ETF，基金规模为 476.50 亿元（2026-05-12），管理费率为 0.15%，成立以来收益率为 196.28%。
+
+数据截至 2026-05-12。
+LLM token：3934</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">十.6 上交所的ETF里，找管理费最低的3只，对比它们的今年收益</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_2_required · bucket=v3_2_compatibility_baseline · expected=two_step_composite_filter_compare · actual=ExecutableQuery(compare/two_step_composite) · tokens=12105</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>上交所里最低管理费率也是0.15%。按规模取前3只分别是：510300 沪深300ETF（1656.77亿，今年以来7.15%）、510310 沪深300ETF易方达（1286.62亿，7.27%）、511360 短融ETF海富通（948.95亿，0.55%）。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <table><thead><tr><th>指标</th><th>510300</th><th>510310</th><th>511360</th></tr></thead><tbody><tr><td>基金简称</td><td>沪深300ETF</td><td>沪深300ETF易方达</td><td>短融ETF海富通</td></tr>
+<tr><td>管理费率</td><td>0.15%</td><td>0.15%</td><td>0.15%</td></tr>
+<tr><td>托管费率</td><td>0.05%</td><td>0.05%</td><td>0.05%</td></tr>
+<tr><td>今年以来收益率</td><td>7.15%</td><td>7.27%</td><td>0.55%</td></tr></tbody></table>
+<pre>数据截至 2026-05-12。
+LLM token：5957</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">十.7 510300成立以来收益怎么样，分过红吗</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_2_required · bucket=v3_2_compatibility_baseline · expected=composite_single_performance_dividend · actual=ExecutableQuery(single/composite_single) · tokens=3913</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>成立以来收益率131.66%；分过红，累计14次，累计分红总额263.86亿。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>510300 的基金简称为 沪深300ETF，成立以来收益率为 131.66%，累计分红总额为 263.86 亿元，累计分红次数为 14。
+
+数据截至 2026-05-12。
+LLM token：3913</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">十.8 对比510300和510500的费率、规模和重仓股</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_3_required · bucket=v3_3_new_fragments · expected=v3_3_composite_compare_plus_report · actual=ExecutableQuery(composite/composite_single) · tokens=10750</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>费率方面，两只都是管理费0.15%、托管费0.05%。规模方面，510300 是1656.77亿，510500 是476.50亿。按最新季报看，510300 的前十大重仓股代码是600519、300750、601318、600036、000333、600900、002594、601166、601899、300059；510500 的前十大重仓股代码是600418、002625、300476、002384、000988、300339、600988、600839、688521、603893。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <table><thead><tr><th>指标</th><th>510300</th><th>510500</th></tr></thead><tbody><tr><td>基金简称</td><td>沪深300ETF</td><td>中证500ETF</td></tr>
+<tr><td>基金规模</td><td>1656.77 亿元</td><td>476.50 亿元</td></tr>
+<tr><td>管理费率</td><td>0.15%</td><td>0.15%</td></tr>
+<tr><td>托管费率</td><td>0.05%</td><td>0.05%</td></tr>
+<tr><td>前十大重仓股</td><td>600519、300750、601318、600036、000333、600900、300059、600030、601166、000858</td><td>002625、600418、000988、300339、002384、600157、600839、002797、600487、301236</td></tr></tbody></table>
+<pre>重仓股当前按最新年报口径展示。 数据截至 2026-05-12。
+
+LLM token：10750</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">十一.1 510300最近成交额多少</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_3_required · bucket=v3_3_new_fragments · expected=v3_3_trading_metric_snapshot · actual=ExecutableQuery(single/trading_metric) · tokens=2131</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>最新成交额49.76亿，日期2026-05-12。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>510300 的基金简称为 沪深300ETF，成交额为 49.76 亿元（2026-05-12）。
+
+数据截至 2026-05-12。
+LLM token：2131</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">十一.2 510300的净现金流是正还是负</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_3_required · bucket=v3_3_new_fragments · expected=v3_3_trading_metric_snapshot · actual=ExecutableQuery(single/trading_metric) · tokens=2133</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>最新净现金流为负，金额-28.51亿，日期2026-05-12。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>510300 的基金简称为 沪深300ETF，净现金流为 -28.51 亿元（2026-05-12）。
+
+数据截至 2026-05-12。
+LLM token：2133</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">十一.3 510300的融资余额是多少</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_3_required · bucket=v3_3_new_fragments · expected=v3_3_trading_metric_snapshot · actual=ExecutableQuery(single/trading_metric) · tokens=2142</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>远端字段在2026-05-12这期记录存在，但值为 `null`，当前暂无可用融资余额数据。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>510300 的基金简称为 沪深300ETF，融资余额为 暂无数据。
+
+数据截至 2026-05-12。
+LLM token：2142</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">十一.4 510300的融券卖出量多少</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_3_required · bucket=v3_3_new_fragments · expected=v3_3_trading_metric_snapshot · actual=ExecutableQuery(single/trading_metric) · tokens=2137</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>远端可直接提供的是融券金额字段；2026-05-12 这一期值为 `null`，当前暂无可用数据。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>510300 的基金简称为 沪深300ETF，融券金额为 暂无数据。
+
+数据截至 2026-05-12。
+LLM token：2137</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">十二.1 000001有这只ETF吗</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_2_required · bucket=v3_2_compatibility_baseline · expected=executable_empty_result_not_found · actual=ExecutableQuery(single/basic_info) · tokens=2134</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>未查到这只ETF。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>未在 ETF 数据库中找到代码 000001 对应的 ETF。
+
+LLM token：2134</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">十二.2 帮我查510300的实时行情</div>
+        <div class="badge skip">SKIP</div>
+      </div>
+      <div class="meta">scope=boundary · bucket=out_of_release_scope · expected=DeniedQuery(realtime_not_supported) · actual=DeniedQuery(realtime_not_supported) · tokens=0</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>这套远端库不提供实时行情。当前能直接查到的是最新净值，510300 在 2026-05-12 的单位净值是 4.9646。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>这套远端库不提供实时行情。当前能直接查到的是最新净值，510300 在 2026-05-12 的单位净值是 4.9646。
+
+LLM token：0</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">十二.3 abcdef是什么基金</div>
+        <div class="badge skip">SKIP</div>
+      </div>
+      <div class="meta">scope=boundary · bucket=out_of_release_scope · expected=ClarificationRequired(invalid_fundcode) · actual=ClarificationRequired(invalid_fundcode) · tokens=0</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>这不是有效的 ETF 代码，当前也查不到对应基金。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>这不是有效的 ETF 代码，当前也查不到对应基金。
+
+LLM token：0</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">十二.4 510300的持仓行业是什么（季报年报都没有）</div>
+        <div class="badge fail">FAIL</div>
+      </div>
+      <div class="meta">scope=v3_3_required · bucket=v3_3_new_fragments · expected=UnsupportedQuery(data_not_available) · actual=ExecutableQuery(report/report_industry) · tokens=2257</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>就 510300 来说，并不属于“季报年报都没有”的情况。当前远端库里有 2025 年一季报持仓行业数据：食品饮料、银行、非银金融、电力设备、家用电器、公用事业、汽车、有色金属、电子、国防军工。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>就 510300 来说，并不属于“季报年报都没有”的情况。当前远端库里有 2025年一季报持仓行业数据：食品饮料、银行、非银金融、电力设备、家用电器、公用事业、汽车、有色金属、电子、国防军工。
+
+LLM token：2257</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">十二.5 对比510300和000000</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">scope=v3_2_required · bucket=v3_2_compatibility_baseline · expected=compare_partial_found · actual=ExecutableQuery(compare/compare) · tokens=6085</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>510300 能查到，000000 未查到。下面是 510300 的可查数据：</pre>
+<table><thead><tr><th>指标</th><th>510300</th></tr></thead><tbody><tr><td>基金简称</td><td>沪深300ETF</td></tr>
+<tr><td>基金规模</td><td>1656.77 亿元</td></tr>
+<tr><td>管理费率</td><td>0.15%</td></tr>
+<tr><td>今年以来收益率</td><td>7.15%</td></tr></tbody></table>
+<pre>数据截至 2026-05-12。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>510300 能查到，000000 未查到。下面是 510300 的可查数据：</pre>
+<table><thead><tr><th>指标</th><th>510300</th></tr></thead><tbody><tr><td>基金简称</td><td>沪深300ETF</td></tr>
+<tr><td>基金规模</td><td>1656.77 亿元（2026-05-12）</td></tr>
+<tr><td>管理费率</td><td>0.15%</td></tr>
+<tr><td>托管费率</td><td>0.05%</td></tr>
+<tr><td>今年以来收益率</td><td>7.15%</td></tr>
+<tr><td>近1年收益率</td><td>30.51%</td></tr>
+<tr><td>跟踪指数名称</td><td>沪深300指数</td></tr></tbody></table>
+<pre>数据截至 2026-05-12。
+LLM token：6085</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">十二.6 给我推荐一只ETF</div>
+        <div class="badge skip">SKIP</div>
+      </div>
+      <div class="meta">scope=boundary · bucket=out_of_release_scope · expected=DeniedQuery(investment_advice) · actual=DeniedQuery(investment_advice) · tokens=0</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>这个属于投资建议，我不直接给推荐。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>这个属于投资建议，我不直接给推荐。
+
+LLM token：0</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">十二.7 今天A股大盘怎么样</div>
+        <div class="badge skip">SKIP</div>
+      </div>
+      <div class="meta">scope=later · bucket=out_of_release_scope · expected=DeniedQuery(unsupported_domain) · actual=DeniedQuery(unsupported_domain) · tokens=0</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>这个超出当前 ETF 数据库查询范围，我这里没有大盘实时或当日综述数据。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>这个超出当前 ETF 数据库查询范围，我这里没有大盘实时或当日综述数据。
+
+LLM token：0</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">十二.8 510300能买吗</div>
+        <div class="badge skip">SKIP</div>
+      </div>
+      <div class="meta">scope=boundary · bucket=out_of_release_scope · expected=DeniedQuery(investment_advice) · actual=DeniedQuery(investment_advice) · tokens=0</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>这属于投资建议问题，我不直接回答“能不能买”。</pre>
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          <pre>这属于投资建议问题，我不直接回答“能不能买”。
+
+LLM token：0</pre>
+        </div>
+      </div>
+    </section>
+</div>
+  </div>
+</body>
+</html>

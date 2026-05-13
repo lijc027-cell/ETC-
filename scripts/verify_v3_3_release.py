@@ -5,6 +5,7 @@ from collections import Counter, defaultdict
 from dataclasses import dataclass
 from datetime import date
 import argparse
+import html
 import json
 from pathlib import Path
 import sys
@@ -15,11 +16,13 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from etf_agent import semantic_query_v3
+from scripts.audit_answer_format import format_audit_answer, llm_total_tokens
 
 
 DEFAULT_COVERAGE = ROOT / "docs" / "v3-coverage-matrix.md"
 DEFAULT_OUT_MD = ROOT / "result" / "audit-v3.3-results.md"
 DEFAULT_OUT_JSON = ROOT / "result" / "audit-v3.3-results.json"
+DEFAULT_OUT_HTML = ROOT / "result" / "audit-v3.3-results.html"
 PHASE = "v3.3"
 BASELINE_SCOPE = "v3_2_required"
 NEW_SCOPE = "v3_3_required"
@@ -53,7 +56,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--coverage", type=Path, default=DEFAULT_COVERAGE)
     parser.add_argument("--out-md", type=Path, default=DEFAULT_OUT_MD)
     parser.add_argument("--out-json", type=Path, default=DEFAULT_OUT_JSON)
+    parser.add_argument("--out-html", type=Path, default=DEFAULT_OUT_HTML)
     parser.add_argument("--skip-fragment-gate", action="store_true")
+    parser.add_argument("--execute-all-scopes", action="store_true")
     args = parser.parse_args(argv)
 
     rows = load_coverage_rows(args.coverage)
@@ -61,22 +66,31 @@ def main(argv: list[str] | None = None) -> int:
     for index, row in enumerate(rows, start=1):
         print(f"[{index}/{len(rows)}] {row.question_id} {row.question}", flush=True)
         if row["release_scope"] not in RELEASE_SCOPES:
-            result = _static_out_of_scope_result(row)
+            if args.execute_all_scopes:
+                try:
+                    result = semantic_query_v3(row.question, root=ROOT, phase=PHASE)
+                except Exception as exc:
+                    result = _runtime_exception_result(row.question, exc)
+            else:
+                result = _static_out_of_scope_result(row)
         else:
             try:
                 result = semantic_query_v3(row.question, root=ROOT, phase=PHASE)
             except Exception as exc:
                 result = _runtime_exception_result(row.question, exc)
-        records.append(evaluate_row(row, result))
+        records.append(evaluate_row(row, result, executed=row["release_scope"] in RELEASE_SCOPES or args.execute_all_scopes))
 
     summary = summarize(records, skip_fragment_gate=args.skip_fragment_gate)
     args.out_json.parent.mkdir(parents=True, exist_ok=True)
     args.out_md.parent.mkdir(parents=True, exist_ok=True)
+    args.out_html.parent.mkdir(parents=True, exist_ok=True)
     payload = {"summary": summary, "records": records}
     args.out_json.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
     args.out_md.write_text(render_markdown(records, summary, args.coverage, args.out_json), encoding="utf-8")
+    args.out_html.write_text(render_html(records, summary, args.coverage, args.out_json), encoding="utf-8")
     print(args.out_json)
     print(args.out_md)
+    print(args.out_html)
     print(f"overall_release_pass={str(summary['overall_release_pass']).lower()}")
     return 0 if summary["overall_release_pass"] else 1
 
@@ -101,7 +115,7 @@ def load_coverage_rows(path: Path) -> list[CoverageRow]:
     return rows
 
 
-def evaluate_row(row: CoverageRow, result: dict[str, Any]) -> dict[str, Any]:
+def evaluate_row(row: CoverageRow, result: dict[str, Any], *, executed: bool = True) -> dict[str, Any]:
     v3 = result.get("v3") or {}
     release_scope = row["release_scope"]
     in_release_scope = release_scope in RELEASE_SCOPES
@@ -169,7 +183,8 @@ def evaluate_row(row: CoverageRow, result: dict[str, Any]) -> dict[str, Any]:
         failure_reason=failure_reason,
         result=result,
     )
-    user_visible_answer = str(result.get("answer") or "") if in_release_scope else "不在 v3.3 release denominator"
+    user_visible_answer = format_audit_answer(str(result.get("answer") or ""), result=result) if executed else "不在 v3.3 release denominator"
+    total_tokens = llm_total_tokens(result) if executed else None
     return {
         "question_id": row.question_id,
         "question": row.question,
@@ -196,6 +211,7 @@ def evaluate_row(row: CoverageRow, result: dict[str, Any]) -> dict[str, Any]:
         "remote_status": remote_status,
         "formatter_status": formatter_status,
         "query_summary": _query_summary(result.get("query_plan")),
+        "llm_total_tokens": total_tokens,
         "user_visible_answer": user_visible_answer,
         "reason": "; ".join(_dedupe(failures)),
     }
@@ -260,6 +276,9 @@ def summarize(records: list[dict[str, Any]], *, skip_fragment_gate: bool = False
             if record["ast_generation_mode"] == "llm_ast_draft_failed" and "deterministic" in str(record.get("actual_outcome") or "")
         ),
         "poisoned_legacy_signal_passed": 0,
+        "llm_total_tokens": sum(
+            record["llm_total_tokens"] for record in scoped_records if isinstance(record.get("llm_total_tokens"), int)
+        ),
         "missing_required_fragments": missing_required_fragments,
         "failed_required_fragments": failed_required_fragments,
         "overall_release_pass": overall_release_pass,
@@ -575,6 +594,7 @@ def render_markdown(
         f"- data_not_available_total: `{summary['data_not_available_total']}`",
         f"- denied_total: `{summary['denied_total']}`",
         f"- clarification_required_total: `{summary['clarification_required_total']}`",
+        f"- llm_total_tokens: `{summary['llm_total_tokens']}`",
         f"- overall_release_pass: `{str(summary['overall_release_pass']).lower()}`",
         "",
         "## Release Bucket Stats",
@@ -674,6 +694,167 @@ def render_markdown(
         ]
     )
     return "\n".join(lines)
+
+
+def render_html(
+    records: list[dict[str, Any]],
+    summary: dict[str, Any],
+    coverage_path: Path,
+    out_json: Path,
+) -> str:
+    expected_answers = _load_expected_answers_for_html()
+    cards = "\n".join(_case_html(record, expected_answers) for record in records)
+    return f"""<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>v3.3 Full Release Audit</title>
+<style>
+  :root {{ --bg: #f4f0e6; --paper: #fffaf0; --ink: #2f2418; --muted: #6e5c45; --line: #d7c8b2; --pass: #2f6f4e; --fail: #9f2f2f; --skip: #70655b; }}
+  * {{ box-sizing: border-box; }}
+  body {{ margin: 0; background: var(--bg); color: var(--ink); font-family: Georgia, serif; }}
+  .wrap {{ max-width: 1320px; margin: 0 auto; padding: 28px 22px 48px; }}
+  .hero {{ padding: 10px 0 18px; border-bottom: 1px solid var(--line); margin-bottom: 18px; }}
+  h1 {{ margin: 0 0 8px; font-size: 32px; }}
+  .sub {{ color: var(--muted); font-size: 14px; line-height: 1.5; }}
+  .grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin: 18px 0 24px; }}
+  .stat {{ background: var(--paper); border: 1px solid var(--line); padding: 14px 16px; border-radius: 6px; }}
+  .stat .k {{ color: var(--muted); font-size: 12px; }}
+  .stat .v {{ margin-top: 6px; font-size: 26px; }}
+  .cases {{ display: grid; gap: 16px; }}
+  .card {{ background: var(--paper); border: 1px solid var(--line); border-radius: 6px; padding: 18px; }}
+  .head {{ display: flex; justify-content: space-between; gap: 12px; align-items: baseline; margin-bottom: 10px; }}
+  .qid {{ font-size: 20px; line-height: 1.35; }}
+  .badge {{ font-size: 12px; padding: 3px 8px; border-radius: 999px; border: 1px solid var(--line); white-space: nowrap; }}
+  .pass {{ color: var(--pass); }}
+  .fail {{ color: var(--fail); }}
+  .skip {{ color: var(--skip); }}
+  .meta {{ color: var(--muted); font-size: 13px; margin-bottom: 14px; line-height: 1.5; }}
+  .cols {{ display: grid; grid-template-columns: 0.85fr 1.15fr; gap: 14px; }}
+  .panel {{ border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }}
+  .panel h3 {{ margin: 0; padding: 10px 12px; font-size: 14px; background: rgba(0,0,0,0.03); }}
+  .panel pre {{ margin: 0; padding: 12px; white-space: pre-wrap; word-break: break-word; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; line-height: 1.5; }}
+  table {{ width: 100%; border-collapse: collapse; font-size: 13px; }}
+  th, td {{ border-top: 1px solid var(--line); padding: 8px 10px; text-align: left; vertical-align: top; }}
+  th {{ background: rgba(0,0,0,0.035); }}
+  @media (max-width: 900px) {{ .cols {{ grid-template-columns: 1fr; }} }}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="hero">
+      <h1>v3.3 Full Release Audit</h1>
+      <div class="sub">{html.escape(str(_relative_path(out_json)))} · coverage {html.escape(str(_relative_path(coverage_path)))} · {summary['passed']} pass · {summary['failed']} fail · LLM 总 token 数：{html.escape(str(summary['llm_total_tokens']))}</div>
+    </div>
+    <div class="grid">
+      <div class="stat"><div class="k">Total Cases</div><div class="v">{summary['total_cases']}</div></div>
+      <div class="stat"><div class="k">Scoped Cases</div><div class="v">{summary['scoped_cases']}</div></div>
+      <div class="stat"><div class="k">Passed</div><div class="v">{summary['passed']}</div></div>
+      <div class="stat"><div class="k">Failed</div><div class="v">{summary['failed']}</div></div>
+      <div class="stat"><div class="k">LLM Tokens</div><div class="v">{html.escape(str(summary['llm_total_tokens']))}</div></div>
+    </div>
+    <div class="cases">{cards}</div>
+  </div>
+</body>
+</html>
+"""
+
+
+def _case_html(record: dict[str, Any], expected_answers: dict[str, str]) -> str:
+    status = str(record["pass/fail"]).lower()
+    badge_class = "pass" if status == "pass" else "fail" if status == "fail" else "skip"
+    meta = (
+        f"scope={record['release_scope']} · bucket={record['release_bucket']} · "
+        f"expected={record['expected_outcome']} · actual={record['actual_outcome']} · "
+        f"tokens={record.get('llm_total_tokens') if record.get('llm_total_tokens') is not None else '未记录'}"
+    )
+    expected_answer = expected_answers.get(record["question_id"], "未在 codex-etf-query-answers.md 中找到 expected 答案。")
+    return f"""
+    <section class="card">
+      <div class="head">
+        <div class="qid">{html.escape(record['question_id'])} {html.escape(record['question'])}</div>
+        <div class="badge {badge_class}">{html.escape(record['pass/fail'])}</div>
+      </div>
+      <div class="meta">{html.escape(meta)}</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          {_render_markdownish(expected_answer)}
+        </div>
+        <div class="panel">
+          <h3>Answer</h3>
+          {_render_markdownish(record.get('user_visible_answer') or '')}
+        </div>
+      </div>
+    </section>
+"""
+
+
+def _load_expected_answers_for_html() -> dict[str, str]:
+    path = ROOT / "result" / "codex-etf-query-answers.md"
+    expected: dict[str, str] = {}
+    current_id: str | None = None
+    current: list[str] = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if line.startswith("### "):
+            if current_id:
+                expected[current_id] = "\n".join(current).strip()
+            parts = line.split(maxsplit=2)
+            current_id = parts[1] if len(parts) >= 2 else None
+            current = []
+            continue
+        if line.startswith("## "):
+            continue
+        if current_id:
+            current.append(line)
+    if current_id:
+        expected[current_id] = "\n".join(current).strip()
+    return expected
+
+
+def _render_markdownish(text: str) -> str:
+    blocks = []
+    lines = str(text).splitlines()
+    index = 0
+    while index < len(lines):
+        if _is_table_start(lines, index):
+            table_lines = []
+            while index < len(lines) and lines[index].strip().startswith("|"):
+                table_lines.append(lines[index])
+                index += 1
+            blocks.append(_render_table(table_lines))
+            continue
+        paragraph = []
+        while index < len(lines) and not _is_table_start(lines, index):
+            paragraph.append(lines[index])
+            index += 1
+        content = "\n".join(paragraph).strip()
+        if content:
+            blocks.append(f"<pre>{html.escape(content)}</pre>")
+    return "\n".join(blocks) if blocks else "<pre></pre>"
+
+
+def _is_table_start(lines: list[str], index: int) -> bool:
+    return (
+        index + 1 < len(lines)
+        and lines[index].strip().startswith("|")
+        and set(lines[index + 1].replace("|", "").strip()) <= {"-", " ", ":"}
+    )
+
+
+def _render_table(lines: list[str]) -> str:
+    rows = [[cell.strip() for cell in line.strip().strip("|").split("|")] for line in lines]
+    if len(rows) < 2:
+        return f"<pre>{html.escape(chr(10).join(lines))}</pre>"
+    header = rows[0]
+    body = rows[2:]
+    head_html = "".join(f"<th>{html.escape(cell)}</th>" for cell in header)
+    body_html = "\n".join(
+        "<tr>" + "".join(f"<td>{html.escape(cell)}</td>" for cell in row) + "</tr>"
+        for row in body
+    )
+    return f"<table><thead><tr>{head_html}</tr></thead><tbody>{body_html}</tbody></table>"
 
 
 def _record_cells(record: dict[str, Any]) -> dict[str, str]:
