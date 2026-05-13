@@ -59,6 +59,12 @@ ALLOWED_QUERY_INTENTS = {
     ("search", "search"),
     ("filter", "filter"),
     ("compare", "compare"),
+    ("report", "report_industry"),
+    ("report", "report_holding"),
+    ("report", "report_concept"),
+    ("report", "institution_holding"),
+    ("report", "report_style"),
+    ("report", "report_nav_change"),
 }
 
 

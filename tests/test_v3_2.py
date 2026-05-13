@@ -1144,6 +1144,7 @@ def test_v3_2_invalid_ascii_code_raises_clarification():
     assert result["v3"]["routing_result"]["type"] == "ClarificationRequired"
     assert result["v3"]["ast_generation_mode"] is None
     assert result["v3_ast"] is None
+    assert "有效的 ETF 代码" in result["answer"]
 
 
 def test_v3_2_search_signal_beats_track_filter(monkeypatch):

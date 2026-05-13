@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>v3.3 Section 12 Expected Compare</title>
+<style>
+  :root { --bg: #f4f0e6; --paper: #fffaf0; --ink: #2f2418; --muted: #6e5c45; --line: #d7c8b2; --pass: #2f6f4e; --fail: #9f2f2f; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: Georgia, serif; }
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 28px 22px 48px; }
+  .hero { padding: 10px 0 18px; border-bottom: 1px solid var(--line); margin-bottom: 18px; }
+  h1 { margin: 0 0 8px; font-size: 32px; }
+  .sub { color: var(--muted); font-size: 14px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin: 18px 0 24px; }
+  .stat { background: var(--paper); border: 1px solid var(--line); padding: 14px 16px; border-radius: 6px; }
+  .stat .k { color: var(--muted); font-size: 12px; }
+  .stat .v { margin-top: 6px; font-size: 28px; }
+  .cases { display: grid; gap: 16px; }
+  .card { background: var(--paper); border: 1px solid var(--line); border-radius: 6px; padding: 18px; }
+  .head { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; margin-bottom: 10px; }
+  .qid { font-size: 22px; }
+  .badge { font-size: 12px; padding: 3px 8px; border-radius: 999px; border: 1px solid var(--line); }
+  .pass { color: var(--pass); }
+  .fail { color: var(--fail); }
+  .meta { color: var(--muted); font-size: 13px; margin-bottom: 14px; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .panel { border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+  .panel h3 { margin: 0; padding: 10px 12px; font-size: 14px; background: rgba(0,0,0,0.03); }
+  .panel pre { margin: 0; padding: 12px; white-space: pre-wrap; word-break: break-word; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; line-height: 1.5; }
+  @media (max-width: 900px) { .cols { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="hero">
+      <h1>v3.3 Section 12 Expected Compare</h1>
+      <div class="sub">/Users/l/Downloads/laiqian/etf-query/result/audit-v3.3-section12-compare-real.json · 8 pass · 0 fail · expected match 2/8</div>
+    </div>
+    <div class="grid">
+      <div class="stat"><div class="k">Total Cases</div><div class="v">8</div></div>
+      <div class="stat"><div class="k">Passed</div><div class="v">8</div></div>
+      <div class="stat"><div class="k">Failed</div><div class="v">0</div></div>
+      <div class="stat"><div class="k">Expected Match</div><div class="v">2/8</div></div>
+    </div>
+    <div class="cases">
+    <section class="card">
+      <div class="head">
+        <div class="qid">十二.1 000001有这只ETF吗</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">answer_match=false · expected_outcome=executable_empty_result_not_found · actual_outcome=ExecutableQuery(single/basic_info)</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>未查到这只ETF。</pre>
+        </div>
+        <div class="panel">
+          <h3>Actual</h3>
+          <pre>未在 ETF 数据库中找到代码 000001 对应的 ETF。</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">十二.2 帮我查510300的实时行情</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">answer_match=false · expected_outcome=DeniedQuery(realtime_not_supported) · actual_outcome=DeniedQuery(deny/realtime_not_supported)</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>这套远端库不提供实时行情。当前能直接查到的是最新净值，510300 在 2026-05-12 的单位净值是 4.9646。</pre>
+        </div>
+        <div class="panel">
+          <h3>Actual</h3>
+          <pre>这套远端库不提供实时行情。当前能直接查到的是最新净值，510300 在 2026-05-12 的单位净值是 4.9646。</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">十二.3 abcdef是什么基金</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">answer_match=false · expected_outcome=ClarificationRequired(invalid_fundcode) · actual_outcome=ClarificationRequired(clarify/invalid_fundcode)</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>这不是有效的 ETF 代码，当前也查不到对应基金。</pre>
+        </div>
+        <div class="panel">
+          <h3>Actual</h3>
+          <pre>这不是有效的 ETF 代码，当前也查不到对应基金。</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">十二.4 510300的持仓行业是什么（季报年报都没有）</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">answer_match=false · expected_outcome=ExecutableQuery(report_industry)+premise_correction · actual_outcome=ExecutableQuery(report/report_industry)</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>就 510300 来说，并不属于“季报年报都没有”的情况。当前远端库里有 2025 年一季报持仓行业数据：食品饮料、银行、非银金融、电力设备、家用电器、公用事业、汽车、有色金属、电子、国防军工。</pre>
+        </div>
+        <div class="panel">
+          <h3>Actual</h3>
+          <pre>就 510300 来说，并不属于“季报年报都没有”的情况。当前远端库里有 2025年一季报持仓行业数据：食品饮料、银行、非银金融、电力设备、家用电器、公用事业、汽车、有色金属、电子、国防军工。</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">十二.5 对比510300和000000</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">answer_match=false · expected_outcome=compare_partial_found · actual_outcome=ExecutableQuery(compare/compare)</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>510300 能查到，000000 未查到。下面是 510300 的可查数据：
+
+| 指标 | 510300 |
+| --- | --- |
+| 基金简称 | 沪深300ETF |
+| 基金规模 | 1656.77 亿元 |
+| 管理费率 | 0.15% |
+| 今年以来收益率 | 7.15% |
+
+数据截至 2026-05-12。</pre>
+        </div>
+        <div class="panel">
+          <h3>Actual</h3>
+          <pre>510300 能查到，000000 未查到。下面是 510300 的可查数据：
+
+| 指标 | 510300 |
+| --- | --- |
+| 基金简称 | 沪深300ETF |
+| 基金规模 | 1656.77 亿元（2026-05-12） |
+| 管理费率 | 0.15% |
+| 托管费率 | 0.05% |
+| 今年以来收益率 | 7.15% |
+| 近1年收益率 | 30.51% |
+| 跟踪指数名称 | 沪深300指数 |
+
+数据截至 2026-05-12。</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">十二.6 给我推荐一只ETF</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">answer_match=true · expected_outcome=DeniedQuery(investment_advice) · actual_outcome=DeniedQuery(deny/investment_advice)</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>这个属于投资建议，我不直接给推荐。</pre>
+        </div>
+        <div class="panel">
+          <h3>Actual</h3>
+          <pre>这个属于投资建议，我不直接给推荐。</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">十二.7 今天A股大盘怎么样</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">answer_match=false · expected_outcome=DeniedQuery(unsupported_domain) · actual_outcome=DeniedQuery(deny/unsupported_domain)</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>这个超出当前 ETF 数据库查询范围，我这里没有大盘实时或当日综述数据。</pre>
+        </div>
+        <div class="panel">
+          <h3>Actual</h3>
+          <pre>这个超出当前 ETF 数据库查询范围，我这里没有大盘实时或当日综述数据。</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <div class="head">
+        <div class="qid">十二.8 510300能买吗</div>
+        <div class="badge pass">PASS</div>
+      </div>
+      <div class="meta">answer_match=true · expected_outcome=DeniedQuery(investment_advice) · actual_outcome=DeniedQuery(deny/investment_advice)</div>
+      <div class="cols">
+        <div class="panel">
+          <h3>Expected</h3>
+          <pre>这属于投资建议问题，我不直接回答“能不能买”。</pre>
+        </div>
+        <div class="panel">
+          <h3>Actual</h3>
+          <pre>这属于投资建议问题，我不直接回答“能不能买”。</pre>
+        </div>
+      </div>
+    </section>
+</div>
+  </div>
+</body>
+</html>

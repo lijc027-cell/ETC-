@@ -777,6 +777,37 @@ def test_semantic_query_v3_denies_investment_advice_before_embedding():
     assert "投资建议" in result["answer"]
 
 
+def test_semantic_query_v3_invalid_ascii_code_has_reason_specific_answer():
+    from etf_agent import semantic_query_v3
+
+    result = semantic_query_v3("abcdef是什么基金", root=ROOT, dry_run=True)
+
+    assert result["v3"]["recognized_query_mode"] == "clarify"
+    assert result["v3"]["routing_result"]["reason"] == "invalid_fundcode"
+    assert "有效的 ETF 代码" in result["answer"]
+
+
+def test_semantic_query_v3_realtime_denial_uses_snapshot_fallback():
+    from etf_agent import semantic_query_v3
+
+    result = semantic_query_v3("帮我查510300的实时行情", root=ROOT, dry_run=True)
+
+    assert result["v3"]["recognized_query_mode"] == "deny"
+    assert result["v3"]["routing_result"]["reason"] == "realtime_not_supported"
+    assert "不提供实时行情" in result["answer"]
+    assert "最新净值" in result["answer"]
+
+
+def test_semantic_query_v3_partial_compare_mentions_missing_code_first():
+    from etf_agent import semantic_query_v3
+
+    result = semantic_query_v3("对比510300和000000", root=ROOT, dry_run=True)
+
+    first_line = result["answer"].splitlines()[0]
+    assert "000000 未查到" in first_line
+    assert "510300 能查到" in first_line
+
+
 def test_semantic_query_v3_recognizes_three_month_period_and_rank_label():
     from etf_agent import semantic_query_v3
 
@@ -1164,8 +1195,8 @@ def test_semantic_query_v3_1_compare_reports_missing_codes_in_dry_run():
     result = semantic_query_v3("对比510300和000000", root=ROOT, dry_run=True)
 
     assert result["v3"]["recognized_query_mode"] == "compare"
+    assert result["answer"].splitlines()[0] == "510300 能查到，000000 未查到。下面是 510300 的可查数据："
     assert "| 指标 | 510300 |" in result["answer"]
-    assert "缺失代码：000000" in result["answer"]
 
 
 def test_semantic_query_v3_1_filter_sort_uses_stable_tiebreakers():

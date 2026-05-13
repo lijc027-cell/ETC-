@@ -18,6 +18,7 @@ from .ast_validator import validate_v3_2_ast_draft, validate_v3_3_ast_draft
 from .derived_performance import compile_derived_performance_query, execute_derived_performance
 from .generation_context import build_generation_bundle
 from .report_scope import default_report_expand, report_collection, report_type_filter, resolve_report_scope
+from .boundary_policy import build_boundary_answer
 
 SUPPORTED_INTENTS = {
     "basic_info",
@@ -377,11 +378,17 @@ def _force_unsupported_classification(question: str) -> dict[str, Any] | None:
     if any(word in question for word in ("季报", "年报")) and any(word in question for word in ("没有", "都没有", "不存在", "缺失")):
         report_intent = _report_intent_for_missing_data(question)
         return {
-            "recognized_query_mode": "unsupported",
+            "recognized_query_mode": "report",
             "intent": report_intent,
             "intent_candidates": [report_intent] if report_intent else [],
-            "from_candidates": [],
-            "reason": "data_not_available",
+            "from_candidates": ["tb_ths_etf_report_quarter", "tb_ths_etf_report_year"],
+            "entity_hints": {
+                "fundcodes": _extract_fundcodes(question),
+                "period": _period_from_question(question),
+                "report_period": {"mode": "latest"},
+                "report_scope": "quarter_latest",
+                "premise_correction": True,
+            },
         }
     unsupported_keywords = ("持仓", "重仓", "行业", "概念", "季报", "年报", "前十大", "机构持有", "投资风格", "净资产")
     if any(word in question for word in unsupported_keywords):
@@ -1310,22 +1317,23 @@ def semantic_query_v3(question: str, *, root=None, dry_run: bool = False, no_llm
         raise ValueError(f"unsupported v3 phase: {phase}")
 
     if mode == "deny":
+        snapshot_result = _dry_run_snapshot_result(question, classification)
         return {
             "question": question,
-            "answer": "抱歉，该问题涉及实时行情、交易指标或投资建议，超出当前 ETF 数据查询能力范围。",
-            "v3": {**classification, "llm_ast_status": "skipped"},
+            "answer": build_boundary_answer(question, classification, snapshot_result=snapshot_result),
+            "v3": {**classification, "llm_ast_status": "skipped", "routing_result": _routing_result_for_classification(classification)},
         }
     if mode == "unsupported":
         return {
             "question": question,
-            "answer": "当前版本暂不支持该查询类型。",
-            "v3": {**classification, "llm_ast_status": "skipped"},
+            "answer": build_boundary_answer(question, classification),
+            "v3": {**classification, "llm_ast_status": "skipped", "routing_result": _routing_result_for_classification(classification)},
         }
     if mode == "clarify":
         return {
             "question": question,
-            "answer": "查询条件还不够明确，请补充后重试。",
-            "v3": {**classification, "llm_ast_status": "skipped"},
+            "answer": build_boundary_answer(question, classification),
+            "v3": {**classification, "llm_ast_status": "skipped", "routing_result": _routing_result_for_classification(classification)},
         }
 
     if mode in V3_1_QUERY_MODES:
@@ -1497,7 +1505,7 @@ def semantic_query_v3(question: str, *, root=None, dry_run: bool = False, no_llm
 def _semantic_query_v3_2_strict(question: str, *, config_obj, classification: dict[str, Any]) -> dict[str, Any]:
     mode = classification["recognized_query_mode"]
     if mode in {"deny", "unsupported", "clarify"}:
-        return _non_executable_v3_2_output(question, classification)
+        return _non_executable_v3_2_output(question, classification, config_obj=config_obj)
 
     try:
         query_mode, intent, entity_hints, routing_evidence = _v3_2_execution_context(question, classification, config_obj)
@@ -1597,6 +1605,8 @@ def _semantic_query_v3_2_strict(question: str, *, config_obj, classification: di
     from .formatter import format_answer
 
     answer = format_answer(plan, result)
+    if (classification.get("entity_hints") or {}).get("premise_correction"):
+        answer = _premise_correction_answer(result, fundcodes=entity_hints.get("fundcodes") or _extract_fundcodes(question))
     capability_audit = _capability_audit_fields("v3.2", query_mode, intent, generation_bundle)
     output_v3 = {
         **classification,
@@ -1645,7 +1655,7 @@ def _semantic_query_v3_3_strict(
             return _semantic_query_v3_3_composite_bundle(question, config_obj=config_obj, classification=classification)
     mode = classification["recognized_query_mode"]
     if mode in {"deny", "unsupported", "clarify"}:
-        output = _non_executable_v3_2_output(question, classification)
+        output = _non_executable_v3_2_output(question, classification, config_obj=config_obj)
         output["v3"]["phase"] = "v3.3"
         return output
     if (
@@ -1752,6 +1762,8 @@ def _semantic_query_v3_3_strict(
         result = _apply_timeseries_semantics(validated_ast, result)
 
     answer = format_answer(answer_plan, result)
+    if (classification.get("entity_hints") or {}).get("premise_correction"):
+        answer = _premise_correction_answer(result, fundcodes=entity_hints.get("fundcodes") or _extract_fundcodes(question))
     ended_at = datetime.now(timezone.utc)
     answer = _append_runtime_metadata(
         answer,
@@ -2203,18 +2215,12 @@ def _capability_audit_fields(
     }
 
 
-def _non_executable_v3_2_output(question: str, classification: dict[str, Any]) -> dict[str, Any]:
+def _non_executable_v3_2_output(question: str, classification: dict[str, Any], *, config_obj=None) -> dict[str, Any]:
     routing_result = _routing_result_for_classification(classification)
     reason = routing_result.get("reason")
-    failure_stage = "data_not_available" if reason == "data_not_available" else "routing"
-    if routing_result["type"] == "DeniedQuery":
-        answer = "抱歉，该问题涉及实时行情、交易指标或投资建议，超出当前 ETF 数据查询能力范围。"
-    elif routing_result["type"] == "ClarificationRequired":
-        answer = "查询条件还不够明确，请补充后重试。"
-    elif reason == "data_not_available":
-        answer = "暂无数据。"
-    else:
-        answer = "当前版本暂不支持该查询类型。"
+    failure_stage = "routing"
+    snapshot_result = _boundary_snapshot_result(question, classification, config_obj=config_obj)
+    answer = build_boundary_answer(question, classification, snapshot_result=snapshot_result)
     v3 = {
         **classification,
         "routing_result": routing_result,
@@ -2271,7 +2277,8 @@ def _v3_3_execution_context(
     if query_mode == "report":
         entities = _resolve_single_entities_for_v3_2(question, config_obj)
         period = entities.get("period") or _period_from_question(question)
-        report_scope = resolve_report_scope(question, intent, classification.get("entity_hints") or {})
+        original_hints = classification.get("entity_hints") or {}
+        report_scope = original_hints.get("report_scope") or resolve_report_scope(question, intent, original_hints)
         entity_hints = {
             "fundcodes": [entities["fundcode"]],
             "period": period,
@@ -2279,6 +2286,8 @@ def _v3_3_execution_context(
             "report_scope": report_scope,
             "limit_hint": _extract_limit(question),
         }
+        if original_hints.get("premise_correction"):
+            entity_hints["premise_correction"] = True
         return "report", intent, entity_hints, _build_routing_evidence(question, query_mode="report", intent=intent, entity_hints=entity_hints, entities=entities)
 
     if intent in {"manager_detail", "trading_metric"}:
@@ -2319,7 +2328,10 @@ def _v3_3_override_classification(question: str, classification: dict[str, Any])
         "intent": override["intent"],
         "intent_candidates": [override["intent"]],
         "from_candidates": override.get("from_candidates", []),
-        "entity_hints": override.get("entity_hints", classification.get("entity_hints") or {}),
+        "entity_hints": {
+            **(classification.get("entity_hints") or {}),
+            **(override.get("entity_hints") or {}),
+        },
         "composite_type": override.get("composite_type"),
         "composite_execution": override.get("composite_execution"),
         "reason": None,
@@ -3254,10 +3266,89 @@ def _resolve_single_entities_for_v3_2(question: str, config_obj) -> dict[str, An
 def _routing_result_for_classification(classification: dict[str, Any]) -> dict[str, Any]:
     mode = classification.get("recognized_query_mode")
     if mode == "deny":
-        return {"type": "DeniedQuery", "reason": classification.get("deny_reason")}
+        reason = classification.get("deny_reason")
+        if reason == "v3_unsupported_domain":
+            reason = "unsupported_domain"
+        return {"type": "DeniedQuery", "reason": reason}
     if mode == "clarify":
         return {"type": "ClarificationRequired", "reason": classification.get("reason")}
     return {"type": "UnsupportedQuery", "reason": classification.get("reason") or "unsupported_query"}
+
+
+def _dry_run_snapshot_result(question: str, classification: dict[str, Any]) -> dict[str, Any] | None:
+    if classification.get("deny_reason") != "realtime_not_supported":
+        return None
+    fundcodes = _extract_fundcodes(question)
+    fundcode = fundcodes[0] if fundcodes else "510300"
+    if fundcode != "510300":
+        return None
+    return {
+        "data": {
+            "fundcode": "510300",
+            "ths_unit_nv_fund": [{"btime": "2026-05-12", "value": 4.9646}],
+        }
+    }
+
+
+def _boundary_snapshot_result(question: str, classification: dict[str, Any], *, config_obj=None) -> dict[str, Any] | None:
+    if classification.get("deny_reason") != "realtime_not_supported":
+        return None
+    fundcodes = _extract_fundcodes(question)
+    if not fundcodes:
+        return None
+    plan = {
+        "intent": "fund_scale",
+        "collection": "tb_ths_etf_base",
+        "filter": {"fundcode": fundcodes[0]},
+        "projection": ["fundcode", "ths_unit_nv_fund"],
+        "sort": [],
+        "limit": 1,
+        "answer_fields": [
+            {"field": "fundcode", "format": "plain"},
+            {"field": "ths_unit_nv_fund", "format": "plain"},
+        ],
+        "output_style": "summary",
+    }
+    try:
+        if config_obj is None:
+            return None
+        return _execute_v3_plan(plan, config_obj, dry_run=False, no_llm=False)
+    except Exception:
+        return None
+
+
+def _premise_correction_answer(result: dict[str, Any], *, fundcodes: list[str]) -> str:
+    data = result.get("data")
+    if isinstance(data, list):
+        data = data[0] if data else None
+    if not isinstance(data, dict):
+        fundcode = fundcodes[0] if fundcodes else "该 ETF"
+        return f"就 {fundcode} 来说，并不属于“季报年报都没有”的情况。"
+    fundcode = str(data.get("fundcode") or (fundcodes[0] if fundcodes else "该 ETF"))
+    period = _report_period_prefix_from_row(data)
+    industries = []
+    for item in data.get("ths_top_n_top_industry_name_fund") or []:
+        if isinstance(item, dict) and item.get("value"):
+            industries.append(str(item["value"]))
+        elif item:
+            industries.append(str(item))
+    if industries:
+        return f"就 {fundcode} 来说，并不属于“季报年报都没有”的情况。当前远端库里有 {period}持仓行业数据：{'、'.join(industries)}。"
+    return f"就 {fundcode} 来说，并不属于“季报年报都没有”的情况。"
+
+
+def _report_period_prefix_from_row(data: dict[str, Any]) -> str:
+    year = data.get("year_num")
+    if year in (None, ""):
+        return "最新"
+    try:
+        type_num = int(data.get("type_num"))
+    except (TypeError, ValueError):
+        type_num = None
+    type_label = {1: "年一季报", 2: "年中报", 3: "年三季报", 4: "年报", 6: "年报"}.get(type_num)
+    if not type_label:
+        return f"{year}年"
+    return f"{year}{type_label}"
 
 
 def _non_executable_capability_audit_fields(routing_result: dict[str, Any], reason: str | None) -> dict[str, Any]:

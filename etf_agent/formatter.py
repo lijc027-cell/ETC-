@@ -349,10 +349,15 @@ def _format_compare_answer(plan: dict[str, Any], result: dict[str, Any]) -> str:
         values = [_format_value(row.get(field), _field_format(plan, field), field=field) for row in rows]
         lines.append("| " + labels.get(field, field) + " | " + " | ".join(values) + " |")
     missing = _missing_compare_codes(plan, rows)
+    table = "\n".join(lines)
     if missing:
-        lines.append("")
-        lines.append(f"缺失代码：{', '.join(missing)}")
-    return "\n".join(lines)
+        found = [str(row.get("fundcode")) for row in rows if row.get("fundcode")]
+        footer = _list_date_footer(plan, result)
+        body = table if not footer else f"{table}\n\n{footer}"
+        found_text = "、".join(found) if found else "可查代码"
+        missing_text = "、".join(missing)
+        return f"{found_text} 能查到，{missing_text} 未查到。下面是 {found_text} 的可查数据：\n\n{body}"
+    return table
 
 
 def _format_report_list_answer(plan: dict[str, Any], result: dict[str, Any]) -> str:

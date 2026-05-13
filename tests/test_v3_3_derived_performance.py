@@ -1486,15 +1486,54 @@ def test_v3_3_semantic_query_executes_search_two_step_composite_with_name_fallba
     assert "银行" in result["answer"]
 
 
-def test_v3_3_semantic_query_marks_explicit_missing_report_as_data_not_available():
+def test_v3_3_semantic_query_corrects_missing_report_premise(monkeypatch):
+    draft = {
+        "ast_schema_version": "v3_2_base_ast",
+        "intent": "report_industry",
+        "sub_intents": [],
+        "from": "tb_ths_etf_report_quarter",
+        "select": ["fundcode", "year_num", "type_num", "ths_top_n_top_industry_name_fund"],
+        "where": [{"field": "fundcode", "op": "eq", "value": "510300"}],
+        "order_by": None,
+        "limit": 1,
+        "output_style": "report_list",
+        "answer_fields": [
+            {"field": "fundcode", "label": "基金代码", "format": "plain"},
+            {"field": "ths_top_n_top_industry_name_fund", "label": "前N大行业名称", "format": "plain"},
+        ],
+        "report_period": {"mode": "latest"},
+        "expand": {"field": "ths_top_n_top_industry_name_fund"},
+    }
+
+    monkeypatch.setattr(
+        "etf_agent.v3.generate_full_ast_draft_with_llm",
+        lambda **kwargs: {"raw": json.dumps(draft, ensure_ascii=False), "draft": draft},
+    )
+    monkeypatch.setattr(
+        "etf_agent.v3._execute_v3_plan",
+        lambda plan, config_obj, *, dry_run, no_llm: {
+            "success": True,
+            "data": {
+                "fundcode": "510300",
+                "year_num": 2025,
+                "type_num": 1,
+                "ths_top_n_top_industry_name_fund": [
+                    {"rank_num": 1, "value": "食品饮料"},
+                    {"rank_num": 2, "value": "银行"},
+                    {"rank_num": 3, "value": "非银金融"},
+                ],
+            },
+        },
+    )
+
     result = semantic_query_v3("510300的持仓行业是什么（季报年报都没有）", root=ROOT, phase="v3.3")
 
-    assert result["failure_stage"] == "data_not_available"
-    assert result["v3"]["routing_result"]["type"] == "UnsupportedQuery"
-    assert result["v3"]["routing_result"]["reason"] == "data_not_available"
-    assert result["v3"]["remote_query_allowed"] is False
-    assert result["query_plan"] is None
-    assert "暂无" in result["answer"]
+    assert result["failure_stage"] is None
+    assert result["v3"]["routing_result"]["type"] == "ExecutableQuery"
+    assert result["v3"]["intent"] == "report_industry"
+    assert "并不属于“季报年报都没有”" in result["answer"]
+    assert "2025年一季报" in result["answer"]
+    assert "食品饮料、银行、非银金融" in result["answer"]
 
 
 def test_v3_3_peer_average_period_semantics_remain_blocked_by_verification():
