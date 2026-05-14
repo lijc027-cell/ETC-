@@ -9,7 +9,7 @@
 所有查询通过 **SSH 远程执行** Python 脚本实现，不需要 HTTP 端口。
 
 **服务器信息**：
-- SSH: `[ETF_SSH_USER]@[ETF_SSH_HOST]`，密码 `[ETF_SSH_PASSWORD]`
+- SSH: `[ETF_SSH_USER]@[ETF_SSH_HOST]`，密码 `<ETF_SSH_PASSWORD>`
 - 脚本：`[ETF_REMOTE_SCRIPT]`
 - Python: `[ETF_REMOTE_PYTHON]`
 - MongoDB 直连：`[ETF_REMOTE_MONGO_URI]`
@@ -40,7 +40,7 @@ import paramiko, json, time
 
 ssh = paramiko.SSHClient()
 ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-ssh.connect("[ETF_SSH_HOST]", 22, "[ETF_SSH_USER]", "[ETF_SSH_PASSWORD]")
+ssh.connect("[ETF_SSH_HOST]", 22, "[ETF_SSH_USER]", "<ETF_SSH_PASSWORD>")
 
 # Execute command, write result to file on server
 ssh.exec_command("cd [ETF_REMOTE_WORKDIR] && [ETF_REMOTE_PYTHON] etf_query.py info '{\"fundcode\":\"510300\"}' > /tmp/etf_result.json 2>/dev/null")
@@ -61,7 +61,7 @@ import paramiko, json, time, threading
 
 ssh = paramiko.SSHClient()
 ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-ssh.connect("[ETF_SSH_HOST]", 22, "[ETF_SSH_USER]", "[ETF_SSH_PASSWORD]")
+ssh.connect("[ETF_SSH_HOST]", 22, "[ETF_SSH_USER]", "<ETF_SSH_PASSWORD>")
 
 # Execute all commands on same SSH connection (no wait needed)
 ssh.exec_command("cd [ETF_REMOTE_WORKDIR] && [ETF_REMOTE_PYTHON] etf_query.py info '{\"fundcode\":\"510300\"}' > /tmp/etf_a.json 2>/dev/null")
@@ -93,7 +93,7 @@ import paramiko, json, time
 
 ssh = paramiko.SSHClient()
 ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-ssh.connect("[ETF_SSH_HOST]", 22, "[ETF_SSH_USER]", "[ETF_SSH_PASSWORD]")
+ssh.connect("[ETF_SSH_HOST]", 22, "[ETF_SSH_USER]", "<ETF_SSH_PASSWORD>")
 
 cmd = '''cd [ETF_REMOTE_WORKDIR] && [ETF_REMOTE_PYTHON] -c "
 import json
