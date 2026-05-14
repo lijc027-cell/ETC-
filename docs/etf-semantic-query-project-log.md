@@ -334,13 +334,13 @@ entity_hints
 
 问题：
 
-旧 `skill.md` 描述的是调用远端 `[ETF_REMOTE_SCRIPT]` 的查询方式；新方案是本地生成查询计划后直查 Mongo。
+旧 `skill.md` 描述的是调用远端 `<ETF_REMOTE_SCRIPT>` 的查询方式；新方案是本地生成查询计划后直查 Mongo。
 
 方案：
 
 - 在 spec 中明确两套方案关系。
 - v1 以新 spec 为准。
-- 不调用 `[ETF_REMOTE_SCRIPT]`。
+- 不调用 `<ETF_REMOTE_SCRIPT>`。
 - `api-reference.md` 只作为远端环境背景参考。
 
 效果：

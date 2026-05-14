@@ -162,9 +162,9 @@ skill.md                  — 旧 skill 定义（不参与 v1）
 
 ## 远端环境
 
-- SSH: [ETF_SSH_USER]@[ETF_SSH_HOST]
-- Python: [ETF_REMOTE_PYTHON]
-- MongoDB: [ETF_REMOTE_MONGO_URI], db: [ETF_REMOTE_DB]
+- SSH: <ETF_SSH_USER>@<ETF_SSH_HOST>
+- Python: <ETF_REMOTE_PYTHON>
+- MongoDB: <ETF_REMOTE_MONGO_URI>, db: <ETF_REMOTE_DB>
 - 集合: tb_ths_etf_base, tb_ths_etf_report_quarter, tb_ths_etf_report_year
 - 密码和 API Key 在本地 `.env`，不要提交
 

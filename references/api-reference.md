@@ -9,10 +9,10 @@
 所有查询通过 **SSH 远程执行** Python 脚本实现，不需要 HTTP 端口。
 
 **服务器信息**：
-- SSH: `[ETF_SSH_USER]@[ETF_SSH_HOST]`，密码 `<ETF_SSH_PASSWORD>`
-- 脚本：`[ETF_REMOTE_SCRIPT]`
-- Python: `[ETF_REMOTE_PYTHON]`
-- MongoDB 直连：`[ETF_REMOTE_MONGO_URI]`
+- SSH: `<ETF_SSH_USER>@<ETF_SSH_HOST>`，密码 `<ETF_SSH_PASSWORD>`
+- 脚本：`<ETF_REMOTE_SCRIPT>`
+- Python: `<ETF_REMOTE_PYTHON>`
+- MongoDB 直连：`<ETF_REMOTE_MONGO_URI>`
 
 ---
 
@@ -40,10 +40,10 @@ import paramiko, json, time
 
 ssh = paramiko.SSHClient()
 ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-ssh.connect("[ETF_SSH_HOST]", 22, "[ETF_SSH_USER]", "<ETF_SSH_PASSWORD>")
+ssh.connect("<ETF_SSH_HOST>", 22, "<ETF_SSH_USER>", "<ETF_SSH_PASSWORD>")
 
 # Execute command, write result to file on server
-ssh.exec_command("cd [ETF_REMOTE_WORKDIR] && [ETF_REMOTE_PYTHON] etf_query.py info '{\"fundcode\":\"510300\"}' > /tmp/etf_result.json 2>/dev/null")
+ssh.exec_command("cd <ETF_REMOTE_WORKDIR> && <ETF_REMOTE_PYTHON> etf_query.py info '{\"fundcode\":\"510300\"}' > /tmp/etf_result.json 2>/dev/null")
 time.sleep(2)
 
 # Read file via SFTP for proper UTF-8 encoding
@@ -61,12 +61,12 @@ import paramiko, json, time, threading
 
 ssh = paramiko.SSHClient()
 ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-ssh.connect("[ETF_SSH_HOST]", 22, "[ETF_SSH_USER]", "<ETF_SSH_PASSWORD>")
+ssh.connect("<ETF_SSH_HOST>", 22, "<ETF_SSH_USER>", "<ETF_SSH_PASSWORD>")
 
 # Execute all commands on same SSH connection (no wait needed)
-ssh.exec_command("cd [ETF_REMOTE_WORKDIR] && [ETF_REMOTE_PYTHON] etf_query.py info '{\"fundcode\":\"510300\"}' > /tmp/etf_a.json 2>/dev/null")
-ssh.exec_command("cd [ETF_REMOTE_WORKDIR] && [ETF_REMOTE_PYTHON] etf_query.py performance '{\"fundcode\":\"510300\"}' > /tmp/etf_b.json 2>/dev/null")
-ssh.exec_command("cd [ETF_REMOTE_WORKDIR] && [ETF_REMOTE_PYTHON] etf_query.py holdings '{\"fundcode\":\"510300\",\"report_type\":\"quarter\"}' > /tmp/etf_c.json 2>/dev/null")
+ssh.exec_command("cd <ETF_REMOTE_WORKDIR> && <ETF_REMOTE_PYTHON> etf_query.py info '{\"fundcode\":\"510300\"}' > /tmp/etf_a.json 2>/dev/null")
+ssh.exec_command("cd <ETF_REMOTE_WORKDIR> && <ETF_REMOTE_PYTHON> etf_query.py performance '{\"fundcode\":\"510300\"}' > /tmp/etf_b.json 2>/dev/null")
+ssh.exec_command("cd <ETF_REMOTE_WORKDIR> && <ETF_REMOTE_PYTHON> etf_query.py holdings '{\"fundcode\":\"510300\",\"report_type\":\"quarter\"}' > /tmp/etf_c.json 2>/dev/null")
 
 time.sleep(2)  # Wait for all to complete
 
@@ -93,12 +93,12 @@ import paramiko, json, time
 
 ssh = paramiko.SSHClient()
 ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-ssh.connect("[ETF_SSH_HOST]", 22, "[ETF_SSH_USER]", "<ETF_SSH_PASSWORD>")
+ssh.connect("<ETF_SSH_HOST>", 22, "<ETF_SSH_USER>", "<ETF_SSH_PASSWORD>")
 
-cmd = '''cd [ETF_REMOTE_WORKDIR] && [ETF_REMOTE_PYTHON] -c "
+cmd = '''cd <ETF_REMOTE_WORKDIR> && <ETF_REMOTE_PYTHON> -c "
 import json
 from pymongo import MongoClient
-db = MongoClient('[ETF_REMOTE_MONGO_URI]')['[ETF_REMOTE_DB]']
+db = MongoClient('<ETF_REMOTE_MONGO_URI>')['<ETF_REMOTE_DB>']
 doc = db['tb_ths_etf_base'].find_one({'fundcode': '510300'})
 out = {'name': doc.get('ths_fund_extended_inner_short_name_fund'),
        'fundcode': doc.get('fundcode'),

@@ -6,9 +6,9 @@
 
 本 spec 和 `skill.md` 的关系：
 
-- `skill.md` 描述旧的 ETF 查询 skill，核心方式是调用远端 `[ETF_REMOTE_SCRIPT]`。
+- `skill.md` 描述旧的 ETF 查询 skill，核心方式是调用远端 `<ETF_REMOTE_SCRIPT>`。
 - 本 spec 描述新的本地语义查询原型，核心方式是解析字段映射、向量召回、Qwen 生成计划、SSH 直查远端 Mongo。
-- 第一版实现以本 spec 为准，不调用 `[ETF_REMOTE_SCRIPT]`。
+- 第一版实现以本 spec 为准，不调用 `<ETF_REMOTE_SCRIPT>`。
 
 第一版要验证的核心链路是：
 
@@ -58,7 +58,7 @@ Qwen 只负责把自然语言转成结构化查询计划。数据查询、结果
 - 第一版不做前端页面。
 - 第一版不支持数据库写入、更新、删除。
 - 第一版不完整支持 ETF、指数、概念、分析框架的全部问题。
-- 第一版不依赖远端 `[ETF_REMOTE_SCRIPT]` 脚本执行查询。
+- 第一版不依赖远端 `<ETF_REMOTE_SCRIPT>` 脚本执行查询。
 - 第一版不让 Qwen 生成最终答案、投资判断、归因分析或扩展解释。
 
 ## 4. v1 支持范围
@@ -137,20 +137,20 @@ ETF_AGENT_LLM_MODEL=qwen-plus
 ETF_AGENT_EMBEDDING_MODEL=text-embedding-v3
 ETF_AGENT_EMBEDDING_DIM=1024
 
-ETF_SSH_HOST=[ETF_SSH_HOST]
+ETF_SSH_HOST=<ETF_SSH_HOST>
 ETF_SSH_PORT=22
-ETF_SSH_USER=[ETF_SSH_USER]
+ETF_SSH_USER=<ETF_SSH_USER>
 ETF_SSH_PASSWORD=
-ETF_REMOTE_PYTHON=[ETF_REMOTE_PYTHON]
-ETF_REMOTE_MONGO_URI=[ETF_REMOTE_MONGO_URI]
-ETF_REMOTE_DB=[ETF_REMOTE_DB]
+ETF_REMOTE_PYTHON=<ETF_REMOTE_PYTHON>
+ETF_REMOTE_MONGO_URI=<ETF_REMOTE_MONGO_URI>
+ETF_REMOTE_DB=<ETF_REMOTE_DB>
 ```
 
 第一版 SSH 主机、用户、远端 Python 和数据库名可以参考 `references/api-reference.md`。真实 SSH 密码只允许写入本地 `.env`，不要写入 `.env.example`、spec 或代码。
 
 项目必须通过 `.gitignore` 排除 `.env`、`.venv/`、`.cache/` 等本地敏感或生成文件。已暴露的 API Key 或 SSH 密码必须轮换。
 
-`references/api-reference.md` 中的 `[ETF_REMOTE_SCRIPT]` 只作为远端环境背景参考。第一版查询执行不调用该脚本，而是通过 SSH 执行固定 Python 查询模板直连 Mongo。
+`references/api-reference.md` 中的 `<ETF_REMOTE_SCRIPT>` 只作为远端环境背景参考。第一版查询执行不调用该脚本，而是通过 SSH 执行固定 Python 查询模板直连 Mongo。
 
 ## 7. 数据字典解析
 

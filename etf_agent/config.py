@@ -32,13 +32,13 @@ def load_config(root: Path | str) -> Config:
         llm_model=os.getenv("ETF_AGENT_LLM_MODEL", "qwen-plus"),
         embedding_model=os.getenv("ETF_AGENT_EMBEDDING_MODEL", "text-embedding-v3"),
         embedding_dim=int(os.getenv("ETF_AGENT_EMBEDDING_DIM", "1024")),
-        ssh_host=os.getenv("ETF_SSH_HOST", "[ETF_SSH_HOST]"),
+        ssh_host=os.getenv("ETF_SSH_HOST", ""),
         ssh_port=int(os.getenv("ETF_SSH_PORT", "22")),
-        ssh_user=os.getenv("ETF_SSH_USER", "root"),
+        ssh_user=os.getenv("ETF_SSH_USER", ""),
         ssh_password=os.getenv("ETF_SSH_PASSWORD", ""),
-        remote_python=os.getenv("ETF_REMOTE_PYTHON", "[ETF_REMOTE_PYTHON]"),
-        remote_mongo_uri=os.getenv("ETF_REMOTE_MONGO_URI", "[ETF_REMOTE_MONGO_URI]"),
-        remote_db=os.getenv("ETF_REMOTE_DB", "[ETF_REMOTE_DB]"),
+        remote_python=os.getenv("ETF_REMOTE_PYTHON", ""),
+        remote_mongo_uri=os.getenv("ETF_REMOTE_MONGO_URI", ""),
+        remote_db=os.getenv("ETF_REMOTE_DB", ""),
     )
 
 
@@ -55,6 +55,19 @@ def require_runtime_config(config: Config) -> None:
 def require_ssh_config(config: Config) -> None:
     if not config.ssh_password:
         raise RuntimeError("阶段：配置\n错误：缺少 .env 配置项 ETF_SSH_PASSWORD")
+    missing = []
+    if not config.ssh_host:
+        missing.append("ETF_SSH_HOST")
+    if not config.ssh_user:
+        missing.append("ETF_SSH_USER")
+    if not config.remote_python:
+        missing.append("ETF_REMOTE_PYTHON")
+    if not config.remote_mongo_uri:
+        missing.append("ETF_REMOTE_MONGO_URI")
+    if not config.remote_db:
+        missing.append("ETF_REMOTE_DB")
+    if missing:
+        raise RuntimeError("阶段：配置\n错误：缺少 .env 配置项 " + ", ".join(missing))
 
 
 def _load_dotenv(path: Path) -> None:
