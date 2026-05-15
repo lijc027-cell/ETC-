@@ -42,7 +42,7 @@ def build_generation_bundle(
     entity_hints: dict[str, Any],
     phase: str = "v3.2",
 ) -> dict[str, Any]:
-    selection_context = get_selection_context(query_mode, intent, phase=phase)
+    selection_context = _selection_context_for_phase(query_mode, intent, phase)
     report_scope = resolve_report_scope(question, intent, entity_hints) if query_mode == "report" else None
     if report_scope:
         selection_context["collection"] = report_collection(intent, report_scope, selection_context["collection"])
@@ -60,14 +60,14 @@ def build_generation_bundle(
         expectations["expected_expand"] = expand
         evidence["report_scope"] = report_scope
         evidence["report_period"] = entity_hints.get("report_period")
-    if phase == "v3.3":
+    if phase in {"v3.3", "v3.4"}:
         _apply_v3_3_derived_contract(question, query_mode, intent, entity_hints, selection_context, evidence, expectations)
         expected_timeseries_modes = _expected_timeseries_modes(question, query_mode=query_mode, intent=intent, entity_hints=entity_hints)
         if expected_timeseries_modes:
             expectations["expected_timeseries_modes"] = expected_timeseries_modes
 
     llm_context = {
-        "ast_schema_version": selection_context.get("ast_schema_version", "v3_3_structured_query" if phase == "v3.3" else "v3_2_base_ast"),
+        "ast_schema_version": selection_context.get("ast_schema_version", "v3_3_structured_query" if phase in {"v3.3", "v3.4"} else "v3_2_base_ast"),
         "phase": phase,
         "grammar_fragment_id": selection_context.get("grammar_fragment_id"),
         "compiler_rule_id": selection_context.get("compiler_rule_id"),
@@ -104,6 +104,15 @@ def build_generation_bundle(
         "selection_context": selection_context,
         "validator_expectations": expectations,
     }
+
+
+def _selection_context_for_phase(query_mode: str, intent: str, phase: str) -> dict[str, Any]:
+    try:
+        return get_selection_context(query_mode, intent, phase=phase)
+    except KeyError:
+        if phase == "v3.4":
+            return get_selection_context(query_mode, intent, phase="v3.3")
+        raise
 
 
 def _strict_validation_contract(expectations: dict[str, Any]) -> dict[str, Any]:
@@ -393,6 +402,15 @@ def _required_select_fields(
         return _investment_profile_fields(question)
     if intent == "fund_scale":
         return [_fund_scale_field(question)]
+    if intent == "nav_trend":
+        return ["ths_unit_nv_fund"]
+    if intent == "scale_share_trend":
+        fields = []
+        if "规模" in question:
+            fields.append("ths_fund_scale_fund")
+        if "份额" in question:
+            fields.append("ths_fund_shares_fund")
+        return fields or ["ths_fund_scale_fund", "ths_fund_shares_fund"]
     if intent == "tracking_index":
         return ["ths_tracking_index_code_fund", "ths_name_of_tracking_index_fund"]
     if intent == "fee":
@@ -605,6 +623,15 @@ def _expected_timeseries_modes(
         return {field: dict(spec) for field, spec in hint_ts.items()}
 
     modes: dict[str, dict[str, str]] = {}
+    if intent == "nav_trend":
+        modes["ths_unit_nv_fund"] = {"mode": "series", **_resolve_series_period(question)}
+        return modes
+    if intent == "scale_share_trend":
+        period = _resolve_series_period(question)
+        for field in _required_select_fields(question, query_mode=query_mode, intent=intent, entity_hints=entity_hints):
+            if field in {"ths_fund_scale_fund", "ths_fund_shares_fund"}:
+                modes[field] = {"mode": "series", **period}
+        return modes
     if "最近有变化" in question or "变化吗" in question or "变化" in question:
         if "份额" in question:
             modes["ths_fund_shares_fund"] = {"mode": "latest_two", "evidence": "最近有变化"}
@@ -619,6 +646,25 @@ def _expected_timeseries_modes(
             if evidence in question:
                 modes[field] = {"mode": "latest", "evidence": evidence}
     return modes
+
+
+def _resolve_series_period(question: str) -> dict[str, Any]:
+    if any(word in question for word in ("成立以来", "全部历史", "成立至今")):
+        return {"period": "std"}
+    match = re.search(r"近\s*(\d+)\s*(?:个)?(?:交易日|业务日|日)", question)
+    if match:
+        return {"period": "business_days", "count": int(match.group(1))}
+    if any(word in question for word in ("近一个月", "近1个月")):
+        return {"period": "1m"}
+    if any(word in question for word in ("近三个月", "近3个月")):
+        return {"period": "3m"}
+    if any(word in question for word in ("近半年", "近6个月")):
+        return {"period": "6m"}
+    if any(word in question for word in ("近三年", "近3年")):
+        return {"period": "3y"}
+    if any(word in question for word in ("近五年", "近5年")):
+        return {"period": "5y"}
+    return {"period": "1y"}
 
 
 def _compare_fields(question: str, period: str) -> list[str]:

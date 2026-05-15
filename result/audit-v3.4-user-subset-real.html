@@ -1,0 +1,58 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>v3.4 User Subset Real Audit</title><style>:root{--bg:#f4f0e6;--paper:#fffaf0;--ink:#2f2418;--muted:#6e5c45;--line:#d7c8b2;--pass:#2f6f4e;--fail:#9f2f2f;--skip:#70655b;}*{box-sizing:border-box;}body{margin:0;background:var(--bg);color:var(--ink);font-family:Georgia,serif;}.wrap{max-width:1320px;margin:0 auto;padding:28px 22px 48px;}.hero{padding:10px 0 18px;border-bottom:1px solid var(--line);margin-bottom:18px;}h1{margin:0 0 8px;font-size:32px;}.sub{color:var(--muted);font-size:14px;line-height:1.5;}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin:18px 0 24px;}.stat{background:var(--paper);border:1px solid var(--line);padding:14px 16px;border-radius:6px;}.stat .k{color:var(--muted);font-size:12px;}.stat .v{margin-top:6px;font-size:26px;}.cases{display:grid;gap:16px;}.card{background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:18px;}.head{display:flex;justify-content:space-between;gap:12px;align-items:baseline;margin-bottom:10px;}.qid{font-size:20px;line-height:1.35;}.badge{font-size:12px;padding:3px 8px;border-radius:999px;border:1px solid var(--line);white-space:nowrap;}.pass{color:var(--pass);}.fail{color:var(--fail);}.skip{color:var(--skip);}.meta{color:var(--muted);font-size:13px;margin-bottom:14px;line-height:1.5;}.cols{display:grid;grid-template-columns:.85fr 1.15fr;gap:14px;}.panel{border:1px solid var(--line);border-radius:6px;overflow:hidden;}.panel h3{margin:0;padding:10px 12px;font-size:14px;background:rgba(0,0,0,.03);}.panel pre{margin:0;padding:12px;white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;line-height:1.5;}@media(max-width:900px){.cols{grid-template-columns:1fr;}}</style></head><body><div class="wrap"><div class="hero"><h1>v3.4 User Subset Real Audit</h1><div class="sub">result/audit-v3.4-user-subset-real.json · expected from user prompt · 11 pass · 3 fail · LLM 总 token 数：23269</div></div><div class="grid"><div class="stat"><div class="k">Total Cases</div><div class="v">14</div></div><div class="stat"><div class="k">Passed</div><div class="v">11</div></div><div class="stat"><div class="k">Failed</div><div class="v">3</div></div><div class="stat"><div class="k">LLM Tokens</div><div class="v">23269</div></div></div><div class="cases">
+    <section class="card"><div class="head"><div class="qid">六.1 510500 近一年净值走势</div><div class="badge pass">PASS</div></div><div class="meta">phase=v3.4 · actual=ExecutableQuery(single/nav_trend) · tokens=2006</div><div class="cols"><div class="panel"><h3>Expected</h3><pre>2025-06-17 单位净值5.7838，2026-05-14 单位净值8.7566，区间变动51.4%</pre></div><div class="panel"><h3>Answer</h3><pre>中证500ETF（510500）近一年单位净值走势已查询到，共 321 个数据点，覆盖 2025-06-17 至 2026-05-14。
+部分数据点：
+单位净值：2025-06-17：5.7838；2025-06-18：5.7807；2025-06-19：5.7132；...；2026-05-12：8.8685；2026-05-13：9.0026；2026-05-14：8.7566
+
+数据截至 2026-05-14。
+LLM token：2006</pre></div></div></section>
+    <section class="card"><div class="head"><div class="qid">六.2 159919 成立以来净值曲线</div><div class="badge pass">PASS</div></div><div class="meta">phase=v3.4 · actual=ExecutableQuery(single/nav_trend) · tokens=2002</div><div class="cols"><div class="panel"><h3>Expected</h3><pre>2025-06-17 单位净值4.0235，2026-05-14 单位净值5.1414，区间变动27.78%</pre></div><div class="panel"><h3>Answer</h3><pre>沪深300ETF（159919）成立以来单位净值走势已查询到，共 321 个数据点，覆盖 2025-06-17 至 2026-05-14。
+部分数据点：
+单位净值：2025-06-17：4.0235；2025-06-18：4.0292；2025-06-19：3.9964；...；2026-05-12：5.174；2026-05-13：5.2286；2026-05-14：5.1414
+
+数据截至 2026-05-14。
+LLM token：2002</pre></div></div></section>
+    <section class="card"><div class="head"><div class="qid">七.1 510500 可以申购吗</div><div class="badge pass">PASS</div></div><div class="meta">phase=v3.3 · actual=ExecutableQuery(single/basic_info_extended) · tokens=2208</div><div class="cols"><div class="panel"><h3>Expected</h3><pre>中证500ETF（510500）申购赎回状态：开放申购|开放赎回。</pre></div><div class="panel"><h3>Answer</h3><pre>510500 的申购赎回状态为 开放申购|开放赎回，基金简称为 中证500ETF。
+
+LLM token：2208</pre></div></div></section>
+    <section class="card"><div class="head"><div class="qid">七.2 159919 开放赎回了吗</div><div class="badge pass">PASS</div></div><div class="meta">phase=v3.3 · actual=ExecutableQuery(single/basic_info_extended) · tokens=2263</div><div class="cols"><div class="panel"><h3>Expected</h3><pre>沪深300ETF（159919）申购赎回状态：开放申购|开放赎回。</pre></div><div class="panel"><h3>Answer</h3><pre>159919 的基金简称为 沪深300ETF，申购赎回状态为 开放申购|开放赎回。
+
+LLM token：2263</pre></div></div></section>
+    <section class="card"><div class="head"><div class="qid">七.3 510300 申购赎回状态</div><div class="badge pass">PASS</div></div><div class="meta">phase=v3.3 · actual=ExecutableQuery(single/basic_info_extended) · tokens=2263</div><div class="cols"><div class="panel"><h3>Expected</h3><pre>沪深300ETF（510300）申购赎回状态：开放申购|开放赎回。</pre></div><div class="panel"><h3>Answer</h3><pre>510300 的基金简称为 沪深300ETF，申购赎回状态为 开放申购|开放赎回。
+
+LLM token：2263</pre></div></div></section>
+    <section class="card"><div class="head"><div class="qid">八.2 159919 成交量</div><div class="badge pass">PASS</div></div><div class="meta">phase=v3.3 · actual=ExecutableQuery(single/basic_info) · tokens=2134</div><div class="cols"><div class="panel"><h3>Expected</h3><pre>沪深300ETF（159919）最新成交额为20.76亿，日期2026-05-14。</pre></div><div class="panel"><h3>Answer</h3><pre>159919 的基金简称为 沪深300ETF，跟踪指数名称为 沪深300指数，基金规模为 786.88 亿元（2026-05-14）。
+
+数据截至 2026-05-14。
+LLM token：2134</pre></div></div></section>
+    <section class="card"><div class="head"><div class="qid">八.3 588000 流动性怎么样</div><div class="badge pass">PASS</div></div><div class="meta">phase=v3.3 · actual=ExecutableQuery(single/basic_info) · tokens=2144</div><div class="cols"><div class="panel"><h3>Expected</h3><pre>科创50ETF华夏（588000）最新成交额64.12亿；远端当前没有返回日均成交额和日均换手率字段。</pre></div><div class="panel"><h3>Answer</h3><pre>588000 的基金简称为 科创50ETF华夏，跟踪指数名称为 上证科创板50成份指数，基金规模为 687.79 亿元（2026-05-14）。
+
+数据截至 2026-05-14。
+LLM token：2144</pre></div></div></section>
+    <section class="card"><div class="head"><div class="qid">九.1 510500 近一年规模变化</div><div class="badge pass">PASS</div></div><div class="meta">phase=v3.4 · actual=ExecutableQuery(single/scale_share_trend) · tokens=2069</div><div class="cols"><div class="panel"><h3>Expected</h3><pre>2025-06-17 为1114.85亿，2026-05-14 为440.54亿，变化-674.31亿，变动率-60.48%</pre></div><div class="panel"><h3>Answer</h3><pre>中证500ETF（510500）近一年基金规模走势已查询到，共 321 个数据点，覆盖 2025-06-17 至 2026-05-14。
+部分数据点：
+基金规模：2025-06-17：1114.85 亿元；2025-06-18：1113.14 亿元；2025-06-19：1097.77 亿元；...；2026-05-12：476.50 亿元；2026-05-13：476.58 亿元；2026-05-14：440.54 亿元
+
+数据截至 2026-05-14。
+LLM token：2069</pre></div></div></section>
+    <section class="card"><div class="head"><div class="qid">九.2 159919 份额变化趋势</div><div class="badge pass">PASS</div></div><div class="meta">phase=v3.4 · actual=ExecutableQuery(single/scale_share_trend) · tokens=2071</div><div class="cols"><div class="panel"><h3>Expected</h3><pre>2025-06-17 为418.48亿份，2026-05-14 为153.05亿份，变化-265.44亿份</pre></div><div class="panel"><h3>Answer</h3><pre>沪深300ETF（159919）近一年基金份额走势已查询到，共 321 个数据点，覆盖 2025-06-17 至 2026-05-14。
+部分数据点：
+基金份额：2025-06-17：418.48亿份；2025-06-18：418.46亿份；2025-06-19：418.35亿份；...；2026-05-12：159.58亿份；2026-05-13：155.95亿份；2026-05-14：153.05亿份
+
+数据截至 2026-05-14。
+LLM token：2071</pre></div></div></section>
+    <section class="card"><div class="head"><div class="qid">十五.1 510500 近5日份额变动</div><div class="badge fail">FAIL</div></div><div class="meta">phase=v3.3 · actual=UnsupportedQuery(unsupported/None) · tokens=0 · failure_stage=routing · failure_reason=derived_not_supported</div><div class="cols"><div class="panel"><h3>Expected</h3><pre>510500 2026-05-09 至 2026-05-14 近5个交易日份额变化为-9.83亿份。</pre></div><div class="panel"><h3>Answer</h3><pre>当前版本暂不支持该查询类型。
+
+LLM token：0</pre></div></div></section>
+    <section class="card"><div class="head"><div class="qid">十六.1 510500 综合费率是多少</div><div class="badge pass">PASS</div></div><div class="meta">phase=v3.3 · actual=ExecutableQuery(single/fee) · tokens=1965</div><div class="cols"><div class="panel"><h3>Expected</h3><pre>中证500ETF（510500）管理费率0.15%，托管费率0.05%，合计0.2%。</pre></div><div class="panel"><h3>Answer</h3><pre>510500 的管理费率为 0.15%，托管费率为 0.05%。
+
+LLM token：1965</pre></div></div></section>
+    <section class="card"><div class="head"><div class="qid">十六.2 510300 持有成本</div><div class="badge pass">PASS</div></div><div class="meta">phase=v3.3 · actual=ExecutableQuery(single/basic_info) · tokens=2144</div><div class="cols"><div class="panel"><h3>Expected</h3><pre>沪深300ETF（510300）管理费率0.15%，托管费率0.05%，合计0.2%。</pre></div><div class="panel"><h3>Answer</h3><pre>510300 的基金简称为 沪深300ETF，跟踪指数名称为 沪深300指数，基金规模为 1583.25 亿元（2026-05-14）。
+
+数据截至 2026-05-14。
+LLM token：2144</pre></div></div></section>
+    <section class="card"><div class="head"><div class="qid">十八.1 510500 近3个月规模变动率</div><div class="badge fail">FAIL</div></div><div class="meta">phase=v3.4 · actual=UnsupportedQuery(unsupported/fund_scale) · tokens=0 · failure_stage=routing · failure_reason=derived_not_supported</div><div class="cols"><div class="panel"><h3>Expected</h3><pre>2026-02-13 为913.14亿，2026-05-14 为440.54亿，变化-472.60亿，变动率-51.76%</pre></div><div class="panel"><h3>Answer</h3><pre>UnsupportedQuery(derived_not_supported)
+
+LLM token：0</pre></div></div></section>
+    <section class="card"><div class="head"><div class="qid">十八.2 159919 规模增长率</div><div class="badge fail">FAIL</div></div><div class="meta">phase=v3.4 · actual=UnsupportedQuery(unsupported/fund_scale) · tokens=0 · failure_stage=routing · failure_reason=derived_not_supported</div><div class="cols"><div class="panel"><h3>Expected</h3><pre>2026-02-13 为1008.37亿，2026-05-14 为786.88亿，变化-221.49亿，变动率-21.97%</pre></div><div class="panel"><h3>Answer</h3><pre>UnsupportedQuery(derived_not_supported)
+
+LLM token：0</pre></div></div></section></div></div></body></html>

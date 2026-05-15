@@ -59,3 +59,16 @@ def test_audit_section_tool_runs_script(monkeypatch):
     assert response["ok"] is True
     assert calls[0][-1] == "scripts/audit_v3_3_section10.py"
     assert response["stdout"] == "overall ok"
+
+
+def test_project_status_reports_v3_4_p2_progress():
+    import etf_mcp_server
+
+    response = etf_mcp_server.get_project_status_tool()
+
+    assert response["ok"] is True
+    assert response["default_phase"] == "v3.4"
+    assert response["current_progress"]["p2_status"] == "local_uncommitted"
+    assert "nav_trend" in response["current_progress"]["enabled_intents"]
+    assert "scale_share_trend" in response["current_progress"]["enabled_intents"]
+    assert "v3.4" in response["supported_phases"]

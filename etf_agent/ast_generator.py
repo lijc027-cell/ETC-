@@ -211,7 +211,7 @@ def _build_local_full_ast_draft(
         "report_period": None,
         "expand": None,
     }
-    if phase == "v3.3":
+    if phase in {"v3.3", "v3.4"}:
         base_draft["ast_schema_version"] = llm_context.get("ast_schema_version", "v3_3_structured_query")
     if llm_context.get("derived_performance_contract"):
         return _local_derived_full_ast_draft(base_draft, llm_context, expectations, selection_context)

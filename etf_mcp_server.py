@@ -5,10 +5,10 @@ import subprocess
 import sys
 from typing import Any
 
-from etf_agent.api import API_VERSION, run_query
+from etf_agent.api import API_VERSION, SUPPORTED_PHASES, run_query
 
 ROOT = Path(__file__).resolve().parent
-DEFAULT_PHASE = "v3.3"
+DEFAULT_PHASE = "v3.4"
 
 
 def query_etf_tool(
@@ -49,6 +49,11 @@ def get_project_status_tool() -> dict[str, Any]:
         "service": "etf-query-mcp",
         "api_version": API_VERSION,
         "default_phase": DEFAULT_PHASE,
+        "supported_phases": sorted(SUPPORTED_PHASES),
+        "current_progress": {
+            "p2_status": "local_uncommitted",
+            "enabled_intents": ["nav_trend", "scale_share_trend"],
+        },
         "tools": ["query_etf", "audit_section10", "audit_section12", "get_project_status"],
         "notes": [
             "Queries use the local ETF Text2SQL v3 runtime.",

@@ -136,6 +136,7 @@ def validate_v3_3_ast_draft(
     expectations = generation_bundle["validator_expectations"]
     draft_before_validation = deepcopy(draft_ast)
     normalized = deepcopy(draft_ast)
+    timeseries_defaults = _apply_expected_timeseries_defaults(normalized, expectations)
 
     ast_schema_version = _validate_v3_3_ast_schema_version(normalized)
     has_derived_return_select = any(
@@ -210,7 +211,10 @@ def validate_v3_3_ast_draft(
     return {
         "validated_ast": normalized,
         "provenance_diff": provenance_diff,
-        "validator_applied_defaults": {"baseline_fields_added": defaults},
+        "validator_applied_defaults": {
+            "baseline_fields_added": defaults,
+            **({"timeseries_semantics": timeseries_defaults} if timeseries_defaults else {}),
+        },
     }
 
 
@@ -434,21 +438,42 @@ def _validate_v3_3_timeseries_semantics(
             raise ValueError("timeseries_semantics entries must be objects")
         normalized_spec = dict(spec)
         mode = normalized_spec.get("mode")
-        if mode not in {"latest", "latest_two", "specified"}:
+        if mode not in {"latest", "latest_two", "specified", "series"}:
             raise ValueError(f"unsupported timeseries mode: {mode}")
         if mode == "specified" and not isinstance(normalized_spec.get("btime"), str):
             raise ValueError("specified timeseries mode requires btime")
+        if mode == "series":
+            period = normalized_spec.get("period")
+            if period not in {"1m", "3m", "6m", "1y", "3y", "5y", "std", "business_days"}:
+                raise ValueError(f"unsupported series period: {period}")
+            if period == "business_days":
+                count = normalized_spec.get("count")
+                if not isinstance(count, int) or not 1 <= count <= 250:
+                    raise ValueError("business_days series period requires count between 1 and 250")
         expected_spec = expected.get(field)
         if expected_spec is not None:
             if mode != expected_spec.get("mode"):
                 raise ValueError(f"timeseries mode mismatch for {field}")
             if expected_spec.get("mode") == "specified" and spec.get("btime") != expected_spec.get("btime"):
                 raise ValueError(f"timeseries btime mismatch for {field}")
+            if expected_spec.get("period") is not None and spec.get("period") != expected_spec.get("period"):
+                raise ValueError(f"timeseries period mismatch for {field}")
+            if expected_spec.get("count") is not None and spec.get("count") != expected_spec.get("count"):
+                raise ValueError(f"timeseries count mismatch for {field}")
         normalized_by_field[field] = normalized_spec
     for field, expected_spec in expected.items():
         if field not in by_field:
             raise ValueError(f"missing requested timeseries field: {field}")
     timeseries["by_field"] = normalized_by_field
+
+
+def _apply_expected_timeseries_defaults(ast: dict[str, Any], expectations: dict[str, Any]) -> dict[str, Any]:
+    expected = expectations.get("expected_timeseries_modes") or {}
+    if not expected or ast.get("timeseries_semantics") is not None:
+        return {}
+    defaults = {field: dict(spec) for field, spec in expected.items()}
+    ast["timeseries_semantics"] = {"by_field": defaults}
+    return defaults
 
 
 def _reject_legacy_yield_field(field: Any) -> None:

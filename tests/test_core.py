@@ -1616,3 +1616,26 @@ def test_api_openapi_spec_documents_query_endpoint():
     assert spec["openapi"].startswith("3.")
     assert "/v1/query" in spec["paths"]
     assert "question" in spec["components"]["schemas"]["QueryRequest"]["required"]
+
+
+def test_api_accepts_v3_4_phase(monkeypatch):
+    from etf_agent import api
+
+    calls = []
+
+    def fake_query(question, *, root, dry_run, no_llm, phase):
+        calls.append({"question": question, "phase": phase})
+        return {
+            "question": question,
+            "answer": "trend answer",
+            "v3": {"recognized_query_mode": "single", "intent": "nav_trend"},
+        }
+
+    monkeypatch.setattr(api, "semantic_query_v3", fake_query)
+
+    response = api.run_query({"question": "510500近一年净值走势", "phase": "v3.4"})
+
+    assert response["ok"] is True
+    assert response["phase"] == "v3.4"
+    assert response["intent"] == "nav_trend"
+    assert calls == [{"question": "510500近一年净值走势", "phase": "v3.4"}]

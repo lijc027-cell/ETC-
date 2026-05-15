@@ -6,7 +6,7 @@ from typing import Any
 from .candidates import PERIOD_FIELDS
 
 
-ALLOWED_FORMATS = ("plain", "amount", "percent", "date", "yuan_to_100m", "long_text", "shares")
+ALLOWED_FORMATS = ("plain", "amount", "percent", "date", "yuan_to_100m", "shares_to_100m", "long_text", "shares")
 BASE_COLLECTION = "tb_ths_etf_base"
 
 

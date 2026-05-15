@@ -19,6 +19,8 @@ PERIOD_LABELS = {
 
 
 def format_answer(plan: dict[str, Any], result: dict[str, Any]) -> str:
+    if plan.get("output_style") == "timeseries_series":
+        return _format_timeseries_series_answer(plan, result)
     if plan.get("output_style") == "performance_table":
         return _format_performance_table_answer(plan, result)
     if plan.get("output_style") == "report_list":
@@ -30,6 +32,140 @@ def format_answer(plan: dict[str, Any], result: dict[str, Any]) -> str:
     if plan.get("output_style") == "compare":
         return _format_compare_answer(plan, result)
     return _format_summary_answer(plan, result)
+
+
+def _format_timeseries_series_answer(plan: dict[str, Any], result: dict[str, Any]) -> str:
+    data = result.get("data")
+    if isinstance(data, list):
+        data = data[0] if data else None
+    if not isinstance(data, dict):
+        return "查询结果为空。"
+
+    series = _ensure_result_series(data, plan)
+    data["series"] = series
+    fundcode = str(data.get("fundcode") or (plan.get("filter") or {}).get("fundcode") or "")
+    name = str(data.get("ths_fund_extended_inner_short_name_fund") or "")
+    fund_label = f"{name}（{fundcode}）" if name and fundcode else fundcode or name or "该基金"
+    if not series:
+        return f"{fund_label} 暂无走势数据。"
+    first = series[0]
+    label = first.get("label") or first.get("field") or "指标"
+    period = first.get("period") or "1y"
+    point_count = sum(len(item.get("points") or []) for item in series if isinstance(item, dict))
+    date_range = _series_date_range_text(series)
+    period_text = _series_period_text(first)
+    if len(series) == 1:
+        summary = f"{fund_label}{period_text}{label}走势已查询到，共 {point_count} 个数据点{date_range}。"
+        return _with_series_samples(summary, series)
+    labels = "、".join(str(item.get("label") or item.get("field")) for item in series)
+    summary = f"{fund_label}{period_text}{labels}走势已查询到，共 {point_count} 个数据点{date_range}。"
+    return _with_series_samples(summary, series)
+
+
+def _series_date_range_text(series: list[dict[str, Any]]) -> str:
+    dates = [
+        str(point.get("btime") or "")[:10]
+        for item in series
+        if isinstance(item, dict)
+        for point in (item.get("points") or [])
+        if isinstance(point, dict) and point.get("btime")
+    ]
+    if not dates:
+        return ""
+    return f"，覆盖 {min(dates)} 至 {max(dates)}"
+
+
+def _series_period_text(item: dict[str, Any]) -> str:
+    period = item.get("period")
+    if period == "business_days" and isinstance(item.get("count"), int):
+        return f"近{item['count']}个交易日"
+    return {
+        "1m": "近一个月",
+        "3m": "近三个月",
+        "6m": "近半年",
+        "1y": "近一年",
+        "3y": "近三年",
+        "5y": "近五年",
+        "std": "成立以来",
+    }.get(str(period or ""), "")
+
+
+def _with_series_samples(summary: str, series: list[dict[str, Any]]) -> str:
+    lines = [summary, "部分数据点："]
+    for item in series:
+        sample_text = _series_sample_line(item)
+        if sample_text:
+            lines.append(sample_text)
+    return "\n".join(lines)
+
+
+def _series_sample_line(item: dict[str, Any]) -> str:
+    points = [point for point in (item.get("points") or []) if isinstance(point, dict)]
+    if not points:
+        return ""
+    sampled = _sample_series_points(points)
+    parts = []
+    for point in sampled:
+        if point == "...":
+            parts.append("...")
+            continue
+        parts.append(f"{point.get('btime')}：{_format_series_point_value(point.get('value'), item)}")
+    label = item.get("label") or item.get("field") or "指标"
+    return f"{label}：" + "；".join(parts)
+
+
+def _sample_series_points(points: list[dict[str, Any]]) -> list[dict[str, Any] | str]:
+    if len(points) <= 6:
+        return points
+    return [*points[:3], "...", *points[-3:]]
+
+
+def _format_series_point_value(value: Any, item: dict[str, Any]) -> str:
+    field = str(item.get("field") or "")
+    fmt = str(item.get("format") or "plain")
+    if value is None or value == "":
+        return "暂无数据"
+    if field == "ths_unit_nv_fund":
+        return _format_scalar(value, "plain", field=field)
+    if fmt in {"yuan_to_100m", "shares_to_100m", "shares", "amount"}:
+        return _format_scalar(value, fmt, field=field)
+    if isinstance(value, float):
+        return f"{value:.4f}".rstrip("0").rstrip(".")
+    return str(value)
+
+
+def _ensure_result_series(data: dict[str, Any], plan: dict[str, Any]) -> list[dict[str, Any]]:
+    existing = data.get("series")
+    if isinstance(existing, list):
+        return existing
+    by_field = ((plan.get("timeseries_semantics") or {}).get("by_field") or {})
+    answer_formats = {item.get("field"): item.get("format", "plain") for item in plan.get("answer_fields") or [] if isinstance(item, dict)}
+    series = []
+    for field, spec in by_field.items():
+        if not isinstance(spec, dict):
+            continue
+        points = data.get(field)
+        if not isinstance(points, list):
+            points = []
+        block = {
+            "field": field,
+            "label": _field_label(plan, field),
+            "format": _series_format(field, answer_formats.get(field, "plain")),
+            "period": spec.get("period") or "1y",
+            "points": points,
+        }
+        if spec.get("period") == "business_days" and isinstance(spec.get("count"), int):
+            block["count"] = spec["count"]
+        series.append(block)
+    return series
+
+
+def _series_format(field: str, fmt: str) -> str:
+    if field == "ths_fund_scale_fund":
+        return "yuan_to_100m"
+    if field == "ths_fund_shares_fund":
+        return "shares_to_100m"
+    return fmt or "plain"
 
 
 def _format_summary_answer(plan: dict[str, Any], result: dict[str, Any]) -> str:
@@ -66,7 +202,7 @@ def _format_value(value: Any, fmt: str, *, field: str | None = None) -> str:
     if value is None or value == "":
         return "暂无数据"
     suffix = f"（{as_of}）" if as_of else ""
-    if field in {"ths_fund_shares_fund", "ths_org_investor_total_held_shares_fund"} or fmt == "shares":
+    if field in {"ths_fund_shares_fund", "ths_org_investor_total_held_shares_fund"} or fmt in {"shares", "shares_to_100m"}:
         return f"{float(value) / 100000000:.2f}亿份{suffix}"
     if fmt in {"yuan_to_100m", "amount"}:
         return f"{float(value) / 100000000:.2f} 亿元{suffix}"
@@ -102,7 +238,7 @@ def _format_timeseries_delta(value: dict[str, Any], fmt: str, *, field: str | No
 def _format_scalar(value: Any, fmt: str, *, field: str | None = None) -> str:
     if value is None or value == "":
         return "暂无数据"
-    if field in {"ths_fund_shares_fund", "ths_org_investor_total_held_shares_fund"} or fmt == "shares":
+    if field in {"ths_fund_shares_fund", "ths_org_investor_total_held_shares_fund"} or fmt in {"shares", "shares_to_100m"}:
         return f"{float(value) / 100000000:.2f}亿份"
     if fmt in {"yuan_to_100m", "amount"}:
         return f"{float(value) / 100000000:.2f} 亿元"
