@@ -25,6 +25,9 @@ REPORT_ARRAY_FIELDS = {
 REPORT_SCALAR_INTENTS = {"institution_holding", "report_style", "report_nav_change"}
 
 
+_QUARTER_KEYWORDS = ("季报", "Q1", "Q2", "Q3", "q1", "q2", "q3", "一季报", "中报", "半年报", "三季报", "一季度", "三季度")
+
+
 def resolve_report_scope(question: str, intent: str, entity_hints: dict[str, Any] | None = None) -> str | None:
     hints = entity_hints or {}
     explicit = hints.get("report_scope")
@@ -34,7 +37,11 @@ def resolve_report_scope(question: str, intent: str, entity_hints: dict[str, Any
         return None
 
     list_suffix = "_list" if _wants_report_list(question) else "_latest"
-    if intent in REPORT_SCALAR_INTENTS or intent == "report_holding":
+    if intent in REPORT_SCALAR_INTENTS:
+        return f"year{list_suffix}"
+    if intent == "report_holding":
+        if any(word in question for word in _QUARTER_KEYWORDS):
+            return f"quarter{list_suffix}"
         return f"year{list_suffix}"
     if intent == "report_concept":
         return f"quarter{list_suffix}"
@@ -46,7 +53,11 @@ def resolve_report_scope(question: str, intent: str, entity_hints: dict[str, Any
 
 
 def report_collection(intent: str, report_scope: str | None, fallback: str) -> str:
-    if intent in REPORT_SCALAR_INTENTS or intent == "report_holding":
+    if intent in REPORT_SCALAR_INTENTS:
+        return "tb_ths_etf_report_year"
+    if intent == "report_holding":
+        if report_scope and report_scope.startswith("quarter"):
+            return "tb_ths_etf_report_quarter"
         return "tb_ths_etf_report_year"
     if intent == "report_concept":
         return "tb_ths_etf_report_quarter"

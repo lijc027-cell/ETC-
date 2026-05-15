@@ -711,3 +711,27 @@ _CAPABILITIES[("v3.3", "report", "report_nav_change")] = _report_capability(
     output_style="summary",
     field_profile="report_scalar",
 )
+
+# v3.4 capabilities
+_CAPABILITIES[("v3.4", "single", "nav_trend")] = _single_capability(
+    "nav_trend",
+    ("fundcode", "ths_fund_extended_inner_short_name_fund", "ths_unit_nv_fund"),
+    baseline=("fundcode", "ths_fund_extended_inner_short_name_fund"),
+    phase="v3.4",
+    output_style="timeseries_series",
+    field_profile="nav_trend",
+)
+
+_CAPABILITIES[("v3.4", "single", "scale_share_trend")] = _single_capability(
+    "scale_share_trend",
+    ("fundcode", "ths_fund_extended_inner_short_name_fund", "ths_fund_scale_fund", "ths_fund_shares_fund"),
+    baseline=("fundcode", "ths_fund_extended_inner_short_name_fund"),
+    phase="v3.4",
+    output_style="timeseries_series",
+    field_profile="scale_share_trend",
+)
+
+_CAPABILITIES[("v3.4", "single", "trading_metric")] = replace(
+    _CAPABILITIES[("v3.3", "single", "trading_metric")],
+    phase="v3.4",
+)

@@ -14,6 +14,7 @@ from etf_agent.generation_context import build_generation_bundle
 from etf_agent.v3 import (
     _compile_ast_to_plan,
     _semantic_query_v3_3_filter_to_compare,
+    _v3_2_execution_context,
     _v3_3_intent_override,
     build_v3_1_ast,
     extract_v3_1_entity_hints,
@@ -173,6 +174,121 @@ def test_v3_3_report_holding_contract_requires_stock_code_with_net_value_ratio()
     assert "ths_top_stock_mv_to_fnv_fund" in contract["required_select_fields"]
     assert "ths_top_held_stock_code_fund" in contract["required_answer_fields"]
     assert "ths_top_stock_mv_to_fnv_fund" in contract["required_answer_fields"]
+
+
+def test_v3_3_report_holding_year_hint_does_not_leak_from_performance_period():
+    holding = _v3_3_intent_override("510300 2024年前十大重仓股")
+    composite = _v3_3_intent_override("510300今年收益多少，持仓了哪些行业，基金经理是谁")
+
+    assert holding["intent"] == "report_holding"
+    assert holding["entity_hints"]["year_num"] == 2024
+    assert "year_num" not in composite["entity_hints"]
+
+
+def test_v3_2_execution_context_preserves_specified_nav_timeseries_hints():
+    timeseries_semantics = {
+        "by_field": {
+            "ths_unit_nv_fund": {
+                "mode": "specified",
+                "btime": "2026-05-11",
+            }
+        }
+    }
+    classification = {
+        "recognized_query_mode": "single",
+        "intent": "fund_scale",
+        "entity_hints": {
+            "fundcodes": ["510500"],
+            "specified_date": "2026-05-11",
+            "timeseries_semantics": timeseries_semantics,
+        },
+    }
+
+    query_mode, intent, entity_hints, _routing_evidence = _v3_2_execution_context(
+        "510500 2026-05-11 单位净值",
+        classification,
+        SimpleNamespace(),
+    )
+
+    assert query_mode == "single"
+    assert intent == "fund_scale"
+    assert entity_hints["fundcodes"] == ["510500"]
+    assert entity_hints["specified_date"] == "2026-05-11"
+    assert entity_hints["timeseries_semantics"] == timeseries_semantics
+
+
+@pytest.mark.parametrize(
+    ("question", "fundcode", "specified_date", "target_value", "latest_value"),
+    [
+        ("510500 2026-05-11 单位净值", "510500", "2026-05-11", 8.9215, 8.757),
+        ("159919 3.15净值", "159919", "2026-03-15", 4.8774, 5.141),
+    ],
+)
+def test_v3_3_specified_date_nav_reaches_ast_and_filters_result(
+    monkeypatch,
+    question,
+    fundcode,
+    specified_date,
+    target_value,
+    latest_value,
+):
+    expected_timeseries = {
+        "ths_unit_nv_fund": {
+            "mode": "specified",
+            "btime": specified_date,
+        }
+    }
+    draft = {
+        "ast_schema_version": "v3_3_structured_query",
+        "intent": "fund_scale",
+        "sub_intents": [],
+        "from": "tb_ths_etf_base",
+        "select": ["fundcode", "ths_unit_nv_fund"],
+        "where": [{"field": "fundcode", "op": "eq", "value": fundcode}],
+        "order_by": None,
+        "limit": 1,
+        "output_style": "summary",
+        "answer_fields": [
+            {"field": "fundcode", "format": "plain"},
+            {"field": "ths_unit_nv_fund", "format": "plain"},
+        ],
+        "timeseries_semantics": {"by_field": expected_timeseries},
+        "report_period": None,
+        "expand": None,
+    }
+
+    def fake_generate_full_ast_draft_with_llm(**kwargs):
+        expectations = kwargs["generation_context"]["validator_expectations"]
+        assert expectations["expected_timeseries_modes"] == expected_timeseries
+        return {"raw": json.dumps(draft, ensure_ascii=False), "draft": draft}
+
+    monkeypatch.setattr(
+        "etf_agent.v3.generate_full_ast_draft_with_llm",
+        fake_generate_full_ast_draft_with_llm,
+    )
+    monkeypatch.setattr(
+        "etf_agent.v3._execute_v3_plan",
+        lambda plan, config_obj, *, dry_run, no_llm: {
+            "success": True,
+            "data": {
+                "fundcode": fundcode,
+                "ths_unit_nv_fund": [
+                    {"btime": specified_date, "value": target_value},
+                    {"btime": "2026-05-14", "value": latest_value},
+                ],
+            },
+        },
+    )
+
+    result = semantic_query_v3(question, root=ROOT)
+
+    assert result["query_plan"]["timeseries_semantics"]["by_field"]["ths_unit_nv_fund"]["mode"] == "specified"
+    assert result["validated_ast"]["timeseries_semantics"]["by_field"]["ths_unit_nv_fund"]["btime"] == specified_date
+    assert result["result"]["data"]["ths_unit_nv_fund"] == {"btime": specified_date, "value": target_value}
+    assert f"单位净值为 {target_value}" in result["answer"]
+    assert specified_date in result["answer"]
+    assert str(latest_value) not in result["answer"]
+    assert "{'btime'" not in result["answer"]
 
 
 def test_v3_3_report_generation_bundle_defaults_industry_to_quarter_scope():

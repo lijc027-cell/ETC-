@@ -72,6 +72,8 @@ def _format_value(value: Any, fmt: str, *, field: str | None = None) -> str:
         return f"{float(value) / 100000000:.2f} 亿元{suffix}"
     if fmt == "percent":
         return f"{float(value):.2f}%{suffix}"
+    if field == "ths_unit_nv_fund":
+        return f"{float(value):.4f}".rstrip("0").rstrip(".") + suffix
     if isinstance(value, float):
         return f"{value:.4g}{suffix}"
     return f"{value}{suffix}"
@@ -106,6 +108,8 @@ def _format_scalar(value: Any, fmt: str, *, field: str | None = None) -> str:
         return f"{float(value) / 100000000:.2f} 亿元"
     if fmt == "percent":
         return f"{float(value):.2f}%"
+    if field == "ths_unit_nv_fund":
+        return f"{float(value):.4f}".rstrip("0").rstrip(".")
     if isinstance(value, float):
         return f"{value:.4g}"
     return str(value)
@@ -721,6 +725,8 @@ def _collect_btime_values(value: Any) -> set[str]:
 
 
 def _latest_value(value: Any) -> tuple[Any, str]:
+    if isinstance(value, dict) and "value" in value:
+        return value.get("value"), str(value.get("btime") or "")
     if not isinstance(value, list) or not value:
         return value, ""
     dict_items = [item for item in value if isinstance(item, dict) and "value" in item]

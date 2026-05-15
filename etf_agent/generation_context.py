@@ -461,7 +461,14 @@ def _display_default_fields(
 def _expected_where(query_mode: str, entity_hints: dict[str, Any]) -> list[dict[str, Any]]:
     fundcodes = [str(item) for item in entity_hints.get("fundcodes") or [] if item]
     if query_mode in {"single", "report"} and fundcodes:
-        return [{"field": "fundcode", "op": "eq", "value": fundcodes[0]}]
+        clauses: list[dict[str, Any]] = [{"field": "fundcode", "op": "eq", "value": fundcodes[0]}]
+        year_num = entity_hints.get("year_num")
+        if query_mode == "report" and year_num is not None:
+            clauses.append({"field": "year_num", "op": "eq", "value": int(year_num)})
+        type_num = entity_hints.get("type_num")
+        if query_mode == "report" and type_num is not None:
+            clauses.append({"field": "type_num", "op": "eq", "value": int(type_num)})
+        return clauses
     if query_mode == "search":
         return [{"field": "__search_text__", "op": "contains", "value": str(entity_hints.get("search_keyword") or "")}]
     if query_mode == "filter":
@@ -592,6 +599,11 @@ def _expected_timeseries_modes(
     intent: str,
     entity_hints: dict[str, Any],
 ) -> dict[str, dict[str, str]]:
+    # 优先使用分类阶段注入的 timeseries_semantics（如指定日期净值）
+    hint_ts = (entity_hints.get("timeseries_semantics") or {}).get("by_field") or {}
+    if hint_ts:
+        return {field: dict(spec) for field, spec in hint_ts.items()}
+
     modes: dict[str, dict[str, str]] = {}
     if "最近有变化" in question or "变化吗" in question or "变化" in question:
         if "份额" in question:

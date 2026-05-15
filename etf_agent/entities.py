@@ -19,6 +19,29 @@ PERIOD_PATTERNS = [
 ]
 
 
+_CURRENT_YEAR = 2026
+
+
+def extract_specified_date(question: str) -> str | None:
+    # 2026年5月11日 / 2026年3月15日
+    m = re.search(r"(20\d{2})年(\d{1,2})月(\d{1,2})[日号]?", question)
+    if m:
+        return f"{m.group(1)}-{int(m.group(2)):02d}-{int(m.group(3)):02d}"
+    # 2026-05-11 / 2026/05/11
+    m = re.search(r"(20\d{2})[/-](\d{1,2})[/-](\d{1,2})", question)
+    if m:
+        return f"{m.group(1)}-{int(m.group(2)):02d}-{int(m.group(3)):02d}"
+    # 5月11日
+    m = re.search(r"(\d{1,2})月(\d{1,2})[日号]?", question)
+    if m:
+        return f"{_CURRENT_YEAR}-{int(m.group(1)):02d}-{int(m.group(2)):02d}"
+    # 3.15净值 / 3/15净值（仅在净值上下文中）
+    m = re.search(r"(?<!\d)(\d{1,2})[./](\d{1,2})(?=净值|的净值|单位净值)", question)
+    if m:
+        return f"{_CURRENT_YEAR}-{int(m.group(1)):02d}-{int(m.group(2)):02d}"
+    return None
+
+
 def extract_entities(question: str) -> dict[str, str]:
     match = re.search(r"(?<!\d)(\d{6})(?!\d)", question)
     if not match:

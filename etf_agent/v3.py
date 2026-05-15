@@ -12,7 +12,7 @@ from .candidates import PERIOD_FIELDS
 from .capability_registry import COMPARE_FIELDS as REGISTRY_COMPARE_FIELDS
 from .capability_registry import LIST_BASELINE_FIELDS as REGISTRY_LIST_BASELINE_FIELDS
 from .capability_registry import field_meta, get_selection_context
-from .entities import PERIOD_PATTERNS
+from .entities import PERIOD_PATTERNS, extract_specified_date
 from .ast_generator import generate_full_ast_draft_with_llm
 from .ast_validator import validate_v3_2_ast_draft, validate_v3_3_ast_draft
 from .derived_performance import compile_derived_performance_query, execute_derived_performance
@@ -390,8 +390,17 @@ def _force_unsupported_classification(question: str) -> dict[str, Any] | None:
                 "premise_correction": True,
             },
         }
-    unsupported_keywords = ("持仓", "重仓", "行业", "概念", "季报", "年报", "前十大", "机构持有", "投资风格", "净资产")
+    unsupported_keywords = ("净资产",)
     if any(word in question for word in unsupported_keywords):
+        # PE/PB/估值 questions with 重仓 should be rejected as field_not_available (not overridable)
+        if any(word in question for word in ("PE", "PB", "市盈率", "市净率", "估值")):
+            return {
+                "recognized_query_mode": "unsupported",
+                "intent": None,
+                "intent_candidates": [],
+                "from_candidates": [],
+                "reason": "field_not_available",
+            }
         return {
             "recognized_query_mode": "unsupported",
             "intent": None,
@@ -407,6 +416,55 @@ def _force_unsupported_classification(question: str) -> dict[str, Any] | None:
             "from_candidates": [],
             "reason": "blocked_by_verification",
     }
+    # v3.4 hard-reject: fields not available or not imported
+    if any(word in question for word in ("日均换手率", "日均成交额", "股息率", "溢价率", "折溢价", "折价", "年化波动率", "最大回撤", "夏普比率")):
+        return {
+            "recognized_query_mode": "unsupported",
+            "intent": None,
+            "intent_candidates": [],
+            "from_candidates": [],
+            "reason": "field_not_imported",
+        }
+    if any(word in question for word in ("换手率",)):
+        return {
+            "recognized_query_mode": "unsupported",
+            "intent": None,
+            "intent_candidates": [],
+            "from_candidates": [],
+            "reason": "field_not_available",
+        }
+    if any(word in question for word in ("近5日份额变动", "份额净流入天数")):
+        return {
+            "recognized_query_mode": "unsupported",
+            "intent": None,
+            "intent_candidates": [],
+            "from_candidates": [],
+            "reason": "derived_not_supported",
+        }
+    if any(word in question for word in ("成份股权重", "指数成份股")):
+        return {
+            "recognized_query_mode": "unsupported",
+            "intent": None,
+            "intent_candidates": [],
+            "from_candidates": [],
+            "reason": "field_not_available",
+        }
+    if any(word in question for word in ("PE", "PB", "市盈率", "市净率")) and "估值" not in question:
+        return {
+            "recognized_query_mode": "unsupported",
+            "intent": None,
+            "intent_candidates": [],
+            "from_candidates": [],
+            "reason": "field_not_available",
+        }
+    if "估值" in question and any(word in question for word in ("PE", "PB", "市盈率", "市净率", "估值")):
+        return {
+            "recognized_query_mode": "unsupported",
+            "intent": None,
+            "intent_candidates": [],
+            "from_candidates": [],
+            "reason": "field_not_available",
+        }
     return None
 
 
@@ -833,6 +891,35 @@ def _period_from_question(question: str) -> str:
     return "1y"
 
 
+def _year_from_question(question: str) -> int | None:
+    import re as _re
+    m = _re.search(r"(20\d{2})年", question)
+    if m:
+        return int(m.group(1))
+    m = _re.search(r"(20\d{2})[Qq][1-4]", question)
+    if m:
+        return int(m.group(1))
+    return None
+
+
+def _quarter_from_question(question: str) -> int | None:
+    """返回季报 type_num（1/2/3），None 表示未指定具体季次。"""
+    import re as _re
+    m = _re.search(r"20\d{2}[Qq]([1-3])", question)
+    if m:
+        return int(m.group(1))
+    if any(word in question for word in ("一季报", "一季度", "Q1", "q1")):
+        return 1
+    if any(word in question for word in ("中报", "半年报", "二季报", "Q2", "q2")):
+        return 2
+    if any(word in question for word in ("三季报", "三季度", "Q3", "q3")):
+        return 3
+    return None
+
+
+_QUARTER_KEYWORDS = ("季报", "Q1", "Q2", "Q3", "q1", "q2", "q3", "一季报", "中报", "半年报", "三季报", "一季度", "三季度")
+
+
 def _yield_field_for_question(question: str, *, default_period: str = "1y") -> str:
     return f"ths_yeild_{_period_from_question(question) if _has_explicit_period(question) else default_period}_fund"
 
@@ -883,7 +970,45 @@ def _force_v3_0_single_classification(question: str, entities: dict[str, str]) -
 
     real_time_markers = ("实时", "盘中", "当前", "现在", "今天", "今日", "估值")
     if "净值" in question and not any(marker in question for marker in real_time_markers):
-        return _single_classification("fund_scale", entities)
+        entity_hints_nav: dict[str, Any] = {
+            "fundcodes": fundcodes,
+            "period": entities.get("period"),
+        }
+        specified_date = extract_specified_date(question)
+        if specified_date:
+            entity_hints_nav["specified_date"] = specified_date
+            entity_hints_nav["timeseries_semantics"] = {
+                "by_field": {"ths_unit_nv_fund": {"mode": "specified", "btime": specified_date}}
+            }
+        return {
+            "recognized_query_mode": "single",
+            "intent": "fund_scale",
+            "intent_candidates": ["fund_scale"],
+            "from_candidates": ["tb_ths_etf_base"],
+            "entity_hints": entity_hints_nav,
+        }
+    if any(word in question for word in ("前十大重仓股", "重仓股", "重仓证券")):
+        year_num = _year_from_question(question)
+        entity_hints_report: dict[str, Any] = {"fundcodes": fundcodes, "period": entities.get("period")}
+        if year_num is not None:
+            entity_hints_report["year_num"] = year_num
+        is_quarter = any(word in question for word in _QUARTER_KEYWORDS)
+        if is_quarter:
+            type_num = _quarter_from_question(question)
+            if type_num is not None:
+                entity_hints_report["type_num"] = type_num
+            return {
+                "recognized_query_mode": "report",
+                "intent": "report_holding",
+                "from_candidates": ["tb_ths_etf_report_quarter"],
+                "entity_hints": entity_hints_report,
+            }
+        return {
+            "recognized_query_mode": "report",
+            "intent": "report_holding",
+            "from_candidates": ["tb_ths_etf_report_year"],
+            "entity_hints": entity_hints_report,
+        }
     if "ETF排" in question or "ETF 排" in question:
         return _single_classification("performance", entities)
     intent = _lexical_infer_intent(question)
@@ -1314,6 +1439,8 @@ def semantic_query_v3(question: str, *, root=None, dry_run: bool = False, no_llm
             return _semantic_query_v3_2_strict(question, config_obj=config_obj, classification=classification)
         if phase == "v3.3":
             return _semantic_query_v3_3_strict(question, config_obj=config_obj, classification=classification)
+        if phase == "v3.4":
+            return _semantic_query_v3_4_strict(question, config_obj=config_obj, classification=classification)
         raise ValueError(f"unsupported v3 phase: {phase}")
 
     if mode == "deny":
@@ -1336,7 +1463,27 @@ def semantic_query_v3(question: str, *, root=None, dry_run: bool = False, no_llm
             "v3": {**classification, "llm_ast_status": "skipped", "routing_result": _routing_result_for_classification(classification)},
         }
 
-    if mode in V3_1_QUERY_MODES:
+    if mode == "report":
+        hints = classification.get("entity_hints") or {}
+        report_scope = hints.get("report_scope") or resolve_report_scope(question, classification.get("intent", ""), hints)
+        collection = report_collection(classification.get("intent", ""), report_scope, "tb_ths_etf_report_year")
+        filt: dict[str, Any] = {}
+        fundcodes = hints.get("fundcodes") or []
+        if fundcodes:
+            filt["fundcode"] = fundcodes[0]
+        if hints.get("year_num") is not None:
+            filt["year_num"] = hints["year_num"]
+        if hints.get("type_num") is not None:
+            filt["type_num"] = hints["type_num"]
+        plan = {"intent": classification.get("intent"), "collection": collection, "filter": filt}
+        return {
+            "question": question,
+            "answer": "(dry_run)",
+            "v3": {**classification, "llm_ast_status": "dry_run"},
+            "query_plan": plan,
+        }
+
+
         hints = classification.get("entity_hints") or extract_v3_1_entity_hints(question)
         hints = _resolve_v3_1_index_filters(hints, config_obj, dry_run=dry_run)
         if (hints.get("index_resolution") or {}).get("status") == "ambiguous":
@@ -2260,7 +2407,15 @@ def _v3_2_execution_context(
 
     entities = _resolve_single_entities_for_v3_2(question, config_obj)
     period = entities.get("period") or _period_from_question(question)
-    entity_hints = {"fundcodes": [entities["fundcode"]], "period": period}
+    original_hints = classification.get("entity_hints") or {}
+    entity_hints = {
+        "fundcodes": original_hints.get("fundcodes") or [entities["fundcode"]],
+        "period": original_hints.get("period") or period,
+    }
+    if original_hints.get("specified_date"):
+        entity_hints["specified_date"] = original_hints["specified_date"]
+    if original_hints.get("timeseries_semantics"):
+        entity_hints["timeseries_semantics"] = original_hints["timeseries_semantics"]
     return "single", intent, entity_hints, _build_routing_evidence(question, query_mode="single", intent=intent, entity_hints=entity_hints, entities=entities)
 
 
@@ -2288,6 +2443,10 @@ def _v3_3_execution_context(
         }
         if original_hints.get("premise_correction"):
             entity_hints["premise_correction"] = True
+        if original_hints.get("year_num") is not None:
+            entity_hints["year_num"] = original_hints["year_num"]
+        if original_hints.get("type_num") is not None:
+            entity_hints["type_num"] = original_hints["type_num"]
         return "report", intent, entity_hints, _build_routing_evidence(question, query_mode="report", intent=intent, entity_hints=entity_hints, entities=entities)
 
     if intent in {"manager_detail", "trading_metric"}:
@@ -3118,11 +3277,26 @@ def _v3_3_intent_override(question: str) -> dict[str, Any] | None:
         }
 
     if any(word in question for word in ("前十大重仓股", "重仓股", "重仓证券")):
+        year_num = _year_from_question(question)
+        entity_hints_report: dict[str, Any] = {"fundcodes": fundcodes, "period": period}
+        if year_num is not None:
+            entity_hints_report["year_num"] = year_num
+        is_quarter = any(word in question for word in _QUARTER_KEYWORDS)
+        if is_quarter:
+            type_num = _quarter_from_question(question)
+            if type_num is not None:
+                entity_hints_report["type_num"] = type_num
+            return {
+                "recognized_query_mode": "report",
+                "intent": "report_holding",
+                "from_candidates": ["tb_ths_etf_report_quarter"],
+                "entity_hints": entity_hints_report,
+            }
         return {
             "recognized_query_mode": "report",
             "intent": "report_holding",
             "from_candidates": ["tb_ths_etf_report_year"],
-            "entity_hints": {"fundcodes": fundcodes, "period": period},
+            "entity_hints": entity_hints_report,
         }
 
     if any(word in question for word in ("管理了多久", "历史业绩", "管理规模", "管了多少规模", "什么时候换的基金经理", "换的基金经理", "任职", "任期", "历任")):
@@ -3478,7 +3652,18 @@ def _apply_timeseries_semantics_to_row(row: dict[str, Any], by_field: dict[str, 
         elif mode == "latest":
             timeseries_audit[field] = {"mode": mode, "status": "kept"}
         elif mode == "specified":
-            timeseries_audit[field] = {"mode": mode, "status": "kept", "btime": spec.get("btime")}
+            btime_target = spec.get("btime")
+            points = _timeseries_points(raw_value)
+            matched = next(
+                ({"btime": bt, "value": val} for bt, val in points if btime_target and (bt == btime_target or bt.endswith(btime_target))),
+                None,
+            )
+            if matched:
+                updated[field] = matched
+                timeseries_audit[field] = {"mode": mode, "status": "matched", "btime": btime_target}
+            else:
+                updated[field] = {"__data_not_available__": True, "btime": btime_target}
+                timeseries_audit[field] = {"mode": mode, "status": "not_found", "btime": btime_target}
     if timeseries_audit:
         updated["timeseries_audit"] = timeseries_audit
     return updated
@@ -3926,3 +4111,302 @@ def _is_v3_0_question(section: str, question: str) -> bool:
             "510300能买吗",
         }
     return False
+
+
+# ─── v3.4 implementation ────────────────────────────────────────────────────
+
+_V3_4_SERIES_INTENTS = {"nav_trend", "scale_share_trend"}
+
+_V3_4_UNSUPPORTED_FIELDS = {
+    "日均换手率": "UnsupportedQuery(field_not_imported)",
+    "日均成交额": "UnsupportedQuery(field_not_imported)",
+    "股息率": "UnsupportedQuery(field_not_imported)",
+    "溢价率": "UnsupportedQuery(field_not_imported)",
+    "折溢价率": "UnsupportedQuery(field_not_imported)",
+    "成份股权重": "UnsupportedQuery(field_not_available)",
+    "指数成份股": "UnsupportedQuery(field_not_available)",
+    "基准成份": "UnsupportedQuery(field_not_available)",
+    "近5日份额变动": "UnsupportedQuery(derived_not_supported)",
+    "份额净流入天数": "UnsupportedQuery(derived_not_supported)",
+    "换手率": "UnsupportedQuery(field_not_available)",
+}
+
+_V3_4_PERIOD_DAYS: dict[str, int] = {
+    "近一周": 7,
+    "近1周": 7,
+    "最近一周": 7,
+    "近一个月": 30,
+    "近1个月": 30,
+    "最近一个月": 30,
+    "近三个月": 90,
+    "近3个月": 90,
+    "最近三个月": 90,
+    "近半年": 180,
+    "最近半年": 180,
+    "近一年": 365,
+    "近1年": 365,
+    "最近一年": 365,
+    "近两年": 730,
+    "近2年": 730,
+    "最近两年": 730,
+    "近三年": 1095,
+    "近3年": 1095,
+    "最近三年": 1095,
+    "成立以来": 3650,
+}
+
+
+def _v3_4_extract_period_days(question: str) -> int:
+    for keyword, days in _V3_4_PERIOD_DAYS.items():
+        if keyword in question:
+            return days
+    return 90  # default: 3 months
+
+
+def _v3_4_classify_intent(question: str) -> str | None:
+    for field_keyword, reason in _V3_4_UNSUPPORTED_FIELDS.items():
+        if field_keyword in question:
+            return None  # handled as unsupported
+    if any(word in question for word in ("净值走势", "净值趋势", "净值变化", "净值历史", "净值曲线")):
+        return "nav_trend"
+    if any(word in question for word in ("规模走势", "规模趋势", "规模变化", "规模历史", "规模变动", "规模增长率", "规模变动率")):
+        return "scale_share_trend"
+    if any(word in question for word in ("份额走势", "份额趋势", "份额变化", "份额历史", "份额变动")):
+        return "scale_share_trend"
+    return None
+
+
+def _v3_4_unsupported_reason(question: str) -> str | None:
+    for field_keyword, reason in _V3_4_UNSUPPORTED_FIELDS.items():
+        if field_keyword in question:
+            return reason
+    return None
+
+
+def _v3_4_build_nav_trend_plan(fundcode: str, period_days: int) -> dict[str, Any]:
+    return {
+        "collection": "tb_ths_etf_base",
+        "filter": {"fundcode": fundcode},
+        "projection": ["fundcode", "ths_fund_extended_inner_short_name_fund", "ths_unit_nv_fund"],
+        "limit": 1,
+        "answer_fields": ["fundcode", "ths_fund_extended_inner_short_name_fund", "ths_unit_nv_fund"],
+        "output_style": "timeseries_series",
+        "timeseries_semantics": {
+            "by_field": {
+                "ths_unit_nv_fund": {"mode": "series", "period_days": period_days}
+            }
+        },
+    }
+
+
+def _v3_4_build_scale_share_trend_plan(fundcode: str, period_days: int, question: str) -> dict[str, Any]:
+    if "份额" in question:
+        fields = ["fundcode", "ths_fund_extended_inner_short_name_fund", "ths_fund_shares_fund"]
+        answer_fields = ["fundcode", "ths_fund_extended_inner_short_name_fund", "ths_fund_shares_fund"]
+        series_field = "ths_fund_shares_fund"
+    else:
+        fields = ["fundcode", "ths_fund_extended_inner_short_name_fund", "ths_fund_scale_fund"]
+        answer_fields = ["fundcode", "ths_fund_extended_inner_short_name_fund", "ths_fund_scale_fund"]
+        series_field = "ths_fund_scale_fund"
+    return {
+        "collection": "tb_ths_etf_base",
+        "filter": {"fundcode": fundcode},
+        "projection": fields,
+        "limit": 1,
+        "answer_fields": answer_fields,
+        "output_style": "timeseries_series",
+        "timeseries_semantics": {
+            "by_field": {
+                series_field: {"mode": "series", "period_days": period_days}
+            }
+        },
+    }
+
+
+def _v3_4_apply_series_semantics(result: dict[str, Any], period_days: int) -> dict[str, Any]:
+    from datetime import timedelta
+
+    data = result.get("data")
+    if not isinstance(data, dict):
+        return result
+
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=period_days)).strftime("%Y-%m-%d")
+    updated = dict(data)
+    series_audit: dict[str, Any] = {}
+
+    for field, value in list(updated.items()):
+        if not isinstance(value, list):
+            continue
+        dict_items = [item for item in value if isinstance(item, dict) and "btime" in item and "value" in item]
+        if not dict_items:
+            continue
+        filtered = [item for item in dict_items if str(item.get("btime", ""))[:10] >= cutoff]
+        filtered.sort(key=lambda x: str(x.get("btime", "")))
+        updated[field] = filtered
+        series_audit[field] = {
+            "mode": "series",
+            "period_days": period_days,
+            "cutoff": cutoff,
+            "total_points": len(dict_items),
+            "returned_points": len(filtered),
+        }
+
+    if series_audit:
+        updated["series_audit"] = series_audit
+    return {**result, "data": updated}
+
+
+def _v3_4_format_series_answer(question: str, intent: str, result: dict[str, Any]) -> str:
+    data = result.get("data")
+    if not isinstance(data, dict):
+        return "查询结果为空。"
+
+    fundcode = data.get("fundcode", "")
+    name = data.get("ths_fund_extended_inner_short_name_fund", "")
+    fund_label = f"{name}（{fundcode}）" if name and fundcode else fundcode or name or "该基金"
+
+    if intent == "nav_trend":
+        series = data.get("ths_unit_nv_fund")
+        field_label = "单位净值"
+        unit = "元"
+    else:
+        if "份额" in question:
+            series = data.get("ths_fund_shares_fund")
+            field_label = "基金份额"
+            unit = "亿份"
+        else:
+            series = data.get("ths_fund_scale_fund")
+            field_label = "基金规模"
+            unit = "亿元"
+
+    if not series or not isinstance(series, list):
+        return f"{fund_label} 暂无{field_label}历史数据。"
+
+    audit = (data.get("series_audit") or {}).get(
+        "ths_unit_nv_fund" if intent == "nav_trend" else ("ths_fund_shares_fund" if "份额" in question else "ths_fund_scale_fund"),
+        {}
+    )
+    period_days = audit.get("period_days", 90)
+    cutoff = audit.get("cutoff", "")
+
+    if not series:
+        return f"{fund_label} 在查询区间内（{cutoff} 至今）无{field_label}数据。"
+
+    lines = [f"{fund_label} {field_label}走势（近 {period_days} 天，共 {len(series)} 个数据点）："]
+    for item in series:
+        btime = str(item.get("btime", ""))[:10]
+        value = item.get("value")
+        if value is not None:
+            lines.append(f"  {btime}：{value} {unit}")
+
+    if len(series) >= 2:
+        first_val = series[0].get("value")
+        last_val = series[-1].get("value")
+        if first_val is not None and last_val is not None:
+            try:
+                change = float(last_val) - float(first_val)
+                pct = change / float(first_val) * 100 if float(first_val) != 0 else 0
+                direction = "上涨" if change > 0 else "下跌" if change < 0 else "持平"
+                lines.append(f"\n区间内{field_label}{direction} {abs(change):.4f} {unit}（{pct:+.2f}%）。")
+            except (TypeError, ValueError):
+                pass
+
+    return "\n".join(lines)
+
+
+def _semantic_query_v3_4_strict(
+    question: str,
+    *,
+    config_obj: Any,
+    classification: dict[str, Any],
+) -> dict[str, Any]:
+    from .entities import extract_entities
+
+    unsupported_reason = _v3_4_unsupported_reason(question)
+    if unsupported_reason:
+        return {
+            "question": question,
+            "answer": f"当前版本不支持该查询：{unsupported_reason}",
+            "v3": {
+                **classification,
+                "phase": "v3.4",
+                "recognized_query_mode": "unsupported",
+                "intent": "unsupported",
+                "failure_reason": unsupported_reason,
+                "routing_result": "unsupported",
+            },
+        }
+
+    intent = _v3_4_classify_intent(question)
+    if intent is None:
+        return _semantic_query_v3_3_strict(question, config_obj=config_obj, classification=classification)
+
+    try:
+        entities = extract_entities(question)
+        fundcode = entities.get("fundcode")
+    except ValueError:
+        fundcode = None
+
+    if not fundcode:
+        from .name_resolver import resolve_fundcode_from_name
+        resolved = resolve_fundcode_from_name(question, config_obj, dry_run=False)
+        if resolved["status"] == "matched":
+            fundcode = resolved["fundcode"]
+        elif resolved["status"] == "ambiguous":
+            return _clarification_for_name_matches(question, resolved["matches"])
+        else:
+            return {
+                "question": question,
+                "answer": "未在问题中识别到 ETF 基金代码或名称，请补充后重试。",
+                "v3": {
+                    **classification,
+                    "phase": "v3.4",
+                    "recognized_query_mode": "clarify",
+                    "intent": intent,
+                    "failure_reason": "no_fundcode",
+                    "routing_result": "clarify",
+                },
+            }
+
+    period_days = _v3_4_extract_period_days(question)
+
+    if intent == "nav_trend":
+        plan = _v3_4_build_nav_trend_plan(fundcode, period_days)
+    else:
+        plan = _v3_4_build_scale_share_trend_plan(fundcode, period_days, question)
+
+    try:
+        result = _execute_v3_plan(plan, config_obj, dry_run=False, no_llm=False)
+    except Exception as exc:
+        return {
+            "question": question,
+            "answer": f"查询失败：{exc}",
+            "v3": {
+                **classification,
+                "phase": "v3.4",
+                "recognized_query_mode": "single",
+                "intent": intent,
+                "failure_stage": "executor",
+                "failure_reason": str(exc),
+                "routing_result": "executed",
+            },
+        }
+
+    result = _v3_4_apply_series_semantics(result, period_days)
+    answer = _v3_4_format_series_answer(question, intent, result)
+
+    return {
+        "question": question,
+        "answer": answer,
+        "v3": {
+            **classification,
+            "phase": "v3.4",
+            "recognized_query_mode": "single",
+            "intent": intent,
+            "routing_result": "executed",
+            "failure_stage": None,
+            "failure_reason": None,
+        },
+        "query_plan": plan,
+        "result": result,
+    }

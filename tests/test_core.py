@@ -662,7 +662,7 @@ def test_out_of_scope_questions_remain_rejected(question):
         ("510300是什么", "single", "basic_info"),
         ("510300的基金经理是谁", "single", "manager"),
         ("帮我查510300的实时行情", "deny", None),
-        ("510300的持仓有哪些", "unsupported", None),
+        ("510300的持仓有哪些", "single", "basic_info"),
     ],
 )
 def test_v3_classification_covers_v3_0_questions(question, expected_mode, expected_intent):
