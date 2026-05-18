@@ -27,7 +27,7 @@ systemctl status etf-query.service
 ```bash
 curl -sS http://47.96.152.227/v1/query \
   -H 'Content-Type: application/json' \
-  -d '{"question":"510500近一年净值走势","phase":"v3.4"}'
+  -d '{"question":"510050现在什么价","phase":"v3.5"}'
 ```
 
 ## Apifox
@@ -38,4 +38,4 @@ curl -sS http://47.96.152.227/v1/query \
 http://47.96.152.227/openapi.json
 ```
 
-也可以把 `docs/apifox/etf-query-openapi.json` 导入 Apifox；该文件已更新为公网地址和 v3.4 默认参数。
+也可以把 `docs/apifox/etf-query-openapi.json` 导入 Apifox；该文件已更新为公网地址和 v3.5 默认参数。

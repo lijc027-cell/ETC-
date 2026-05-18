@@ -11,7 +11,7 @@ from .v3 import semantic_query_v3
 
 
 API_VERSION = "temp-v3.5"
-DEFAULT_PHASE = "v3.4"
+DEFAULT_PHASE = "v3.5"
 SUPPORTED_PHASES = {"v3.2", "v3.3", "v3.4", "v3.5"}
 
 
@@ -60,7 +60,7 @@ def openapi_spec() -> dict[str, Any]:
                         "content": {
                             "application/json": {
                                 "schema": {"$ref": "#/components/schemas/QueryRequest"},
-                                "example": {"question": "510500近一年净值走势", "phase": "v3.4"},
+                                "example": {"question": "510050现在什么价", "phase": "v3.5"},
                             }
                         },
                     },
