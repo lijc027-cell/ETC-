@@ -22,7 +22,7 @@ def test_query_etf_tool_uses_public_api_response(monkeypatch):
         "ok": True,
         "question": "510300是什么",
         "answer": "answer",
-        "phase": "v3.3",
+        "phase": "v3.4",
         "mode": "single",
         "intent": "basic_info",
     }
@@ -61,6 +61,30 @@ def test_audit_section_tool_runs_script(monkeypatch):
     assert response["stdout"] == "overall ok"
 
 
+def test_audit_test2_tool_runs_v3_4_script(monkeypatch):
+    import etf_mcp_server
+
+    calls = []
+
+    def fake_run(args, cwd, capture_output, text, timeout):
+        calls.append(args)
+
+        class Result:
+            returncode = 0
+            stdout = "passed=44 failed=0 total=44"
+            stderr = ""
+
+        return Result()
+
+    monkeypatch.setattr(etf_mcp_server.subprocess, "run", fake_run)
+
+    response = etf_mcp_server.audit_test2_tool()
+
+    assert response["ok"] is True
+    assert calls[0][-1] == "scripts/audit_test2.py"
+    assert response["stdout"] == "passed=44 failed=0 total=44"
+
+
 def test_project_status_reports_v3_4_p2_progress():
     import etf_mcp_server
 
@@ -72,3 +96,4 @@ def test_project_status_reports_v3_4_p2_progress():
     assert "nav_trend" in response["current_progress"]["enabled_intents"]
     assert "scale_share_trend" in response["current_progress"]["enabled_intents"]
     assert "v3.4" in response["supported_phases"]
+    assert "audit_test2" in response["tools"]

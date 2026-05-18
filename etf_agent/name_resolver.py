@@ -16,6 +16,30 @@ CATALOG_FIELDS = [
 
 MOCK_CATALOG = [
     {
+        "fundcode": "510050",
+        "thscode": "510050.SH",
+        "ths_fund_extended_inner_short_name_fund": "上证50ETF",
+        "ths_fund_supervisor_fund": "华夏基金",
+        "ths_name_of_tracking_index_fund": "上证50指数",
+        "ths_tracking_index_code_fund": "000016",
+    },
+    {
+        "fundcode": "588000",
+        "thscode": "588000.SH",
+        "ths_fund_extended_inner_short_name_fund": "科创50ETF华夏",
+        "ths_fund_supervisor_fund": "华夏基金",
+        "ths_name_of_tracking_index_fund": "上证科创板50成份指数",
+        "ths_tracking_index_code_fund": "000688",
+    },
+    {
+        "fundcode": "588080",
+        "thscode": "588080.SH",
+        "ths_fund_extended_inner_short_name_fund": "科创50ETF易方达",
+        "ths_fund_supervisor_fund": "易方达基金",
+        "ths_name_of_tracking_index_fund": "上证科创板50成份指数",
+        "ths_tracking_index_code_fund": "000688",
+    },
+    {
         "fundcode": "510350",
         "thscode": "510350.SH",
         "ths_fund_extended_inner_short_name_fund": "沪深300ETF工银",
@@ -60,6 +84,7 @@ def resolve_fundcode_from_catalog(question: str, catalog: list[dict[str, Any]]) 
         return {
             "status": "matched",
             "fundcode": match["fundcode"],
+            "thscode": match.get("thscode", ""),
             "matched_name": match["name"],
             "matched_thscode": match.get("thscode", ""),
             "matches": matches,
@@ -81,18 +106,19 @@ def _rank_matches(question: str, catalog: list[dict[str, Any]]) -> list[dict[str
         normalized_name = _normalize(name)
 
         score = 0
-        if normalized_name and normalized_name in query:
+        has_name_match = bool(normalized_name and normalized_name in query)
+        if has_name_match:
             score += 100
         if index_tokens and all(token in haystack for token in index_tokens):
             score += 30
         if manager_tokens and any(token in haystack for token in manager_tokens):
-            score += 40
-        if "ETF" in question.upper() and "ETF" in name.upper():
+            score += 120
+        if "ETF" in question.upper() and "ETF" in name.upper() and (has_name_match or index_tokens or manager_tokens):
             score += 5
         if not manager_tokens and index_tokens and all(token in normalized_name for token in index_tokens):
             score += 20
 
-        if score > 0 and _has_required_signal(index_tokens, manager_tokens, haystack):
+        if score > 0 and _has_required_signal(index_tokens, manager_tokens, haystack, has_name_match):
             scored.append((_match(row), score, index))
 
     if not scored:
@@ -114,10 +140,14 @@ def _match(row: dict[str, Any]) -> dict[str, str]:
     }
 
 
-def _has_required_signal(index_tokens: list[str], manager_tokens: list[str], haystack: str) -> bool:
+def _has_required_signal(index_tokens: list[str], manager_tokens: list[str], haystack: str, has_name_match: bool = False) -> bool:
+    if has_name_match:
+        return True
     if manager_tokens:
         return bool(index_tokens) and any(token in haystack for token in manager_tokens)
-    return bool(index_tokens)
+    if index_tokens:
+        return all(token in haystack for token in index_tokens)
+    return False
 
 
 def _index_tokens(query: str) -> list[str]:

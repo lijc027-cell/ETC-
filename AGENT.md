@@ -107,12 +107,18 @@ skill.md                  — 旧 skill 定义（不参与 v1）
 - [x] period 补齐：今年、2y、3y、5y、各周期
 - [x] 分红字段增强和空查询结果格式化
 - [x] 3 条端到端测试通过：`510300是什么`、`510500基本信息`、`159919跟踪指数`
+- [x] P2 本地未提交版已加入 v3.4 时序走势能力：`nav_trend` 和 `scale_share_trend`
+- [x] v3.4 时序 AST 支持 `timeseries_semantics.mode=series`，覆盖 `ths_unit_nv_fund`、`ths_fund_scale_fund`、`ths_fund_shares_fund`
+- [x] MCP 本地默认 phase 切到 `v3.4`，并暴露 P2 进度与 `audit_test2` 工具
 
-### v1 收尾 / text2sql 起步
+### P2 本地未提交版 / v3.4
 
-- [ ] v1 资产梳理：字段字典、枚举值、安全白名单、formatter 模板、测试集
-- [ ] text2sql 方案设计：SQL 方言、安全边界、执行方式
-- [ ] text2sql 原型跑通第一条真实链路
+- [x] `nav_trend`：净值走势图，字段 `ths_unit_nv_fund`，通过 series timeseries AST 返回走势点
+- [x] `scale_share_trend`：规模/份额变动趋势，字段 `ths_fund_scale_fund`、`ths_fund_shares_fund`，通过 series timeseries AST 返回走势点
+- [x] `docs/etf-semantic-query-spec-v3.4.md` 已记录 v3.4 P2 边界
+- [x] `tests/test_v3_4_trends.py` 覆盖 v3.4 趋势 AST、validator 默认、formatter 与 unsupported 边界
+- [ ] 运行并固化 `scripts/audit_test2.py` 的最终验收结果
+- [ ] 提交本地 v3.4 P2 变更
 
 ### 不做（v1 明确排除，v2 已归档）
 
@@ -120,7 +126,26 @@ skill.md                  — 旧 skill 定义（不参与 v1）
 
 ## 当前状态
 
-**v1 已完成，转向 text2sql 方向。** 13 条已解决 / 38 条覆盖测试，最后一次测试日期：2026-05-07。完整覆盖清单见 `test-questions-solved-answers.md`。v2 spec 已归档（`docs/etf-semantic-query-spec-v2.md`），不进入实施。
+**当前本地未提交版为 v3.4 P2。** 在 v3.3 既有 Text2SQL AST 链路上新增两个时序走势 intent：`nav_trend` 与 `scale_share_trend`。这两个能力使用 `timeseries_semantics.mode=series`，仍走 AST draft → validator → compiler → 远端 Mongo → formatter 链路，不走预封装业务函数。v2 spec 已归档（`docs/etf-semantic-query-spec-v2.md`），不进入实施。
+
+### v3.4 P2 范围
+
+| 需求 | intent 命名 | 涉及字段 | 当前状态 |
+| --- | --- | --- | --- |
+| 净值走势图 | `nav_trend` | `ths_unit_nv_fund` | 本地已实现，未提交 |
+| 规模/份额变动趋势 | `scale_share_trend` | `ths_fund_scale_fund`, `ths_fund_shares_fund` | 本地已实现，未提交 |
+
+### v3.4 P2 相关文件
+
+- Spec：`docs/etf-semantic-query-spec-v3.4.md`
+- 测试：`tests/test_v3_4_trends.py`
+- Test2 审计：`scripts/audit_test2.py`
+- 参考答案：`result/codex-etf-query-answers-test2.md`
+- MCP：`etf_mcp_server.py` 默认 `phase="v3.4"`，新增 `audit_test2`，`get_project_status` 返回 P2 状态
+
+### v1 历史状态
+
+v1 已完成，13 条已解决 / 38 条覆盖测试，最后一次测试日期：2026-05-07。完整覆盖清单见 `test-questions-solved-answers.md`。
 
 ### dry-run 验收通过的 13 条
 

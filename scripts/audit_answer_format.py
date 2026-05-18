@@ -21,7 +21,8 @@ def format_audit_answer(answer: str, *, result: dict[str, Any] | None = None, to
 def llm_total_tokens(result: dict[str, Any]) -> int | None:
     values: list[int] = []
     _collect_usage_records(result.get("llm_usage"), values)
-    _collect_usage_records((result.get("v3") or {}).get("llm_usage"), values)
+    if not values:
+        _collect_usage_records((result.get("v3") or {}).get("llm_usage"), values)
     _collect_usage_records(result.get("result"), values)
     return sum(values) if values else 0
 

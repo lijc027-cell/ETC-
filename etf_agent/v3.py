@@ -19,6 +19,7 @@ from .derived_performance import compile_derived_performance_query, execute_deri
 from .generation_context import build_generation_bundle
 from .report_scope import default_report_expand, report_collection, report_type_filter, resolve_report_scope
 from .boundary_policy import build_boundary_answer
+from .v3_5_router import generate_v3_5_route_with_llm, route_v3_5_locally
 
 SUPPORTED_INTENTS = {
     "basic_info",
@@ -1427,12 +1428,264 @@ def _detect_project_root() -> Path:
     return cwd
 
 
+def _v3_5_mongo_fallback_question(question: str) -> str:
+    if "持仓" in question and "股票" in question and "重仓" not in question:
+        return question.replace("持仓哪些股票", "重仓股有哪些").replace("持仓什么股票", "重仓股有哪些")
+    return question
+
+
+def _v3_5_needs_fund_identity(question: str) -> bool:
+    return "这只ETF" in question and not re.search(r"(?<!\d)(?:1|5)\d{5}(?!\d)", question)
+
+
+def _v3_5_identity_required_output(question: str) -> dict[str, Any]:
+    return {
+        "question": question,
+        "answer": "请先提供ETF代码或名称。",
+        "v3": {
+            "phase": "v3.5",
+            "recognized_query_mode": "unsupported",
+            "intent": None,
+            "routing_result": {"type": "UnsupportedQuery", "reason": "fund_identity_required"},
+            "v3_5_subroute": "mongo",
+            "remote_query_allowed": False,
+            "failure_stage": "routing",
+            "failure_reason": "fund_identity_required",
+            "llm_usage": [],
+        },
+        "v3_ast": None,
+        "validated_ast": None,
+        "query_plan": None,
+        "result": None,
+        "llm_usage": [],
+        "failure_stage": "routing",
+        "failure_reason": "fund_identity_required",
+    }
+
+
+def _v3_5_mongo_fallback_output(question: str, fallback: dict[str, Any]) -> dict[str, Any]:
+    fallback["question"] = question
+    v3 = fallback.setdefault("v3", {})
+    v3["phase"] = "v3.5"
+    v3["v3_5_subroute"] = "mongo"
+    answer = str(fallback.get("answer") or "")
+    mode = str(v3.get("recognized_query_mode") or "")
+    if mode == "clarify" or "匹配到多只 ETF" in answer or ("科创50ETF" in question and "未找到符合条件" in answer):
+        v3["routing_result"] = {"type": "UnsupportedQuery", "reason": "fund_identity_ambiguous"}
+        fallback["failure_stage"] = "routing"
+        fallback["failure_reason"] = "fund_identity_ambiguous"
+    elif "未在问题中识别到 ETF 基金代码或名称" in answer:
+        v3["routing_result"] = {"type": "UnsupportedQuery", "reason": "fund_identity_required"}
+        fallback["failure_stage"] = "routing"
+        fallback["failure_reason"] = "fund_identity_required"
+    else:
+        v3.setdefault("routing_result", {"type": "ExecutableQuery", "reason": None})
+    return fallback
+
+
+def _v3_5_route_payload(question: str, *, dry_run: bool, no_llm: bool, config_obj) -> dict[str, Any]:
+    if dry_run or no_llm or not getattr(config_obj, "dashscope_api_key", ""):
+        classification = classify_v3_query(question, config=None)
+        return {
+            "mode": "local_router",
+            "raw": None,
+            "route": route_v3_5_locally(question, classification=classification),
+            "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0},
+        }
+    payload = generate_v3_5_route_with_llm(question=question, config=config_obj)
+    return {
+        "mode": "llm_router",
+        "raw": payload.get("raw"),
+        "route": payload["route"],
+        "usage": payload.get("usage") or {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0},
+    }
+
+
+def _v3_5_attach_route_debug(result: dict[str, Any], route_payload: dict[str, Any]) -> dict[str, Any]:
+    v3 = result.setdefault("v3", {})
+    v3["v3_5_route"] = route_payload["route"]
+    v3["v3_5_route_mode"] = route_payload["mode"]
+    v3["v3_5_route_raw"] = route_payload.get("raw")
+    v3["v3_5_route_usage"] = route_payload.get("usage") or {}
+    usage = route_payload.get("usage") or {}
+    if usage.get("total_tokens"):
+        result["llm_usage"] = [usage, *(result.get("llm_usage") or [])]
+        v3["llm_usage"] = [usage, *(v3.get("llm_usage") or [])]
+    return result
+
+
+def _v3_5_dispatch_route(
+    question: str,
+    *,
+    route_payload: dict[str, Any],
+    config_root: Path,
+    config_obj,
+    dry_run: bool,
+    no_llm: bool,
+) -> dict[str, Any]:
+    from .realtime_runtime import run_realtime_query
+
+    route = route_payload["route"]["route"]
+    if route == "realtime":
+        result = run_realtime_query(question, config_obj=config_obj, dry_run=dry_run or no_llm)
+    elif route == "capability_clarify":
+        result = _v3_5_capability_clarification_output(question, config_root=config_root, config_obj=config_obj, dry_run=dry_run, no_llm=no_llm)
+    elif route in {"mongo_single", "mongo_report", "mongo_compare"}:
+        if _v3_5_needs_fund_identity(question):
+            result = _v3_5_identity_required_output(question)
+        else:
+            fallback_question = _v3_5_mongo_fallback_question(question)
+            fallback = semantic_query_v3(fallback_question, root=config_root, dry_run=dry_run, no_llm=no_llm, phase="v3.4")
+            result = _v3_5_mongo_fallback_output(question, fallback)
+    elif route == "clarify":
+        result = _v3_5_identity_required_output(question)
+    else:
+        result = _v3_5_unsupported_route_output(question, _v3_5_stable_unsupported_reason(route_payload["route"]))
+    return _v3_5_attach_route_debug(result, route_payload)
+
+
+def _v3_5_capability_clarification_output(
+    question: str,
+    *,
+    config_root: Path,
+    config_obj,
+    dry_run: bool,
+    no_llm: bool,
+) -> dict[str, Any]:
+    from .realtime_runtime import fake_realtime_result, format_realtime_answer
+    from .realtime_registry import get_realtime_registry
+
+    fundcodes = _extract_fundcodes(question)[:2]
+    realtime_preview = "需要具体ETF代码后才能展示实时行情预览。"
+    if len(fundcodes) >= 2:
+        registry = get_realtime_registry()
+        thscodes = [_fundcode_to_thscode_for_v3_5(fundcode) for fundcode in fundcodes]
+        plan = {
+            "output_style": "realtime_card",
+            "fundcodes": fundcodes,
+            "thscodes": thscodes,
+            "matched_names": {fundcode: _v3_5_preview_name(fundcode) for fundcode in fundcodes},
+            "scenarios": ["compare_overview"],
+            "fields": ["latest", "changeRatio", "amount", "premium", "tradeTime"],
+            "field_display_matrix": {field: registry["field_display_matrix"][field] for field in ["latest", "changeRatio", "amount", "premium", "tradeTime"]},
+            "source_field_mappings": {},
+            "normalization_rules": {},
+        }
+        realtime_preview = format_realtime_answer(plan, fake_realtime_result(plan))
+
+    mongo_answer = _v3_5_capability_mongo_preview(question, config_root=config_root, dry_run=dry_run, no_llm=no_llm)
+
+    answer = "\n".join(
+        [
+            "这个问题可以从两个方向看：",
+            "",
+            "实时行情：",
+            realtime_preview,
+            "",
+            "基金资料：",
+            mongo_answer,
+            "",
+            "你想继续看实时行情对比，还是基金资料/收益/费率对比？",
+        ]
+    )
+    return {
+        "question": question,
+        "answer": answer,
+        "v3": {
+            "phase": "v3.5",
+            "recognized_query_mode": "clarify",
+            "intent": None,
+            "routing_result": {"type": "ClarificationRequired", "reason": "capability_ambiguous"},
+            "v3_5_subroute": "capability_clarify",
+            "remote_query_allowed": False,
+            "failure_stage": "routing",
+            "failure_reason": "capability_ambiguous",
+            "llm_usage": [],
+        },
+        "v3_ast": None,
+        "validated_ast": None,
+        "query_plan": None,
+        "result": {"success": True, "realtime_preview": realtime_preview, "mongo_preview": mongo_answer},
+        "llm_usage": [],
+        "failure_stage": "routing",
+        "failure_reason": "capability_ambiguous",
+    }
+
+
+def _fundcode_to_thscode_for_v3_5(fundcode: str) -> str:
+    suffix = "SZ" if fundcode.startswith("1") else "SH"
+    return f"{fundcode}.{suffix}"
+
+
+def _v3_5_capability_mongo_preview(question: str, *, config_root: Path, dry_run: bool, no_llm: bool) -> str:
+    fundcodes = _extract_fundcodes(question)[:2]
+    if len(fundcodes) >= 2:
+        answers = []
+        for fundcode in fundcodes:
+            preview = semantic_query_v3(f"{fundcode}费率多少", root=config_root, dry_run=dry_run, no_llm=no_llm, phase="v3.4")
+            answers.append(str(preview.get("answer") or f"{fundcode} 暂无基金资料预览。"))
+        return "\n".join(answers)
+    preview = semantic_query_v3(_v3_5_mongo_fallback_question(question), root=config_root, dry_run=dry_run, no_llm=no_llm, phase="v3.4")
+    return str(preview.get("answer") or "暂时没有基金资料预览。")
+
+
+def _v3_5_preview_name(fundcode: str) -> str:
+    return {
+        "510050": "上证50ETF",
+        "510300": "沪深300ETF",
+        "159915": "创业板ETF",
+        "588000": "科创50ETF华夏",
+    }.get(fundcode, "")
+
+
+def _v3_5_stable_unsupported_reason(route: dict[str, Any]) -> str:
+    reason = str(route.get("reason") or "")
+    if reason in {"unsupported_domain", "unsupported_query", "investment_advice"}:
+        return reason
+    return "unsupported_domain"
+
+
+def _v3_5_unsupported_route_output(question: str, reason: str) -> dict[str, Any]:
+    return {
+        "question": question,
+        "answer": "暂无数据。该问题不在当前ETF查询能力范围内。",
+        "v3": {
+            "phase": "v3.5",
+            "recognized_query_mode": "unsupported",
+            "intent": None,
+            "routing_result": {"type": "UnsupportedQuery", "reason": reason},
+            "remote_query_allowed": False,
+            "failure_stage": "routing",
+            "failure_reason": reason,
+            "llm_usage": [],
+        },
+        "v3_ast": None,
+        "validated_ast": None,
+        "query_plan": None,
+        "result": None,
+        "llm_usage": [],
+        "failure_stage": "routing",
+        "failure_reason": reason,
+    }
+
+
 def semantic_query_v3(question: str, *, root=None, dry_run: bool = False, no_llm: bool = False, phase: str = "v3.3") -> dict[str, Any]:
     # Load config
     from .config import load_config
 
     config_root = Path(root) if root else _detect_project_root()
     config_obj = load_config(config_root)
+
+    if phase == "v3.5":
+        route_payload = _v3_5_route_payload(question, dry_run=dry_run, no_llm=no_llm, config_obj=config_obj)
+        return _v3_5_dispatch_route(
+            question,
+            route_payload=route_payload,
+            config_root=config_root,
+            config_obj=config_obj,
+            dry_run=dry_run,
+            no_llm=no_llm,
+        )
 
     # ---- Step 1: deny / unsupported gate ----
     classification = classify_v3_query(question, config=None if (dry_run or no_llm) else config_obj)

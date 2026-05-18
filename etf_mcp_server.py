@@ -43,6 +43,10 @@ def audit_section12_tool() -> dict[str, Any]:
     return _run_audit("scripts/audit_v3_3_section12.py")
 
 
+def audit_test2_tool() -> dict[str, Any]:
+    return _run_audit("scripts/audit_test2.py")
+
+
 def get_project_status_tool() -> dict[str, Any]:
     return {
         "ok": True,
@@ -53,10 +57,15 @@ def get_project_status_tool() -> dict[str, Any]:
         "current_progress": {
             "p2_status": "local_uncommitted",
             "enabled_intents": ["nav_trend", "scale_share_trend"],
+            "phase": "v3.4",
+            "scope": "P2 timeseries series support for NAV trend and scale/share trend",
+            "answer_reference": "result/codex-etf-query-answers-test2.md",
+            "audit_script": "scripts/audit_test2.py",
         },
-        "tools": ["query_etf", "audit_section10", "audit_section12", "get_project_status"],
+        "tools": ["query_etf", "audit_section10", "audit_section12", "audit_test2", "get_project_status"],
         "notes": [
             "Queries use the local ETF Text2SQL v3 runtime.",
+            "v3.4 is the current local uncommitted P2 branch with nav_trend and scale_share_trend enabled.",
             "Runtime credentials are loaded from environment variables or .env.",
             "The MCP server does not expose write operations.",
         ],
@@ -90,6 +99,7 @@ def _build_mcp_server():
     mcp.tool(name="query_etf")(query_etf_tool)
     mcp.tool(name="audit_section10")(audit_section10_tool)
     mcp.tool(name="audit_section12")(audit_section12_tool)
+    mcp.tool(name="audit_test2")(audit_test2_tool)
     mcp.tool(name="get_project_status")(get_project_status_tool)
     return mcp
 

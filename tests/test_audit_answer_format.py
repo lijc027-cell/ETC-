@@ -43,5 +43,14 @@ def test_llm_total_tokens_collects_nested_usage_once_per_usage_record():
     assert llm_total_tokens(result) == 25
 
 
+def test_llm_total_tokens_does_not_double_count_top_level_and_v3_usage():
+    result = {
+        "llm_usage": [{"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15}],
+        "v3": {"llm_usage": [{"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15}]},
+    }
+
+    assert llm_total_tokens(result) == 15
+
+
 def test_llm_total_tokens_defaults_to_zero_when_no_llm_usage():
     assert llm_total_tokens({"answer": "拒答"}) == 0

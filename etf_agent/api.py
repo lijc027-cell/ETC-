@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
@@ -9,16 +10,16 @@ from typing import Any
 from .v3 import semantic_query_v3
 
 
-API_VERSION = "temp-v3.4"
-DEFAULT_PHASE = "v3.3"
-SUPPORTED_PHASES = {"v3.2", "v3.3", "v3.4"}
+API_VERSION = "temp-v3.5"
+DEFAULT_PHASE = "v3.4"
+SUPPORTED_PHASES = {"v3.2", "v3.3", "v3.4", "v3.5"}
 
 
 def run_query(payload: dict[str, Any], *, root: Path | None = None) -> dict[str, Any]:
     question = _required_question(payload)
     phase = str(payload.get("phase") or DEFAULT_PHASE)
     if phase not in SUPPORTED_PHASES:
-        raise ValueError("phase must be v3.2, v3.3, or v3.4")
+        raise ValueError("phase must be v3.2, v3.3, v3.4, or v3.5")
 
     raw = semantic_query_v3(
         question,
@@ -38,7 +39,12 @@ def openapi_spec() -> dict[str, Any]:
             "version": API_VERSION,
             "description": "临时 ETF 查数接口：输入自然语言问题，返回当前 v3 查询回答。",
         },
-        "servers": [{"url": "http://localhost:8090", "description": "local temporary server"}],
+        "servers": [
+            {
+                "url": os.getenv("ETF_API_PUBLIC_BASE_URL", "http://localhost:8090"),
+                "description": "ETF Query API server",
+            }
+        ],
         "paths": {
             "/health": {
                 "get": {

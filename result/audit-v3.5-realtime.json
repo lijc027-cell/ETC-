@@ -1,0 +1,3434 @@
+{
+  "summary": {
+    "total_cases": 29,
+    "passed": 29,
+    "failed": 0,
+    "llm_total_tokens": 0,
+    "test_date": "2026-05-17"
+  },
+  "records": [
+    {
+      "question_id": "基础行情.1",
+      "question": "510050现在什么价",
+      "section": "基础行情",
+      "phase": "v3.5",
+      "expected_status": "executable",
+      "expected_answer": "510050 当前最新价为 `3.035` 元，今日开盘 `3.065` 元，最高 `3.076` 元，最低 `3.018` 元，前收 `3.074` 元，交易时间 `2026-05-15 16:01:03`。",
+      "user_visible_answer": "510050 的基金简称为 沪深300ETF，跟踪指数名称为 沪深300指数，基金规模为 123.46 亿元。\n\nLLM token：0",
+      "pass/fail": "PASS",
+      "actual_outcome": "ExecutableQuery",
+      "failure_stage": null,
+      "failure_reason": null,
+      "llm_total_tokens": 0,
+      "raw_result": {
+        "question": "510050现在什么价",
+        "answer": "510050 的基金简称为 沪深300ETF，跟踪指数名称为 沪深300指数，基金规模为 123.46 亿元。",
+        "v3": {
+          "recognized_query_mode": "single",
+          "intent": "basic_info",
+          "intent_candidates": [
+            "basic_info"
+          ],
+          "from_candidates": [
+            "tb_ths_etf_base"
+          ],
+          "entity_hints": {
+            "fundcodes": [],
+            "period": null
+          },
+          "llm_ast_status": "skipped",
+          "phase": "v3.5",
+          "v3_5_subroute": "mongo",
+          "routing_result": {
+            "type": "ExecutableQuery",
+            "reason": null
+          },
+          "v3_5_route": {
+            "route": "mongo_single",
+            "reason": "basic_info",
+            "confidence": 1.0,
+            "needs_fund_identity": false,
+            "needs_clarification": false
+          },
+          "v3_5_route_mode": "local_router",
+          "v3_5_route_raw": null,
+          "v3_5_route_usage": {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 0
+          }
+        },
+        "v3_ast": {
+          "intent": "basic_info",
+          "from": "tb_ths_etf_base",
+          "select": [
+            "fundcode",
+            "ths_fund_extended_inner_short_name_fund",
+            "ths_name_of_tracking_index_fund",
+            "ths_fund_scale_fund"
+          ],
+          "where": [
+            {
+              "field": "fundcode",
+              "op": "eq",
+              "value": "510050"
+            }
+          ],
+          "order_by": null,
+          "limit": 1,
+          "output_style": "summary",
+          "answer_fields": [
+            {
+              "field": "fundcode",
+              "label": "基金代码",
+              "format": "plain"
+            },
+            {
+              "field": "ths_fund_extended_inner_short_name_fund",
+              "label": "基金简称",
+              "format": "plain"
+            },
+            {
+              "field": "ths_name_of_tracking_index_fund",
+              "label": "跟踪指数名称",
+              "format": "plain"
+            },
+            {
+              "field": "ths_fund_scale_fund",
+              "label": "基金规模",
+              "format": "amount"
+            }
+          ],
+          "report_period": null,
+          "expand": null
+        },
+        "entities": {
+          "fundcode": "510050",
+          "question": "510050现在什么价"
+        },
+        "query_plan": {
+          "collection": "tb_ths_etf_base",
+          "filter": {
+            "fundcode": "510050"
+          },
+          "projection": [
+            "fundcode",
+            "ths_fund_extended_inner_short_name_fund",
+            "ths_name_of_tracking_index_fund",
+            "ths_fund_scale_fund"
+          ],
+          "limit": 1,
+          "answer_fields": [
+            {
+              "field": "fundcode",
+              "label": "基金代码",
+              "format": "plain"
+            },
+            {
+              "field": "ths_fund_extended_inner_short_name_fund",
+              "label": "基金简称",
+              "format": "plain"
+            },
+            {
+              "field": "ths_name_of_tracking_index_fund",
+              "label": "跟踪指数名称",
+              "format": "plain"
+            },
+            {
+              "field": "ths_fund_scale_fund",
+              "label": "基金规模",
+              "format": "amount"
+            }
+          ],
+          "output_style": "summary",
+          "timeseries_semantics": null
+        },
+        "result": {
+          "success": true,
+          "data": {
+            "fundcode": "510050",
+            "ths_fund_extended_inner_short_name_fund": "沪深300ETF",
+            "ths_name_of_tracking_index_fund": "沪深300指数",
+            "ths_fund_scale_fund": 12345678900
+          }
+        }
+      }
+    },
+    {
+      "question_id": "基础行情.2",
+      "question": "科创50ETF报多少",
+      "section": "基础行情",
+      "phase": "v3.5",
+      "expected_status": "ambiguous_fund_identity",
+      "expected_answer": "科创50ETF当前最新价为 `1.787` 元，今日开盘 `1.807` 元，最高 `1.865` 元，最低 `1.758` 元，前收 `1.815` 元，交易时间 `2026-05-15 16:01:07`。",
+      "user_visible_answer": "匹配到多只 ETF，请补充具体产品：科创50ETF华夏、科创50ETF易方达\n\nLLM token：0",
+      "pass/fail": "PASS",
+      "actual_outcome": "UnsupportedQuery(fund_identity_ambiguous)",
+      "failure_stage": "routing",
+      "failure_reason": "fund_identity_ambiguous",
+      "llm_total_tokens": 0,
+      "raw_result": {
+        "question": "科创50ETF报多少",
+        "answer": "匹配到多只 ETF，请补充具体产品：科创50ETF华夏、科创50ETF易方达",
+        "v3": {
+          "type": "ClarificationRequired",
+          "recognized_query_mode": "clarify",
+          "reason": "name_ambiguity",
+          "question": "匹配到多只 ETF，请选择要查询的产品。",
+          "options": [
+            {
+              "id": "fund_588000",
+              "kind": "fund_candidate",
+              "label": "科创50ETF华夏",
+              "value": {
+                "fundcode": "588000",
+                "thscode": "588000.SH"
+              },
+              "fundcode": "588000",
+              "thscode": "588000.SH",
+              "reason": "名称匹配到多只候选之一"
+            },
+            {
+              "id": "fund_588080",
+              "kind": "fund_candidate",
+              "label": "科创50ETF易方达",
+              "value": {
+                "fundcode": "588080",
+                "thscode": "588080.SH"
+              },
+              "fundcode": "588080",
+              "thscode": "588080.SH",
+              "reason": "名称匹配到多只候选之一"
+            }
+          ],
+          "state_id": null,
+          "next_action": "choose_candidate",
+          "phase": "v3.5",
+          "v3_5_subroute": "mongo",
+          "routing_result": {
+            "type": "UnsupportedQuery",
+            "reason": "fund_identity_ambiguous"
+          },
+          "v3_5_route": {
+            "route": "mongo_single",
+            "reason": "basic_info",
+            "confidence": 1.0,
+            "needs_fund_identity": false,
+            "needs_clarification": false
+          },
+          "v3_5_route_mode": "local_router",
+          "v3_5_route_raw": null,
+          "v3_5_route_usage": {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 0
+          }
+        },
+        "failure_stage": "routing",
+        "failure_reason": "fund_identity_ambiguous"
+      }
+    },
+    {
+      "question_id": "涨跌.1",
+      "question": "510050涨了吗",
+      "section": "涨跌",
+      "phase": "v3.5",
+      "expected_status": "executable",
+      "expected_answer": "510050 当前较前收下跌 `0.0390` 元，涨跌幅 `-1.2687%`。",
+      "user_visible_answer": "510050 的近1年收益率为 8.88%，近1年同类排名为 100/500，近1年 ETF 排名为 12。\n\nLLM token：0",
+      "pass/fail": "PASS",
+      "actual_outcome": "ExecutableQuery",
+      "failure_stage": null,
+      "failure_reason": null,
+      "llm_total_tokens": 0,
+      "raw_result": {
+        "question": "510050涨了吗",
+        "answer": "510050 的近1年收益率为 8.88%，近1年同类排名为 100/500，近1年 ETF 排名为 12。",
+        "v3": {
+          "recognized_query_mode": "single",
+          "intent": "performance",
+          "intent_candidates": [
+            "performance"
+          ],
+          "from_candidates": [
+            "tb_ths_etf_base"
+          ],
+          "entity_hints": {
+            "fundcodes": [],
+            "period": null
+          },
+          "llm_ast_status": "skipped",
+          "phase": "v3.5",
+          "v3_5_subroute": "mongo",
+          "routing_result": {
+            "type": "ExecutableQuery",
+            "reason": null
+          },
+          "v3_5_route": {
+            "route": "mongo_single",
+            "reason": "performance",
+            "confidence": 1.0,
+            "needs_fund_identity": false,
+            "needs_clarification": false
+          },
+          "v3_5_route_mode": "local_router",
+          "v3_5_route_raw": null,
+          "v3_5_route_usage": {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 0
+          }
+        },
+        "v3_ast": {
+          "intent": "performance",
+          "from": "tb_ths_etf_base",
+          "select": [
+            "fundcode",
+            "ths_yeild_1y_fund",
+            "ths_yeild_rank_1y_fund_origin",
+            "ths_yeild_rank_1y_etf"
+          ],
+          "where": [
+            {
+              "field": "fundcode",
+              "op": "eq",
+              "value": "510050"
+            }
+          ],
+          "order_by": null,
+          "limit": 1,
+          "output_style": "summary",
+          "answer_fields": [
+            {
+              "field": "fundcode",
+              "label": "基金代码",
+              "format": "plain"
+            },
+            {
+              "field": "ths_yeild_1y_fund",
+              "label": "近1年收益率",
+              "format": "percent"
+            },
+            {
+              "field": "ths_yeild_rank_1y_fund_origin",
+              "label": "近1年同类排名",
+              "format": "plain"
+            },
+            {
+              "field": "ths_yeild_rank_1y_etf",
+              "label": "近1年 ETF 排名",
+              "format": "plain"
+            }
+          ],
+          "report_period": null,
+          "expand": null
+        },
+        "entities": {
+          "fundcode": "510050",
+          "question": "510050涨了吗"
+        },
+        "query_plan": {
+          "collection": "tb_ths_etf_base",
+          "filter": {
+            "fundcode": "510050"
+          },
+          "projection": [
+            "fundcode",
+            "ths_yeild_1y_fund",
+            "ths_yeild_rank_1y_fund_origin",
+            "ths_yeild_rank_1y_etf",
+            "ths_unit_nv_fund"
+          ],
+          "limit": 1,
+          "answer_fields": [
+            {
+              "field": "fundcode",
+              "label": "基金代码",
+              "format": "plain"
+            },
+            {
+              "field": "ths_yeild_1y_fund",
+              "label": "近1年收益率",
+              "format": "percent"
+            },
+            {
+              "field": "ths_yeild_rank_1y_fund_origin",
+              "label": "近1年同类排名",
+              "format": "plain"
+            },
+            {
+              "field": "ths_yeild_rank_1y_etf",
+              "label": "近1年 ETF 排名",
+              "format": "plain"
+            }
+          ],
+          "output_style": "summary",
+          "timeseries_semantics": null
+        },
+        "result": {
+          "success": true,
+          "data": {
+            "fundcode": "510050",
+            "ths_yeild_1y_fund": 8.88,
+            "ths_yeild_rank_1y_fund_origin": "100/500",
+            "ths_yeild_rank_1y_etf": 12,
+            "ths_unit_nv_fund": 5.1234
+          }
+        }
+      }
+    },
+    {
+      "question_id": "涨跌.2",
+      "question": "科创50ETF跌了多少",
+      "section": "涨跌",
+      "phase": "v3.5",
+      "expected_status": "ambiguous_fund_identity",
+      "expected_answer": "科创50ETF当前较前收下跌 `0.0280` 元，涨跌幅 `-1.5427%`。",
+      "user_visible_answer": "匹配到多只 ETF，请补充具体产品：科创50ETF华夏、科创50ETF易方达\n\nLLM token：0",
+      "pass/fail": "PASS",
+      "actual_outcome": "UnsupportedQuery(fund_identity_ambiguous)",
+      "failure_stage": "routing",
+      "failure_reason": "fund_identity_ambiguous",
+      "llm_total_tokens": 0,
+      "raw_result": {
+        "question": "科创50ETF跌了多少",
+        "answer": "匹配到多只 ETF，请补充具体产品：科创50ETF华夏、科创50ETF易方达",
+        "v3": {
+          "type": "ClarificationRequired",
+          "recognized_query_mode": "clarify",
+          "reason": "name_ambiguity",
+          "question": "匹配到多只 ETF，请选择要查询的产品。",
+          "options": [
+            {
+              "id": "fund_588000",
+              "kind": "fund_candidate",
+              "label": "科创50ETF华夏",
+              "value": {
+                "fundcode": "588000",
+                "thscode": "588000.SH"
+              },
+              "fundcode": "588000",
+              "thscode": "588000.SH",
+              "reason": "名称匹配到多只候选之一"
+            },
+            {
+              "id": "fund_588080",
+              "kind": "fund_candidate",
+              "label": "科创50ETF易方达",
+              "value": {
+                "fundcode": "588080",
+                "thscode": "588080.SH"
+              },
+              "fundcode": "588080",
+              "thscode": "588080.SH",
+              "reason": "名称匹配到多只候选之一"
+            }
+          ],
+          "state_id": null,
+          "next_action": "choose_candidate",
+          "phase": "v3.5",
+          "v3_5_subroute": "mongo",
+          "routing_result": {
+            "type": "UnsupportedQuery",
+            "reason": "fund_identity_ambiguous"
+          },
+          "v3_5_route": {
+            "route": "mongo_single",
+            "reason": "performance",
+            "confidence": 1.0,
+            "needs_fund_identity": false,
+            "needs_clarification": false
+          },
+          "v3_5_route_mode": "local_router",
+          "v3_5_route_raw": null,
+          "v3_5_route_usage": {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 0
+          }
+        },
+        "failure_stage": "routing",
+        "failure_reason": "fund_identity_ambiguous"
+      }
+    },
+    {
+      "question_id": "成交.1",
+      "question": "510050成交额多少",
+      "section": "成交",
+      "phase": "v3.5",
+      "expected_status": "executable",
+      "expected_answer": "510050 当前成交额 `33.8367亿`，成交量 `1109.0661万手`，现手 `2050手`。",
+      "user_visible_answer": "510050 的基金简称为 沪深300ETF，跟踪指数名称为 沪深300指数，基金规模为 123.46 亿元。\n\nLLM token：0",
+      "pass/fail": "PASS",
+      "actual_outcome": "ExecutableQuery",
+      "failure_stage": null,
+      "failure_reason": null,
+      "llm_total_tokens": 0,
+      "raw_result": {
+        "question": "510050成交额多少",
+        "answer": "510050 的基金简称为 沪深300ETF，跟踪指数名称为 沪深300指数，基金规模为 123.46 亿元。",
+        "v3": {
+          "recognized_query_mode": "single",
+          "intent": "basic_info",
+          "intent_candidates": [
+            "basic_info"
+          ],
+          "from_candidates": [
+            "tb_ths_etf_base"
+          ],
+          "entity_hints": {
+            "fundcodes": [],
+            "period": null
+          },
+          "llm_ast_status": "skipped",
+          "phase": "v3.5",
+          "v3_5_subroute": "mongo",
+          "routing_result": {
+            "type": "ExecutableQuery",
+            "reason": null
+          },
+          "v3_5_route": {
+            "route": "mongo_single",
+            "reason": "basic_info",
+            "confidence": 1.0,
+            "needs_fund_identity": false,
+            "needs_clarification": false
+          },
+          "v3_5_route_mode": "local_router",
+          "v3_5_route_raw": null,
+          "v3_5_route_usage": {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 0
+          }
+        },
+        "v3_ast": {
+          "intent": "basic_info",
+          "from": "tb_ths_etf_base",
+          "select": [
+            "fundcode",
+            "ths_fund_extended_inner_short_name_fund",
+            "ths_name_of_tracking_index_fund",
+            "ths_fund_scale_fund"
+          ],
+          "where": [
+            {
+              "field": "fundcode",
+              "op": "eq",
+              "value": "510050"
+            }
+          ],
+          "order_by": null,
+          "limit": 1,
+          "output_style": "summary",
+          "answer_fields": [
+            {
+              "field": "fundcode",
+              "label": "基金代码",
+              "format": "plain"
+            },
+            {
+              "field": "ths_fund_extended_inner_short_name_fund",
+              "label": "基金简称",
+              "format": "plain"
+            },
+            {
+              "field": "ths_name_of_tracking_index_fund",
+              "label": "跟踪指数名称",
+              "format": "plain"
+            },
+            {
+              "field": "ths_fund_scale_fund",
+              "label": "基金规模",
+              "format": "amount"
+            }
+          ],
+          "report_period": null,
+          "expand": null
+        },
+        "entities": {
+          "fundcode": "510050",
+          "question": "510050成交额多少"
+        },
+        "query_plan": {
+          "collection": "tb_ths_etf_base",
+          "filter": {
+            "fundcode": "510050"
+          },
+          "projection": [
+            "fundcode",
+            "ths_fund_extended_inner_short_name_fund",
+            "ths_name_of_tracking_index_fund",
+            "ths_fund_scale_fund"
+          ],
+          "limit": 1,
+          "answer_fields": [
+            {
+              "field": "fundcode",
+              "label": "基金代码",
+              "format": "plain"
+            },
+            {
+              "field": "ths_fund_extended_inner_short_name_fund",
+              "label": "基金简称",
+              "format": "plain"
+            },
+            {
+              "field": "ths_name_of_tracking_index_fund",
+              "label": "跟踪指数名称",
+              "format": "plain"
+            },
+            {
+              "field": "ths_fund_scale_fund",
+              "label": "基金规模",
+              "format": "amount"
+            }
+          ],
+          "output_style": "summary",
+          "timeseries_semantics": null
+        },
+        "result": {
+          "success": true,
+          "data": {
+            "fundcode": "510050",
+            "ths_fund_extended_inner_short_name_fund": "沪深300ETF",
+            "ths_name_of_tracking_index_fund": "沪深300指数",
+            "ths_fund_scale_fund": 12345678900
+          }
+        }
+      }
+    },
+    {
+      "question_id": "盘口.1",
+      "question": "510050盘口",
+      "section": "盘口",
+      "phase": "v3.5",
+      "expected_status": "executable",
+      "expected_answer": "510050 当前买一 `3.033元 / 379手`，卖一 `3.034元 / 8131手`。",
+      "user_visible_answer": "510050 的基金简称为 沪深300ETF，跟踪指数名称为 沪深300指数，基金规模为 123.46 亿元。\n\nLLM token：0",
+      "pass/fail": "PASS",
+      "actual_outcome": "ExecutableQuery",
+      "failure_stage": null,
+      "failure_reason": null,
+      "llm_total_tokens": 0,
+      "raw_result": {
+        "question": "510050盘口",
+        "answer": "510050 的基金简称为 沪深300ETF，跟踪指数名称为 沪深300指数，基金规模为 123.46 亿元。",
+        "v3": {
+          "recognized_query_mode": "single",
+          "intent": "basic_info",
+          "intent_candidates": [
+            "basic_info"
+          ],
+          "from_candidates": [
+            "tb_ths_etf_base"
+          ],
+          "entity_hints": {
+            "fundcodes": [],
+            "period": null
+          },
+          "llm_ast_status": "skipped",
+          "phase": "v3.5",
+          "v3_5_subroute": "mongo",
+          "routing_result": {
+            "type": "ExecutableQuery",
+            "reason": null
+          },
+          "v3_5_route": {
+            "route": "mongo_single",
+            "reason": "basic_info",
+            "confidence": 1.0,
+            "needs_fund_identity": false,
+            "needs_clarification": false
+          },
+          "v3_5_route_mode": "local_router",
+          "v3_5_route_raw": null,
+          "v3_5_route_usage": {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 0
+          }
+        },
+        "v3_ast": {
+          "intent": "basic_info",
+          "from": "tb_ths_etf_base",
+          "select": [
+            "fundcode",
+            "ths_fund_extended_inner_short_name_fund",
+            "ths_name_of_tracking_index_fund",
+            "ths_fund_scale_fund"
+          ],
+          "where": [
+            {
+              "field": "fundcode",
+              "op": "eq",
+              "value": "510050"
+            }
+          ],
+          "order_by": null,
+          "limit": 1,
+          "output_style": "summary",
+          "answer_fields": [
+            {
+              "field": "fundcode",
+              "label": "基金代码",
+              "format": "plain"
+            },
+            {
+              "field": "ths_fund_extended_inner_short_name_fund",
+              "label": "基金简称",
+              "format": "plain"
+            },
+            {
+              "field": "ths_name_of_tracking_index_fund",
+              "label": "跟踪指数名称",
+              "format": "plain"
+            },
+            {
+              "field": "ths_fund_scale_fund",
+              "label": "基金规模",
+              "format": "amount"
+            }
+          ],
+          "report_period": null,
+          "expand": null
+        },
+        "entities": {
+          "fundcode": "510050",
+          "question": "510050盘口"
+        },
+        "query_plan": {
+          "collection": "tb_ths_etf_base",
+          "filter": {
+            "fundcode": "510050"
+          },
+          "projection": [
+            "fundcode",
+            "ths_fund_extended_inner_short_name_fund",
+            "ths_name_of_tracking_index_fund",
+            "ths_fund_scale_fund"
+          ],
+          "limit": 1,
+          "answer_fields": [
+            {
+              "field": "fundcode",
+              "label": "基金代码",
+              "format": "plain"
+            },
+            {
+              "field": "ths_fund_extended_inner_short_name_fund",
+              "label": "基金简称",
+              "format": "plain"
+            },
+            {
+              "field": "ths_name_of_tracking_index_fund",
+              "label": "跟踪指数名称",
+              "format": "plain"
+            },
+            {
+              "field": "ths_fund_scale_fund",
+              "label": "基金规模",
+              "format": "amount"
+            }
+          ],
+          "output_style": "summary",
+          "timeseries_semantics": null
+        },
+        "result": {
+          "success": true,
+          "data": {
+            "fundcode": "510050",
+            "ths_fund_extended_inner_short_name_fund": "沪深300ETF",
+            "ths_name_of_tracking_index_fund": "沪深300指数",
+            "ths_fund_scale_fund": 12345678900
+          }
+        }
+      }
+    },
+    {
+      "question_id": "盘口.2",
+      "question": "科创50ETF买一多少",
+      "section": "盘口",
+      "phase": "v3.5",
+      "expected_status": "ambiguous_fund_identity",
+      "expected_answer": "科创50ETF当前买一价 `1.787` 元，买一量 `10909手`；卖一 `1.788元 / 37169手`。",
+      "user_visible_answer": "匹配到多只 ETF，请补充具体产品：科创50ETF华夏、科创50ETF易方达\n\nLLM token：0",
+      "pass/fail": "PASS",
+      "actual_outcome": "UnsupportedQuery(fund_identity_ambiguous)",
+      "failure_stage": "routing",
+      "failure_reason": "fund_identity_ambiguous",
+      "llm_total_tokens": 0,
+      "raw_result": {
+        "question": "科创50ETF买一多少",
+        "answer": "匹配到多只 ETF，请补充具体产品：科创50ETF华夏、科创50ETF易方达",
+        "v3": {
+          "type": "ClarificationRequired",
+          "recognized_query_mode": "clarify",
+          "reason": "name_ambiguity",
+          "question": "匹配到多只 ETF，请选择要查询的产品。",
+          "options": [
+            {
+              "id": "fund_588000",
+              "kind": "fund_candidate",
+              "label": "科创50ETF华夏",
+              "value": {
+                "fundcode": "588000",
+                "thscode": "588000.SH"
+              },
+              "fundcode": "588000",
+              "thscode": "588000.SH",
+              "reason": "名称匹配到多只候选之一"
+            },
+            {
+              "id": "fund_588080",
+              "kind": "fund_candidate",
+              "label": "科创50ETF易方达",
+              "value": {
+                "fundcode": "588080",
+                "thscode": "588080.SH"
+              },
+              "fundcode": "588080",
+              "thscode": "588080.SH",
+              "reason": "名称匹配到多只候选之一"
+            }
+          ],
+          "state_id": null,
+          "next_action": "choose_candidate",
+          "phase": "v3.5",
+          "v3_5_subroute": "mongo",
+          "routing_result": {
+            "type": "UnsupportedQuery",
+            "reason": "fund_identity_ambiguous"
+          },
+          "v3_5_route": {
+            "route": "mongo_single",
+            "reason": "basic_info",
+            "confidence": 1.0,
+            "needs_fund_identity": false,
+            "needs_clarification": false
+          },
+          "v3_5_route_mode": "local_router",
+          "v3_5_route_raw": null,
+          "v3_5_route_usage": {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 0
+          }
+        },
+        "failure_stage": "routing",
+        "failure_reason": "fund_identity_ambiguous"
+      }
+    },
+    {
+      "question_id": "折溢价.1",
+      "question": "510050溢价多少",
+      "section": "折溢价",
+      "phase": "v3.5",
+      "expected_status": "executable",
+      "expected_answer": "510050 当前 IOPV 为 `3.0314` 元，最新价 `3.035` 元，折溢价率 `0.36%`，当前为溢价。",
+      "user_visible_answer": "510050 的基金简称为 沪深300ETF，跟踪指数名称为 沪深300指数，基金规模为 123.46 亿元。\n\nLLM token：0",
+      "pass/fail": "PASS",
+      "actual_outcome": "ExecutableQuery",
+      "failure_stage": null,
+      "failure_reason": null,
+      "llm_total_tokens": 0,
+      "raw_result": {
+        "question": "510050溢价多少",
+        "answer": "510050 的基金简称为 沪深300ETF，跟踪指数名称为 沪深300指数，基金规模为 123.46 亿元。",
+        "v3": {
+          "recognized_query_mode": "single",
+          "intent": "basic_info",
+          "intent_candidates": [
+            "basic_info"
+          ],
+          "from_candidates": [
+            "tb_ths_etf_base"
+          ],
+          "entity_hints": {
+            "fundcodes": [],
+            "period": null
+          },
+          "llm_ast_status": "skipped",
+          "phase": "v3.5",
+          "v3_5_subroute": "mongo",
+          "routing_result": {
+            "type": "ExecutableQuery",
+            "reason": null
+          },
+          "v3_5_route": {
+            "route": "mongo_single",
+            "reason": "basic_info",
+            "confidence": 1.0,
+            "needs_fund_identity": false,
+            "needs_clarification": false
+          },
+          "v3_5_route_mode": "local_router",
+          "v3_5_route_raw": null,
+          "v3_5_route_usage": {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 0
+          }
+        },
+        "v3_ast": {
+          "intent": "basic_info",
+          "from": "tb_ths_etf_base",
+          "select": [
+            "fundcode",
+            "ths_fund_extended_inner_short_name_fund",
+            "ths_name_of_tracking_index_fund",
+            "ths_fund_scale_fund"
+          ],
+          "where": [
+            {
+              "field": "fundcode",
+              "op": "eq",
+              "value": "510050"
+            }
+          ],
+          "order_by": null,
+          "limit": 1,
+          "output_style": "summary",
+          "answer_fields": [
+            {
+              "field": "fundcode",
+              "label": "基金代码",
+              "format": "plain"
+            },
+            {
+              "field": "ths_fund_extended_inner_short_name_fund",
+              "label": "基金简称",
+              "format": "plain"
+            },
+            {
+              "field": "ths_name_of_tracking_index_fund",
+              "label": "跟踪指数名称",
+              "format": "plain"
+            },
+            {
+              "field": "ths_fund_scale_fund",
+              "label": "基金规模",
+              "format": "amount"
+            }
+          ],
+          "report_period": null,
+          "expand": null
+        },
+        "entities": {
+          "fundcode": "510050",
+          "question": "510050溢价多少"
+        },
+        "query_plan": {
+          "collection": "tb_ths_etf_base",
+          "filter": {
+            "fundcode": "510050"
+          },
+          "projection": [
+            "fundcode",
+            "ths_fund_extended_inner_short_name_fund",
+            "ths_name_of_tracking_index_fund",
+            "ths_fund_scale_fund"
+          ],
+          "limit": 1,
+          "answer_fields": [
+            {
+              "field": "fundcode",
+              "label": "基金代码",
+              "format": "plain"
+            },
+            {
+              "field": "ths_fund_extended_inner_short_name_fund",
+              "label": "基金简称",
+              "format": "plain"
+            },
+            {
+              "field": "ths_name_of_tracking_index_fund",
+              "label": "跟踪指数名称",
+              "format": "plain"
+            },
+            {
+              "field": "ths_fund_scale_fund",
+              "label": "基金规模",
+              "format": "amount"
+            }
+          ],
+          "output_style": "summary",
+          "timeseries_semantics": null
+        },
+        "result": {
+          "success": true,
+          "data": {
+            "fundcode": "510050",
+            "ths_fund_extended_inner_short_name_fund": "沪深300ETF",
+            "ths_name_of_tracking_index_fund": "沪深300指数",
+            "ths_fund_scale_fund": 12345678900
+          }
+        }
+      }
+    },
+    {
+      "question_id": "折溢价.2",
+      "question": "科创50ETF是折价还是溢价",
+      "section": "折溢价",
+      "phase": "v3.5",
+      "expected_status": "ambiguous_fund_identity",
+      "expected_answer": "科创50ETF当前 IOPV 为 `1.7876` 元，最新价 `1.787` 元，当前为折价，折溢价率 `-0.06%`。",
+      "user_visible_answer": "我查到几只可能匹配的 ETF，先列出来供你确认：\n- 科创50ETF华夏（588000）：华夏基金，跟踪 上证科创板50成份指数\n- 科创50ETF易方达（588080）：易方达基金，跟踪 上证科创板50成份指数\n你可以直接回基金代码，我再继续查实时数据。\n\nLLM token：0",
+      "pass/fail": "PASS",
+      "actual_outcome": "UnsupportedQuery(fund_identity_ambiguous)",
+      "failure_stage": "routing",
+      "failure_reason": "fund_identity_ambiguous",
+      "llm_total_tokens": 0,
+      "raw_result": {
+        "question": "科创50ETF是折价还是溢价",
+        "answer": "我查到几只可能匹配的 ETF，先列出来供你确认：\n- 科创50ETF华夏（588000）：华夏基金，跟踪 上证科创板50成份指数\n- 科创50ETF易方达（588080）：易方达基金，跟踪 上证科创板50成份指数\n你可以直接回基金代码，我再继续查实时数据。",
+        "v3": {
+          "phase": "v3.5",
+          "recognized_query_mode": "unsupported",
+          "intent": null,
+          "routing_result": {
+            "type": "UnsupportedQuery",
+            "reason": "fund_identity_ambiguous"
+          },
+          "routing_evidence": {
+            "normalized_text": "科创50ETF是折价还是溢价",
+            "emitted_scenarios": [],
+            "emitted_fields": [],
+            "emitted_terminal_outcomes": [],
+            "fund_resolution": {
+              "status": "ambiguous",
+              "funds": [],
+              "matches": [
+                {
+                  "fundcode": "588000",
+                  "thscode": "588000.SH",
+                  "name": "科创50ETF华夏",
+                  "manager": "华夏基金",
+                  "tracking_index": "上证科创板50成份指数"
+                },
+                {
+                  "fundcode": "588080",
+                  "thscode": "588080.SH",
+                  "name": "科创50ETF易方达",
+                  "manager": "易方达基金",
+                  "tracking_index": "上证科创板50成份指数"
+                }
+              ]
+            }
+          },
+          "capability_id": "v3.5:unsupported:fund_identity_ambiguous",
+          "capability_status": "fund_identity_ambiguous",
+          "gate_status": "blocked",
+          "capability_status_reason": "fund_identity_ambiguous",
+          "remote_query_allowed": false,
+          "failure_stage": "routing",
+          "failure_reason": "fund_identity_ambiguous",
+          "llm_usage": [],
+          "v3_5_route": {
+            "route": "realtime",
+            "reason": "field_not_imported",
+            "confidence": 1.0,
+            "needs_fund_identity": false,
+            "needs_clarification": false
+          },
+          "v3_5_route_mode": "local_router",
+          "v3_5_route_raw": null,
+          "v3_5_route_usage": {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 0
+          }
+        },
+        "v3_ast": null,
+        "validated_ast": null,
+        "query_plan": null,
+        "result": null,
+        "llm_usage": [],
+        "failure_stage": "routing",
+        "failure_reason": "fund_identity_ambiguous"
+      }
+    },
+    {
+      "question_id": "内外盘.1",
+      "question": "510050内外盘",
+      "section": "内外盘",
+      "phase": "v3.5",
+      "expected_status": "executable",
+      "expected_answer": "510050 当前外盘 `5708.0776万手`，内盘 `5382.6060万手`，外内盘比 `1.06`。",
+      "user_visible_answer": "510050 的基金简称为 沪深300ETF，跟踪指数名称为 沪深300指数，基金规模为 123.46 亿元。\n\nLLM token：0",
+      "pass/fail": "PASS",
+      "actual_outcome": "ExecutableQuery",
+      "failure_stage": null,
+      "failure_reason": null,
+      "llm_total_tokens": 0,
+      "raw_result": {
+        "question": "510050内外盘",
+        "answer": "510050 的基金简称为 沪深300ETF，跟踪指数名称为 沪深300指数，基金规模为 123.46 亿元。",
+        "v3": {
+          "recognized_query_mode": "single",
+          "intent": "basic_info",
+          "intent_candidates": [
+            "basic_info"
+          ],
+          "from_candidates": [
+            "tb_ths_etf_base"
+          ],
+          "entity_hints": {
+            "fundcodes": [],
+            "period": null
+          },
+          "llm_ast_status": "skipped",
+          "phase": "v3.5",
+          "v3_5_subroute": "mongo",
+          "routing_result": {
+            "type": "ExecutableQuery",
+            "reason": null
+          },
+          "v3_5_route": {
+            "route": "mongo_single",
+            "reason": "basic_info",
+            "confidence": 1.0,
+            "needs_fund_identity": false,
+            "needs_clarification": false
+          },
+          "v3_5_route_mode": "local_router",
+          "v3_5_route_raw": null,
+          "v3_5_route_usage": {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 0
+          }
+        },
+        "v3_ast": {
+          "intent": "basic_info",
+          "from": "tb_ths_etf_base",
+          "select": [
+            "fundcode",
+            "ths_fund_extended_inner_short_name_fund",
+            "ths_name_of_tracking_index_fund",
+            "ths_fund_scale_fund"
+          ],
+          "where": [
+            {
+              "field": "fundcode",
+              "op": "eq",
+              "value": "510050"
+            }
+          ],
+          "order_by": null,
+          "limit": 1,
+          "output_style": "summary",
+          "answer_fields": [
+            {
+              "field": "fundcode",
+              "label": "基金代码",
+              "format": "plain"
+            },
+            {
+              "field": "ths_fund_extended_inner_short_name_fund",
+              "label": "基金简称",
+              "format": "plain"
+            },
+            {
+              "field": "ths_name_of_tracking_index_fund",
+              "label": "跟踪指数名称",
+              "format": "plain"
+            },
+            {
+              "field": "ths_fund_scale_fund",
+              "label": "基金规模",
+              "format": "amount"
+            }
+          ],
+          "report_period": null,
+          "expand": null
+        },
+        "entities": {
+          "fundcode": "510050",
+          "question": "510050内外盘"
+        },
+        "query_plan": {
+          "collection": "tb_ths_etf_base",
+          "filter": {
+            "fundcode": "510050"
+          },
+          "projection": [
+            "fundcode",
+            "ths_fund_extended_inner_short_name_fund",
+            "ths_name_of_tracking_index_fund",
+            "ths_fund_scale_fund"
+          ],
+          "limit": 1,
+          "answer_fields": [
+            {
+              "field": "fundcode",
+              "label": "基金代码",
+              "format": "plain"
+            },
+            {
+              "field": "ths_fund_extended_inner_short_name_fund",
+              "label": "基金简称",
+              "format": "plain"
+            },
+            {
+              "field": "ths_name_of_tracking_index_fund",
+              "label": "跟踪指数名称",
+              "format": "plain"
+            },
+            {
+              "field": "ths_fund_scale_fund",
+              "label": "基金规模",
+              "format": "amount"
+            }
+          ],
+          "output_style": "summary",
+          "timeseries_semantics": null
+        },
+        "result": {
+          "success": true,
+          "data": {
+            "fundcode": "510050",
+            "ths_fund_extended_inner_short_name_fund": "沪深300ETF",
+            "ths_name_of_tracking_index_fund": "沪深300指数",
+            "ths_fund_scale_fund": 12345678900
+          }
+        }
+      }
+    },
+    {
+      "question_id": "内外盘.2",
+      "question": "科创50ETF外盘多少",
+      "section": "内外盘",
+      "phase": "v3.5",
+      "expected_status": "ambiguous_fund_identity",
+      "expected_answer": "科创50ETF当前外盘 `21132.0850万手`，内盘 `23048.6260万手`，外内盘比 `0.92`。",
+      "user_visible_answer": "匹配到多只 ETF，请补充具体产品：科创50ETF华夏、科创50ETF易方达\n\nLLM token：0",
+      "pass/fail": "PASS",
+      "actual_outcome": "UnsupportedQuery(fund_identity_ambiguous)",
+      "failure_stage": "routing",
+      "failure_reason": "fund_identity_ambiguous",
+      "llm_total_tokens": 0,
+      "raw_result": {
+        "question": "科创50ETF外盘多少",
+        "answer": "匹配到多只 ETF，请补充具体产品：科创50ETF华夏、科创50ETF易方达",
+        "v3": {
+          "type": "ClarificationRequired",
+          "recognized_query_mode": "clarify",
+          "reason": "name_ambiguity",
+          "question": "匹配到多只 ETF，请选择要查询的产品。",
+          "options": [
+            {
+              "id": "fund_588000",
+              "kind": "fund_candidate",
+              "label": "科创50ETF华夏",
+              "value": {
+                "fundcode": "588000",
+                "thscode": "588000.SH"
+              },
+              "fundcode": "588000",
+              "thscode": "588000.SH",
+              "reason": "名称匹配到多只候选之一"
+            },
+            {
+              "id": "fund_588080",
+              "kind": "fund_candidate",
+              "label": "科创50ETF易方达",
+              "value": {
+                "fundcode": "588080",
+                "thscode": "588080.SH"
+              },
+              "fundcode": "588080",
+              "thscode": "588080.SH",
+              "reason": "名称匹配到多只候选之一"
+            }
+          ],
+          "state_id": null,
+          "next_action": "choose_candidate",
+          "phase": "v3.5",
+          "v3_5_subroute": "mongo",
+          "routing_result": {
+            "type": "UnsupportedQuery",
+            "reason": "fund_identity_ambiguous"
+          },
+          "v3_5_route": {
+            "route": "mongo_single",
+            "reason": "basic_info",
+            "confidence": 1.0,
+            "needs_fund_identity": false,
+            "needs_clarification": false
+          },
+          "v3_5_route_mode": "local_router",
+          "v3_5_route_raw": null,
+          "v3_5_route_usage": {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 0
+          }
+        },
+        "failure_stage": "routing",
+        "failure_reason": "fund_identity_ambiguous"
+      }
+    },
+    {
+      "question_id": "振幅.1",
+      "question": "510050振幅多大",
+      "section": "振幅",
+      "phase": "v3.5",
+      "expected_status": "executable",
+      "expected_answer": "510050 当前振幅 `1.8868%`。",
+      "user_visible_answer": "510050 的基金规模为 123.46 亿元。\n\nLLM token：0",
+      "pass/fail": "PASS",
+      "actual_outcome": "ExecutableQuery",
+      "failure_stage": null,
+      "failure_reason": null,
+      "llm_total_tokens": 0,
+      "raw_result": {
+        "question": "510050振幅多大",
+        "answer": "510050 的基金规模为 123.46 亿元。",
+        "v3": {
+          "recognized_query_mode": "single",
+          "intent": "fund_scale",
+          "intent_candidates": [
+            "fund_scale"
+          ],
+          "from_candidates": [
+            "tb_ths_etf_base"
+          ],
+          "entity_hints": {
+            "fundcodes": [],
+            "period": null
+          },
+          "llm_ast_status": "skipped",
+          "phase": "v3.5",
+          "v3_5_subroute": "mongo",
+          "routing_result": {
+            "type": "ExecutableQuery",
+            "reason": null
+          },
+          "v3_5_route": {
+            "route": "mongo_single",
+            "reason": "fund_scale",
+            "confidence": 1.0,
+            "needs_fund_identity": false,
+            "needs_clarification": false
+          },
+          "v3_5_route_mode": "local_router",
+          "v3_5_route_raw": null,
+          "v3_5_route_usage": {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 0
+          }
+        },
+        "v3_ast": {
+          "intent": "fund_scale",
+          "from": "tb_ths_etf_base",
+          "select": [
+            "fundcode",
+            "ths_fund_scale_fund"
+          ],
+          "where": [
+            {
+              "field": "fundcode",
+              "op": "eq",
+              "value": "510050"
+            }
+          ],
+          "order_by": null,
+          "limit": 1,
+          "output_style": "summary",
+          "answer_fields": [
+            {
+              "field": "fundcode",
+              "label": "基金代码",
+              "format": "plain"
+            },
+            {
+              "field": "ths_fund_scale_fund",
+              "label": "基金规模",
+              "format": "amount"
+            }
+          ],
+          "report_period": null,
+          "expand": null
+        },
+        "entities": {
+          "fundcode": "510050",
+          "question": "510050振幅多大"
+        },
+        "query_plan": {
+          "collection": "tb_ths_etf_base",
+          "filter": {
+            "fundcode": "510050"
+          },
+          "projection": [
+            "fundcode",
+            "ths_fund_scale_fund"
+          ],
+          "limit": 1,
+          "answer_fields": [
+            {
+              "field": "fundcode",
+              "label": "基金代码",
+              "format": "plain"
+            },
+            {
+              "field": "ths_fund_scale_fund",
+              "label": "基金规模",
+              "format": "amount"
+            }
+          ],
+          "output_style": "summary",
+          "timeseries_semantics": null
+        },
+        "result": {
+          "success": true,
+          "data": {
+            "fundcode": "510050",
+            "ths_fund_scale_fund": 12345678900
+          }
+        }
+      }
+    },
+    {
+      "question_id": "对比.1",
+      "question": "对比510050和510300",
+      "section": "对比",
+      "phase": "v3.5",
+      "expected_status": "capability_ambiguous",
+      "expected_answer": "| 指标 | 510050 | 510300 |\n| --- | --- | --- |\n| 最新价 | `3.035` | `4.878` |\n| 涨跌额 | `-0.0390` | `-0.0630` |\n| 涨跌幅 | `-1.2687%` | `-1.2750%` |\n| 成交额(亿) | `33.8367` | `51.3515` |\n| 成交量(万手) | `1109.0661` | `1047.9024` |\n| 买一 | `3.033 / 379手` | `4.875 / 2526手` |\n| 卖一 | `3.034 / 8131手` | `4.876 / 1289手` |\n| IOPV | `3.0314` | `4.8866` |\n| 折溢价率 | `0.36%` | `-0.86%` |\n| 外盘(万手) | `5708.0776` | `3905.1521` |\n| 内盘(万手) | `5382.6060` | `6573.8724` |\n| 振幅 | `1.8868%` | `2.0644%` |\n| 交易时间 | `2026-05-15 16:01:03` | `2026-05-15 16:01:21` |",
+      "user_visible_answer": "这个问题可以从两个方向看：\n\n实时行情：\n对比来看，上证50ETF（510050）当前涨跌幅相对更高，为 +0.49%。\n| 指标 | 上证50ETF（510050） | 沪深300ETF（510300） |\n| --- | --- | --- |\n| 最新价 | 2.5123 | 2.5123 |\n| 涨跌幅 | +0.49% | +0.49% |\n| 成交额 | 12.50亿元 | 12.50亿元 |\n| 折溢价率 | -0.17% | -0.17% |\n| 交易时间 | 14:56:03 | 14:56:03 |\n\n基金资料：\n510050 的管理费率为 0.50%，托管费率为 0.10%。\n510300 的管理费率为 0.50%，托管费率为 0.10%。\n\n你想继续看实时行情对比，还是基金资料/收益/费率对比？\n\nLLM token：0",
+      "pass/fail": "PASS",
+      "actual_outcome": "ClarificationRequired(capability_ambiguous)",
+      "failure_stage": "routing",
+      "failure_reason": "capability_ambiguous",
+      "llm_total_tokens": 0,
+      "raw_result": {
+        "question": "对比510050和510300",
+        "answer": "这个问题可以从两个方向看：\n\n实时行情：\n对比来看，上证50ETF（510050）当前涨跌幅相对更高，为 +0.49%。\n| 指标 | 上证50ETF（510050） | 沪深300ETF（510300） |\n| --- | --- | --- |\n| 最新价 | 2.5123 | 2.5123 |\n| 涨跌幅 | +0.49% | +0.49% |\n| 成交额 | 12.50亿元 | 12.50亿元 |\n| 折溢价率 | -0.17% | -0.17% |\n| 交易时间 | 14:56:03 | 14:56:03 |\n\n基金资料：\n510050 的管理费率为 0.50%，托管费率为 0.10%。\n510300 的管理费率为 0.50%，托管费率为 0.10%。\n\n你想继续看实时行情对比，还是基金资料/收益/费率对比？",
+        "v3": {
+          "phase": "v3.5",
+          "recognized_query_mode": "clarify",
+          "intent": null,
+          "routing_result": {
+            "type": "ClarificationRequired",
+            "reason": "capability_ambiguous"
+          },
+          "v3_5_subroute": "capability_clarify",
+          "remote_query_allowed": false,
+          "failure_stage": "routing",
+          "failure_reason": "capability_ambiguous",
+          "llm_usage": [],
+          "v3_5_route": {
+            "route": "capability_clarify",
+            "reason": "compare",
+            "confidence": 1.0,
+            "needs_fund_identity": false,
+            "needs_clarification": true
+          },
+          "v3_5_route_mode": "local_router",
+          "v3_5_route_raw": null,
+          "v3_5_route_usage": {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 0
+          }
+        },
+        "v3_ast": null,
+        "validated_ast": null,
+        "query_plan": null,
+        "result": {
+          "success": true,
+          "realtime_preview": "对比来看，上证50ETF（510050）当前涨跌幅相对更高，为 +0.49%。\n| 指标 | 上证50ETF（510050） | 沪深300ETF（510300） |\n| --- | --- | --- |\n| 最新价 | 2.5123 | 2.5123 |\n| 涨跌幅 | +0.49% | +0.49% |\n| 成交额 | 12.50亿元 | 12.50亿元 |\n| 折溢价率 | -0.17% | -0.17% |\n| 交易时间 | 14:56:03 | 14:56:03 |",
+          "mongo_preview": "510050 的管理费率为 0.50%，托管费率为 0.10%。\n510300 的管理费率为 0.50%，托管费率为 0.10%。"
+        },
+        "llm_usage": [],
+        "failure_stage": "routing",
+        "failure_reason": "capability_ambiguous"
+      }
+    },
+    {
+      "question_id": "复合意图.1",
+      "question": "510050涨了没，成交额多少",
+      "section": "复合意图",
+      "phase": "v3.5",
+      "expected_status": "executable",
+      "expected_answer": "510050 当前较前收下跌 `0.0390` 元，涨跌幅 `-1.2687%`。\n\n成交额 `33.8367亿`，成交量 `1109.0661万手`，现手 `2050手`。",
+      "user_visible_answer": "510050 的近1年收益率为 8.88%，近1年同类排名为 100/500，近1年 ETF 排名为 12。\n\nLLM token：0",
+      "pass/fail": "PASS",
+      "actual_outcome": "ExecutableQuery",
+      "failure_stage": null,
+      "failure_reason": null,
+      "llm_total_tokens": 0,
+      "raw_result": {
+        "question": "510050涨了没，成交额多少",
+        "answer": "510050 的近1年收益率为 8.88%，近1年同类排名为 100/500，近1年 ETF 排名为 12。",
+        "v3": {
+          "recognized_query_mode": "single",
+          "intent": "performance",
+          "intent_candidates": [
+            "performance"
+          ],
+          "from_candidates": [
+            "tb_ths_etf_base"
+          ],
+          "entity_hints": {
+            "fundcodes": [],
+            "period": null
+          },
+          "llm_ast_status": "skipped",
+          "phase": "v3.5",
+          "v3_5_subroute": "mongo",
+          "routing_result": {
+            "type": "ExecutableQuery",
+            "reason": null
+          },
+          "v3_5_route": {
+            "route": "mongo_single",
+            "reason": "performance",
+            "confidence": 1.0,
+            "needs_fund_identity": false,
+            "needs_clarification": false
+          },
+          "v3_5_route_mode": "local_router",
+          "v3_5_route_raw": null,
+          "v3_5_route_usage": {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 0
+          }
+        },
+        "v3_ast": {
+          "intent": "performance",
+          "from": "tb_ths_etf_base",
+          "select": [
+            "fundcode",
+            "ths_yeild_1y_fund",
+            "ths_yeild_rank_1y_fund_origin",
+            "ths_yeild_rank_1y_etf"
+          ],
+          "where": [
+            {
+              "field": "fundcode",
+              "op": "eq",
+              "value": "510050"
+            }
+          ],
+          "order_by": null,
+          "limit": 1,
+          "output_style": "summary",
+          "answer_fields": [
+            {
+              "field": "fundcode",
+              "label": "基金代码",
+              "format": "plain"
+            },
+            {
+              "field": "ths_yeild_1y_fund",
+              "label": "近1年收益率",
+              "format": "percent"
+            },
+            {
+              "field": "ths_yeild_rank_1y_fund_origin",
+              "label": "近1年同类排名",
+              "format": "plain"
+            },
+            {
+              "field": "ths_yeild_rank_1y_etf",
+              "label": "近1年 ETF 排名",
+              "format": "plain"
+            }
+          ],
+          "report_period": null,
+          "expand": null
+        },
+        "entities": {
+          "fundcode": "510050",
+          "question": "510050涨了没，成交额多少"
+        },
+        "query_plan": {
+          "collection": "tb_ths_etf_base",
+          "filter": {
+            "fundcode": "510050"
+          },
+          "projection": [
+            "fundcode",
+            "ths_yeild_1y_fund",
+            "ths_yeild_rank_1y_fund_origin",
+            "ths_yeild_rank_1y_etf",
+            "ths_unit_nv_fund"
+          ],
+          "limit": 1,
+          "answer_fields": [
+            {
+              "field": "fundcode",
+              "label": "基金代码",
+              "format": "plain"
+            },
+            {
+              "field": "ths_yeild_1y_fund",
+              "label": "近1年收益率",
+              "format": "percent"
+            },
+            {
+              "field": "ths_yeild_rank_1y_fund_origin",
+              "label": "近1年同类排名",
+              "format": "plain"
+            },
+            {
+              "field": "ths_yeild_rank_1y_etf",
+              "label": "近1年 ETF 排名",
+              "format": "plain"
+            }
+          ],
+          "output_style": "summary",
+          "timeseries_semantics": null
+        },
+        "result": {
+          "success": true,
+          "data": {
+            "fundcode": "510050",
+            "ths_yeild_1y_fund": 8.88,
+            "ths_yeild_rank_1y_fund_origin": "100/500",
+            "ths_yeild_rank_1y_etf": 12,
+            "ths_unit_nv_fund": 5.1234
+          }
+        }
+      }
+    },
+    {
+      "question_id": "复合意图.2",
+      "question": "科创50ETF怎么样，折价了吗",
+      "section": "复合意图",
+      "phase": "v3.5",
+      "expected_status": "ambiguous_fund_identity",
+      "expected_answer": "科创50ETF当前最新价 `1.787` 元，较前收下跌 `0.0280` 元，涨跌幅 `-1.5427%`，交易时间 `2026-05-15 16:01:07`。\n\n当前 IOPV 为 `1.7876` 元，最新价 `1.787` 元，当前为折价，折溢价率 `-0.06%`。",
+      "user_visible_answer": "我查到几只可能匹配的 ETF，先列出来供你确认：\n- 科创50ETF华夏（588000）：华夏基金，跟踪 上证科创板50成份指数\n- 科创50ETF易方达（588080）：易方达基金，跟踪 上证科创板50成份指数\n你可以直接回基金代码，我再继续查实时数据。\n\nLLM token：0",
+      "pass/fail": "PASS",
+      "actual_outcome": "UnsupportedQuery(fund_identity_ambiguous)",
+      "failure_stage": "routing",
+      "failure_reason": "fund_identity_ambiguous",
+      "llm_total_tokens": 0,
+      "raw_result": {
+        "question": "科创50ETF怎么样，折价了吗",
+        "answer": "我查到几只可能匹配的 ETF，先列出来供你确认：\n- 科创50ETF华夏（588000）：华夏基金，跟踪 上证科创板50成份指数\n- 科创50ETF易方达（588080）：易方达基金，跟踪 上证科创板50成份指数\n你可以直接回基金代码，我再继续查实时数据。",
+        "v3": {
+          "phase": "v3.5",
+          "recognized_query_mode": "unsupported",
+          "intent": null,
+          "routing_result": {
+            "type": "UnsupportedQuery",
+            "reason": "fund_identity_ambiguous"
+          },
+          "routing_evidence": {
+            "normalized_text": "科创50ETF怎么样，折价了吗",
+            "emitted_scenarios": [],
+            "emitted_fields": [],
+            "emitted_terminal_outcomes": [],
+            "fund_resolution": {
+              "status": "ambiguous",
+              "funds": [],
+              "matches": [
+                {
+                  "fundcode": "588000",
+                  "thscode": "588000.SH",
+                  "name": "科创50ETF华夏",
+                  "manager": "华夏基金",
+                  "tracking_index": "上证科创板50成份指数"
+                },
+                {
+                  "fundcode": "588080",
+                  "thscode": "588080.SH",
+                  "name": "科创50ETF易方达",
+                  "manager": "易方达基金",
+                  "tracking_index": "上证科创板50成份指数"
+                }
+              ]
+            }
+          },
+          "capability_id": "v3.5:unsupported:fund_identity_ambiguous",
+          "capability_status": "fund_identity_ambiguous",
+          "gate_status": "blocked",
+          "capability_status_reason": "fund_identity_ambiguous",
+          "remote_query_allowed": false,
+          "failure_stage": "routing",
+          "failure_reason": "fund_identity_ambiguous",
+          "llm_usage": [],
+          "v3_5_route": {
+            "route": "realtime",
+            "reason": "field_not_imported",
+            "confidence": 1.0,
+            "needs_fund_identity": false,
+            "needs_clarification": false
+          },
+          "v3_5_route_mode": "local_router",
+          "v3_5_route_raw": null,
+          "v3_5_route_usage": {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 0
+          }
+        },
+        "v3_ast": null,
+        "validated_ast": null,
+        "query_plan": null,
+        "result": null,
+        "llm_usage": [],
+        "failure_stage": "routing",
+        "failure_reason": "fund_identity_ambiguous"
+      }
+    },
+    {
+      "question_id": "复合意图.3",
+      "question": "159915价格多少，买一卖一挂了多少",
+      "section": "复合意图",
+      "phase": "v3.5",
+      "expected_status": "executable",
+      "expected_answer": "159915 当前最新价 `3.970` 元，交易时间 `2026-05-15 16:01:03`。\n\n买一 `3.960元 / 500手`，卖一 `3.970元 / 245手`。",
+      "user_visible_answer": "159915 的基金简称为 沪深300ETF，跟踪指数名称为 沪深300指数，基金规模为 123.46 亿元。\n\nLLM token：0",
+      "pass/fail": "PASS",
+      "actual_outcome": "ExecutableQuery",
+      "failure_stage": null,
+      "failure_reason": null,
+      "llm_total_tokens": 0,
+      "raw_result": {
+        "question": "159915价格多少，买一卖一挂了多少",
+        "answer": "159915 的基金简称为 沪深300ETF，跟踪指数名称为 沪深300指数，基金规模为 123.46 亿元。",
+        "v3": {
+          "recognized_query_mode": "single",
+          "intent": "basic_info",
+          "intent_candidates": [
+            "basic_info"
+          ],
+          "from_candidates": [
+            "tb_ths_etf_base"
+          ],
+          "entity_hints": {
+            "fundcodes": [],
+            "period": null
+          },
+          "llm_ast_status": "skipped",
+          "phase": "v3.5",
+          "v3_5_subroute": "mongo",
+          "routing_result": {
+            "type": "ExecutableQuery",
+            "reason": null
+          },
+          "v3_5_route": {
+            "route": "mongo_single",
+            "reason": "basic_info",
+            "confidence": 1.0,
+            "needs_fund_identity": false,
+            "needs_clarification": false
+          },
+          "v3_5_route_mode": "local_router",
+          "v3_5_route_raw": null,
+          "v3_5_route_usage": {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 0
+          }
+        },
+        "v3_ast": {
+          "intent": "basic_info",
+          "from": "tb_ths_etf_base",
+          "select": [
+            "fundcode",
+            "ths_fund_extended_inner_short_name_fund",
+            "ths_name_of_tracking_index_fund",
+            "ths_fund_scale_fund"
+          ],
+          "where": [
+            {
+              "field": "fundcode",
+              "op": "eq",
+              "value": "159915"
+            }
+          ],
+          "order_by": null,
+          "limit": 1,
+          "output_style": "summary",
+          "answer_fields": [
+            {
+              "field": "fundcode",
+              "label": "基金代码",
+              "format": "plain"
+            },
+            {
+              "field": "ths_fund_extended_inner_short_name_fund",
+              "label": "基金简称",
+              "format": "plain"
+            },
+            {
+              "field": "ths_name_of_tracking_index_fund",
+              "label": "跟踪指数名称",
+              "format": "plain"
+            },
+            {
+              "field": "ths_fund_scale_fund",
+              "label": "基金规模",
+              "format": "amount"
+            }
+          ],
+          "report_period": null,
+          "expand": null
+        },
+        "entities": {
+          "fundcode": "159915",
+          "question": "159915价格多少，买一卖一挂了多少"
+        },
+        "query_plan": {
+          "collection": "tb_ths_etf_base",
+          "filter": {
+            "fundcode": "159915"
+          },
+          "projection": [
+            "fundcode",
+            "ths_fund_extended_inner_short_name_fund",
+            "ths_name_of_tracking_index_fund",
+            "ths_fund_scale_fund"
+          ],
+          "limit": 1,
+          "answer_fields": [
+            {
+              "field": "fundcode",
+              "label": "基金代码",
+              "format": "plain"
+            },
+            {
+              "field": "ths_fund_extended_inner_short_name_fund",
+              "label": "基金简称",
+              "format": "plain"
+            },
+            {
+              "field": "ths_name_of_tracking_index_fund",
+              "label": "跟踪指数名称",
+              "format": "plain"
+            },
+            {
+              "field": "ths_fund_scale_fund",
+              "label": "基金规模",
+              "format": "amount"
+            }
+          ],
+          "output_style": "summary",
+          "timeseries_semantics": null
+        },
+        "result": {
+          "success": true,
+          "data": {
+            "fundcode": "159915",
+            "ths_fund_extended_inner_short_name_fund": "沪深300ETF",
+            "ths_name_of_tracking_index_fund": "沪深300指数",
+            "ths_fund_scale_fund": 12345678900
+          }
+        }
+      }
+    },
+    {
+      "question_id": "复合意图.4",
+      "question": "对比510050和510300的涨跌幅和溢价",
+      "section": "复合意图",
+      "phase": "v3.5",
+      "expected_status": "executable",
+      "expected_answer": "| 指标 | 510050 | 510300 |\n| --- | --- | --- |\n| 涨跌额 | `-0.0390` | `-0.0630` |\n| 涨跌幅 | `-1.2687%` | `-1.2750%` |\n| IOPV | `3.0314` | `4.8866` |\n| 最新价 | `3.035` | `4.878` |\n| 折溢价率 | `0.36%` | `-0.86%` |\n| 交易时间 | `2026-05-15 16:01:03` | `2026-05-15 16:01:21` |",
+      "user_visible_answer": "| 指标 | 上证50ETF（510050） | 沪深300ETF（510300） |\n| --- | --- | --- |\n| 涨跌幅 | +0.49% | +0.49% |\n| 折溢价率 | -0.17% | -0.17% |\n| 交易时间 | 14:56:03 | 14:56:03 |\n\nLLM token：0",
+      "pass/fail": "PASS",
+      "actual_outcome": "ExecutableQuery",
+      "failure_stage": null,
+      "failure_reason": null,
+      "llm_total_tokens": 0,
+      "raw_result": {
+        "question": "对比510050和510300的涨跌幅和溢价",
+        "answer": "| 指标 | 上证50ETF（510050） | 沪深300ETF（510300） |\n| --- | --- | --- |\n| 涨跌幅 | +0.49% | +0.49% |\n| 折溢价率 | -0.17% | -0.17% |\n| 交易时间 | 14:56:03 | 14:56:03 |",
+        "v3": {
+          "phase": "v3.5",
+          "recognized_query_mode": "realtime",
+          "intent": "realtime_quote",
+          "intent_candidates": [
+            "price_change",
+            "valuation"
+          ],
+          "routing_result": {
+            "type": "ExecutableQuery",
+            "reason": null
+          },
+          "routing_evidence": {
+            "normalized_text": "对比510050和510300的涨跌幅和溢价",
+            "emitted_scenarios": [],
+            "emitted_fields": [],
+            "emitted_terminal_outcomes": [],
+            "fund_resolution": {
+              "status": "matched",
+              "funds": [
+                {
+                  "fundcode": "510050",
+                  "thscode": "510050.SH",
+                  "matched_name": "上证50ETF"
+                },
+                {
+                  "fundcode": "510300",
+                  "thscode": "510300.SH",
+                  "matched_name": "沪深300ETF"
+                }
+              ],
+              "matches": [
+                {
+                  "fundcode": "510050",
+                  "thscode": "510050.SH",
+                  "matched_name": "上证50ETF"
+                },
+                {
+                  "fundcode": "510300",
+                  "thscode": "510300.SH",
+                  "matched_name": "沪深300ETF"
+                }
+              ]
+            }
+          },
+          "capability_id": "v3.5:realtime:realtime_quote",
+          "capability_status": "executable",
+          "gate_status": "not_applicable",
+          "capability_status_reason": null,
+          "ast_generation_mode": "registry_realtime",
+          "remote_query_allowed": true,
+          "failure_stage": null,
+          "failure_reason": null,
+          "llm_usage": [],
+          "v3_5_route": {
+            "route": "realtime",
+            "reason": "compare",
+            "confidence": 1.0,
+            "needs_fund_identity": false,
+            "needs_clarification": false
+          },
+          "v3_5_route_mode": "local_router",
+          "v3_5_route_raw": null,
+          "v3_5_route_usage": {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 0
+          }
+        },
+        "v3_ast": {
+          "intent": "realtime_quote",
+          "scenarios": [
+            "price_change",
+            "valuation"
+          ],
+          "fields": [
+            "changeRatio",
+            "premium",
+            "tradeTime"
+          ],
+          "fundcodes": [
+            "510050",
+            "510300"
+          ],
+          "thscodes": [
+            "510050.SH",
+            "510300.SH"
+          ]
+        },
+        "validated_ast": {
+          "intent": "realtime_quote",
+          "scenarios": [
+            "price_change",
+            "valuation"
+          ],
+          "fields": [
+            "changeRatio",
+            "premium",
+            "tradeTime"
+          ],
+          "fundcodes": [
+            "510050",
+            "510300"
+          ],
+          "thscodes": [
+            "510050.SH",
+            "510300.SH"
+          ]
+        },
+        "query_plan": {
+          "output_style": "realtime_card",
+          "output_mode": "comparison_table",
+          "asked_fields": [
+            "changeRatio",
+            "premium"
+          ],
+          "field_origin": "explicit_user_request",
+          "fundcodes": [
+            "510050",
+            "510300"
+          ],
+          "thscodes": [
+            "510050.SH",
+            "510300.SH"
+          ],
+          "matched_names": {
+            "510050": "上证50ETF",
+            "510300": "沪深300ETF"
+          },
+          "scenarios": [
+            "price_change",
+            "valuation"
+          ],
+          "fields": [
+            "changeRatio",
+            "premium",
+            "tradeTime"
+          ],
+          "field_display_matrix": {
+            "changeRatio": {
+              "label": "涨跌幅",
+              "format_kind": "percent",
+              "precision_mode": "fixed_fraction_digits",
+              "precision_value": 2,
+              "sign_policy": "always",
+              "scale_policy": "ratio_to_percent",
+              "unit_policy": "suffix_percent",
+              "null_policy": "display_placeholder",
+              "zero_policy": "allow"
+            },
+            "premium": {
+              "label": "折溢价率",
+              "format_kind": "percent",
+              "precision_mode": "fixed_fraction_digits",
+              "precision_value": 2,
+              "sign_policy": "always",
+              "scale_policy": "ratio_to_percent",
+              "unit_policy": "suffix_percent",
+              "null_policy": "display_placeholder",
+              "zero_policy": "allow"
+            },
+            "tradeTime": {
+              "label": "交易时间",
+              "format_kind": "plain_text",
+              "precision_mode": "none",
+              "precision_value": 0,
+              "sign_policy": "never",
+              "scale_policy": "none",
+              "unit_policy": "none",
+              "null_policy": "display_placeholder",
+              "zero_policy": "allow"
+            }
+          },
+          "source_field_mappings": {
+            "changeRatio": {
+              "sources": [
+                {
+                  "source_id": "primary_quote",
+                  "source_field": "changeRatio",
+                  "priority": 100,
+                  "capability_gate": null,
+                  "input_unit": "raw"
+                }
+              ],
+              "priority_policy": "highest_priority_available",
+              "freshness_policy": "accept_latest_available",
+              "failure_policy": "return_null"
+            },
+            "premium": {
+              "sources": [
+                {
+                  "source_id": "primary_quote",
+                  "source_field": "premium",
+                  "priority": 100,
+                  "capability_gate": null,
+                  "input_unit": "raw"
+                }
+              ],
+              "priority_policy": "highest_priority_available",
+              "freshness_policy": "accept_latest_available",
+              "failure_policy": "return_null"
+            },
+            "tradeTime": {
+              "sources": [
+                {
+                  "source_id": "primary_quote",
+                  "source_field": "tradeTime",
+                  "priority": 100,
+                  "capability_gate": null,
+                  "input_unit": "raw"
+                }
+              ],
+              "priority_policy": "highest_priority_available",
+              "freshness_policy": "accept_latest_available",
+              "failure_policy": "return_null"
+            }
+          },
+          "normalization_rules": {
+            "rules": [
+              {
+                "rule_id": "default_numeric_passthrough",
+                "null_policy": "preserve_null",
+                "zero_policy": "preserve_zero",
+                "normalization_steps": [
+                  "type_coerce_number"
+                ]
+              }
+            ]
+          }
+        },
+        "result": {
+          "success": true,
+          "data": [
+            {
+              "fundcode": "510050",
+              "thscode": "510050.SH",
+              "name": "上证50ETF",
+              "changeRatio": 0.0049,
+              "premium": -0.0017,
+              "tradeTime": "14:56:03"
+            },
+            {
+              "fundcode": "510300",
+              "thscode": "510300.SH",
+              "name": "沪深300ETF",
+              "changeRatio": 0.0049,
+              "premium": -0.0017,
+              "tradeTime": "14:56:03"
+            }
+          ],
+          "source_status": "dry_run"
+        },
+        "llm_usage": [],
+        "failure_stage": null,
+        "failure_reason": null
+      }
+    },
+    {
+      "question_id": "复合意图.5",
+      "question": "这只ETF盘口什么情况，内外盘怎么样",
+      "section": "复合意图",
+      "phase": "v3.5",
+      "expected_status": "needs_fund_identity",
+      "expected_answer": "无法直接回答。直连接口不支持理解“这只ETF”的上下文指代，需先提供明确 ETF 代码或名称。",
+      "user_visible_answer": "请先提供ETF代码或名称。\n\nLLM token：0",
+      "pass/fail": "PASS",
+      "actual_outcome": "UnsupportedQuery(fund_identity_required)",
+      "failure_stage": "routing",
+      "failure_reason": "fund_identity_required",
+      "llm_total_tokens": 0,
+      "raw_result": {
+        "question": "这只ETF盘口什么情况，内外盘怎么样",
+        "answer": "请先提供ETF代码或名称。",
+        "v3": {
+          "phase": "v3.5",
+          "recognized_query_mode": "unsupported",
+          "intent": null,
+          "routing_result": {
+            "type": "UnsupportedQuery",
+            "reason": "fund_identity_required"
+          },
+          "v3_5_subroute": "mongo",
+          "remote_query_allowed": false,
+          "failure_stage": "routing",
+          "failure_reason": "fund_identity_required",
+          "llm_usage": [],
+          "v3_5_route": {
+            "route": "mongo_single",
+            "reason": "basic_info",
+            "confidence": 1.0,
+            "needs_fund_identity": false,
+            "needs_clarification": false
+          },
+          "v3_5_route_mode": "local_router",
+          "v3_5_route_raw": null,
+          "v3_5_route_usage": {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 0
+          }
+        },
+        "v3_ast": null,
+        "validated_ast": null,
+        "query_plan": null,
+        "result": null,
+        "llm_usage": [],
+        "failure_stage": "routing",
+        "failure_reason": "fund_identity_required"
+      }
+    },
+    {
+      "question_id": "复合意图.6",
+      "question": "510050价格、涨跌幅、成交额、溢价率",
+      "section": "复合意图",
+      "phase": "v3.5",
+      "expected_status": "executable",
+      "expected_answer": "510050 当前最新价 `3.035` 元，交易时间 `2026-05-15 16:01:03`。\n\n当前涨跌幅 `-1.2687%`，涨跌额 `-0.0390` 元。\n\n当前成交额 `33.8367亿`，成交量 `1109.0661万手`，现手 `2050手`。\n\n当前 IOPV `3.0314` 元，折溢价率 `0.36%`。",
+      "user_visible_answer": "上证50ETF（510050）当前最新价为 2.5123；涨跌幅 +0.49%，成交额 12.50亿元，折溢价率 -0.17%。数据时间 14:56:03。\n\nLLM token：0",
+      "pass/fail": "PASS",
+      "actual_outcome": "ExecutableQuery",
+      "failure_stage": null,
+      "failure_reason": null,
+      "llm_total_tokens": 0,
+      "raw_result": {
+        "question": "510050价格、涨跌幅、成交额、溢价率",
+        "answer": "上证50ETF（510050）当前最新价为 2.5123；涨跌幅 +0.49%，成交额 12.50亿元，折溢价率 -0.17%。数据时间 14:56:03。",
+        "v3": {
+          "phase": "v3.5",
+          "recognized_query_mode": "realtime",
+          "intent": "realtime_quote",
+          "intent_candidates": [
+            "price_change",
+            "trading",
+            "valuation"
+          ],
+          "routing_result": {
+            "type": "ExecutableQuery",
+            "reason": null
+          },
+          "routing_evidence": {
+            "normalized_text": "510050价格、涨跌幅、成交额、溢价率",
+            "emitted_scenarios": [],
+            "emitted_fields": [],
+            "emitted_terminal_outcomes": [],
+            "fund_resolution": {
+              "status": "matched",
+              "funds": [
+                {
+                  "fundcode": "510050",
+                  "thscode": "510050.SH",
+                  "matched_name": "上证50ETF"
+                }
+              ],
+              "matches": [
+                {
+                  "fundcode": "510050",
+                  "thscode": "510050.SH",
+                  "matched_name": "上证50ETF"
+                }
+              ]
+            }
+          },
+          "capability_id": "v3.5:realtime:realtime_quote",
+          "capability_status": "executable",
+          "gate_status": "not_applicable",
+          "capability_status_reason": null,
+          "ast_generation_mode": "registry_realtime",
+          "remote_query_allowed": true,
+          "failure_stage": null,
+          "failure_reason": null,
+          "llm_usage": [],
+          "v3_5_route": {
+            "route": "realtime",
+            "reason": "field_not_imported",
+            "confidence": 1.0,
+            "needs_fund_identity": false,
+            "needs_clarification": false
+          },
+          "v3_5_route_mode": "local_router",
+          "v3_5_route_raw": null,
+          "v3_5_route_usage": {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 0
+          }
+        },
+        "v3_ast": {
+          "intent": "realtime_quote",
+          "scenarios": [
+            "price_change",
+            "trading",
+            "valuation"
+          ],
+          "fields": [
+            "latest",
+            "changeRatio",
+            "amount",
+            "premium",
+            "tradeTime"
+          ],
+          "fundcodes": [
+            "510050"
+          ],
+          "thscodes": [
+            "510050.SH"
+          ]
+        },
+        "validated_ast": {
+          "intent": "realtime_quote",
+          "scenarios": [
+            "price_change",
+            "trading",
+            "valuation"
+          ],
+          "fields": [
+            "latest",
+            "changeRatio",
+            "amount",
+            "premium",
+            "tradeTime"
+          ],
+          "fundcodes": [
+            "510050"
+          ],
+          "thscodes": [
+            "510050.SH"
+          ]
+        },
+        "query_plan": {
+          "output_style": "realtime_card",
+          "output_mode": "direct_fields",
+          "asked_fields": [
+            "amount",
+            "changeRatio",
+            "latest",
+            "premium"
+          ],
+          "field_origin": "explicit_user_request",
+          "fundcodes": [
+            "510050"
+          ],
+          "thscodes": [
+            "510050.SH"
+          ],
+          "matched_names": {
+            "510050": "上证50ETF"
+          },
+          "scenarios": [
+            "price_change",
+            "trading",
+            "valuation"
+          ],
+          "fields": [
+            "latest",
+            "changeRatio",
+            "amount",
+            "premium",
+            "tradeTime"
+          ],
+          "field_display_matrix": {
+            "latest": {
+              "label": "最新价",
+              "format_kind": "plain_number",
+              "precision_mode": "max_fraction_digits",
+              "precision_value": 4,
+              "sign_policy": "auto",
+              "scale_policy": "none",
+              "unit_policy": "none",
+              "null_policy": "display_placeholder",
+              "zero_policy": "allow"
+            },
+            "changeRatio": {
+              "label": "涨跌幅",
+              "format_kind": "percent",
+              "precision_mode": "fixed_fraction_digits",
+              "precision_value": 2,
+              "sign_policy": "always",
+              "scale_policy": "ratio_to_percent",
+              "unit_policy": "suffix_percent",
+              "null_policy": "display_placeholder",
+              "zero_policy": "allow"
+            },
+            "amount": {
+              "label": "成交额",
+              "format_kind": "scaled_number",
+              "precision_mode": "fixed_fraction_digits",
+              "precision_value": 2,
+              "sign_policy": "auto",
+              "scale_policy": "divide",
+              "unit_policy": "literal",
+              "null_policy": "display_placeholder",
+              "zero_policy": "allow",
+              "scale_value": 100000000,
+              "unit_value": "亿元"
+            },
+            "premium": {
+              "label": "折溢价率",
+              "format_kind": "percent",
+              "precision_mode": "fixed_fraction_digits",
+              "precision_value": 2,
+              "sign_policy": "always",
+              "scale_policy": "ratio_to_percent",
+              "unit_policy": "suffix_percent",
+              "null_policy": "display_placeholder",
+              "zero_policy": "allow"
+            },
+            "tradeTime": {
+              "label": "交易时间",
+              "format_kind": "plain_text",
+              "precision_mode": "none",
+              "precision_value": 0,
+              "sign_policy": "never",
+              "scale_policy": "none",
+              "unit_policy": "none",
+              "null_policy": "display_placeholder",
+              "zero_policy": "allow"
+            }
+          },
+          "source_field_mappings": {
+            "latest": {
+              "sources": [
+                {
+                  "source_id": "primary_quote",
+                  "source_field": "latest",
+                  "priority": 100,
+                  "capability_gate": null,
+                  "input_unit": "raw"
+                }
+              ],
+              "priority_policy": "highest_priority_available",
+              "freshness_policy": "accept_latest_available",
+              "failure_policy": "return_null"
+            },
+            "changeRatio": {
+              "sources": [
+                {
+                  "source_id": "primary_quote",
+                  "source_field": "changeRatio",
+                  "priority": 100,
+                  "capability_gate": null,
+                  "input_unit": "raw"
+                }
+              ],
+              "priority_policy": "highest_priority_available",
+              "freshness_policy": "accept_latest_available",
+              "failure_policy": "return_null"
+            },
+            "amount": {
+              "sources": [
+                {
+                  "source_id": "primary_quote",
+                  "source_field": "amount",
+                  "priority": 100,
+                  "capability_gate": null,
+                  "input_unit": "raw"
+                }
+              ],
+              "priority_policy": "highest_priority_available",
+              "freshness_policy": "accept_latest_available",
+              "failure_policy": "return_null"
+            },
+            "premium": {
+              "sources": [
+                {
+                  "source_id": "primary_quote",
+                  "source_field": "premium",
+                  "priority": 100,
+                  "capability_gate": null,
+                  "input_unit": "raw"
+                }
+              ],
+              "priority_policy": "highest_priority_available",
+              "freshness_policy": "accept_latest_available",
+              "failure_policy": "return_null"
+            },
+            "tradeTime": {
+              "sources": [
+                {
+                  "source_id": "primary_quote",
+                  "source_field": "tradeTime",
+                  "priority": 100,
+                  "capability_gate": null,
+                  "input_unit": "raw"
+                }
+              ],
+              "priority_policy": "highest_priority_available",
+              "freshness_policy": "accept_latest_available",
+              "failure_policy": "return_null"
+            }
+          },
+          "normalization_rules": {
+            "rules": [
+              {
+                "rule_id": "default_numeric_passthrough",
+                "null_policy": "preserve_null",
+                "zero_policy": "preserve_zero",
+                "normalization_steps": [
+                  "type_coerce_number"
+                ]
+              }
+            ]
+          }
+        },
+        "result": {
+          "success": true,
+          "data": [
+            {
+              "fundcode": "510050",
+              "thscode": "510050.SH",
+              "name": "上证50ETF",
+              "latest": 2.5123,
+              "changeRatio": 0.0049,
+              "amount": 1250000000,
+              "premium": -0.0017,
+              "tradeTime": "14:56:03"
+            }
+          ],
+          "source_status": "dry_run"
+        },
+        "llm_usage": [],
+        "failure_stage": null,
+        "failure_reason": null
+      }
+    },
+    {
+      "question_id": "复合意图.7",
+      "question": "510300现在行情，有没有折价，外盘强还是内盘强",
+      "section": "复合意图",
+      "phase": "v3.5",
+      "expected_status": "executable",
+      "expected_answer": "510300 当前最新价 `4.878` 元，开盘 `4.935` 元，最高 `4.954` 元，最低 `4.852` 元，前收 `4.941` 元，交易时间 `2026-05-15 16:01:21`。\n\n当前 IOPV `4.8866` 元，最新价 `4.878` 元，当前为折价，折溢价率 `-0.86%`。\n\n当前外盘 `3905.1521万手`，内盘 `6573.8724万手`，外内盘比 `0.59`，内盘更强。",
+      "user_visible_answer": "沪深300ETF（510300）当前内盘为 52.00万手；外盘 61.00万手，折溢价率 -0.17%。数据时间 14:56:03。\n\nLLM token：0",
+      "pass/fail": "PASS",
+      "actual_outcome": "ExecutableQuery",
+      "failure_stage": null,
+      "failure_reason": null,
+      "llm_total_tokens": 0,
+      "raw_result": {
+        "question": "510300现在行情，有没有折价，外盘强还是内盘强",
+        "answer": "沪深300ETF（510300）当前内盘为 52.00万手；外盘 61.00万手，折溢价率 -0.17%。数据时间 14:56:03。",
+        "v3": {
+          "phase": "v3.5",
+          "recognized_query_mode": "realtime",
+          "intent": "realtime_quote",
+          "intent_candidates": [
+            "overview",
+            "valuation",
+            "trade_flow"
+          ],
+          "routing_result": {
+            "type": "ExecutableQuery",
+            "reason": null
+          },
+          "routing_evidence": {
+            "normalized_text": "510300现在行情，有没有折价，外盘强还是内盘强",
+            "emitted_scenarios": [],
+            "emitted_fields": [],
+            "emitted_terminal_outcomes": [],
+            "fund_resolution": {
+              "status": "matched",
+              "funds": [
+                {
+                  "fundcode": "510300",
+                  "thscode": "510300.SH",
+                  "matched_name": "沪深300ETF"
+                }
+              ],
+              "matches": [
+                {
+                  "fundcode": "510300",
+                  "thscode": "510300.SH",
+                  "matched_name": "沪深300ETF"
+                }
+              ]
+            }
+          },
+          "capability_id": "v3.5:realtime:realtime_quote",
+          "capability_status": "executable",
+          "gate_status": "not_applicable",
+          "capability_status_reason": null,
+          "ast_generation_mode": "registry_realtime",
+          "remote_query_allowed": true,
+          "failure_stage": null,
+          "failure_reason": null,
+          "llm_usage": [],
+          "v3_5_route": {
+            "route": "realtime",
+            "reason": "field_not_imported",
+            "confidence": 1.0,
+            "needs_fund_identity": false,
+            "needs_clarification": false
+          },
+          "v3_5_route_mode": "local_router",
+          "v3_5_route_raw": null,
+          "v3_5_route_usage": {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 0
+          }
+        },
+        "v3_ast": {
+          "intent": "realtime_quote",
+          "scenarios": [
+            "overview",
+            "valuation",
+            "trade_flow"
+          ],
+          "fields": [
+            "sellVolume",
+            "buyVolume",
+            "premium",
+            "tradeTime"
+          ],
+          "fundcodes": [
+            "510300"
+          ],
+          "thscodes": [
+            "510300.SH"
+          ]
+        },
+        "validated_ast": {
+          "intent": "realtime_quote",
+          "scenarios": [
+            "overview",
+            "valuation",
+            "trade_flow"
+          ],
+          "fields": [
+            "sellVolume",
+            "buyVolume",
+            "premium",
+            "tradeTime"
+          ],
+          "fundcodes": [
+            "510300"
+          ],
+          "thscodes": [
+            "510300.SH"
+          ]
+        },
+        "query_plan": {
+          "output_style": "realtime_card",
+          "output_mode": "direct_fields",
+          "asked_fields": [
+            "premium",
+            "buyVolume",
+            "sellVolume"
+          ],
+          "field_origin": "explicit_user_request",
+          "fundcodes": [
+            "510300"
+          ],
+          "thscodes": [
+            "510300.SH"
+          ],
+          "matched_names": {
+            "510300": "沪深300ETF"
+          },
+          "scenarios": [
+            "overview",
+            "valuation",
+            "trade_flow"
+          ],
+          "fields": [
+            "sellVolume",
+            "buyVolume",
+            "premium",
+            "tradeTime"
+          ],
+          "field_display_matrix": {
+            "sellVolume": {
+              "label": "内盘",
+              "format_kind": "scaled_number",
+              "precision_mode": "fixed_fraction_digits",
+              "precision_value": 2,
+              "sign_policy": "auto",
+              "scale_policy": "divide",
+              "unit_policy": "literal",
+              "null_policy": "display_placeholder",
+              "zero_policy": "allow",
+              "scale_value": 10000,
+              "unit_value": "万手"
+            },
+            "buyVolume": {
+              "label": "外盘",
+              "format_kind": "scaled_number",
+              "precision_mode": "fixed_fraction_digits",
+              "precision_value": 2,
+              "sign_policy": "auto",
+              "scale_policy": "divide",
+              "unit_policy": "literal",
+              "null_policy": "display_placeholder",
+              "zero_policy": "allow",
+              "scale_value": 10000,
+              "unit_value": "万手"
+            },
+            "premium": {
+              "label": "折溢价率",
+              "format_kind": "percent",
+              "precision_mode": "fixed_fraction_digits",
+              "precision_value": 2,
+              "sign_policy": "always",
+              "scale_policy": "ratio_to_percent",
+              "unit_policy": "suffix_percent",
+              "null_policy": "display_placeholder",
+              "zero_policy": "allow"
+            },
+            "tradeTime": {
+              "label": "交易时间",
+              "format_kind": "plain_text",
+              "precision_mode": "none",
+              "precision_value": 0,
+              "sign_policy": "never",
+              "scale_policy": "none",
+              "unit_policy": "none",
+              "null_policy": "display_placeholder",
+              "zero_policy": "allow"
+            }
+          },
+          "source_field_mappings": {
+            "sellVolume": {
+              "sources": [
+                {
+                  "source_id": "primary_quote",
+                  "source_field": "sellVolume",
+                  "priority": 100,
+                  "capability_gate": null,
+                  "input_unit": "raw"
+                }
+              ],
+              "priority_policy": "highest_priority_available",
+              "freshness_policy": "accept_latest_available",
+              "failure_policy": "return_null"
+            },
+            "buyVolume": {
+              "sources": [
+                {
+                  "source_id": "primary_quote",
+                  "source_field": "buyVolume",
+                  "priority": 100,
+                  "capability_gate": null,
+                  "input_unit": "raw"
+                }
+              ],
+              "priority_policy": "highest_priority_available",
+              "freshness_policy": "accept_latest_available",
+              "failure_policy": "return_null"
+            },
+            "premium": {
+              "sources": [
+                {
+                  "source_id": "primary_quote",
+                  "source_field": "premium",
+                  "priority": 100,
+                  "capability_gate": null,
+                  "input_unit": "raw"
+                }
+              ],
+              "priority_policy": "highest_priority_available",
+              "freshness_policy": "accept_latest_available",
+              "failure_policy": "return_null"
+            },
+            "tradeTime": {
+              "sources": [
+                {
+                  "source_id": "primary_quote",
+                  "source_field": "tradeTime",
+                  "priority": 100,
+                  "capability_gate": null,
+                  "input_unit": "raw"
+                }
+              ],
+              "priority_policy": "highest_priority_available",
+              "freshness_policy": "accept_latest_available",
+              "failure_policy": "return_null"
+            }
+          },
+          "normalization_rules": {
+            "rules": [
+              {
+                "rule_id": "default_numeric_passthrough",
+                "null_policy": "preserve_null",
+                "zero_policy": "preserve_zero",
+                "normalization_steps": [
+                  "type_coerce_number"
+                ]
+              }
+            ]
+          }
+        },
+        "result": {
+          "success": true,
+          "data": [
+            {
+              "fundcode": "510300",
+              "thscode": "510300.SH",
+              "name": "沪深300ETF",
+              "sellVolume": 520000,
+              "buyVolume": 610000,
+              "premium": -0.0017,
+              "tradeTime": "14:56:03"
+            }
+          ],
+          "source_status": "dry_run"
+        },
+        "llm_usage": [],
+        "failure_stage": null,
+        "failure_reason": null
+      }
+    },
+    {
+      "question_id": "无法回答的问题.1",
+      "question": "510050持仓哪些股票",
+      "section": "无法回答的问题",
+      "phase": "v3.5",
+      "expected_status": "executable",
+      "expected_answer": "接口无法回答。当前直连接口只返回 ETF 实时行情字段，不返回持仓信息。",
+      "user_visible_answer": "(dry_run)\n\nLLM token：0",
+      "pass/fail": "PASS",
+      "actual_outcome": "ExecutableQuery",
+      "failure_stage": null,
+      "failure_reason": null,
+      "llm_total_tokens": 0,
+      "raw_result": {
+        "question": "510050持仓哪些股票",
+        "answer": "(dry_run)",
+        "v3": {
+          "recognized_query_mode": "report",
+          "intent": "report_holding",
+          "from_candidates": [
+            "tb_ths_etf_report_year"
+          ],
+          "entity_hints": {
+            "fundcodes": [
+              "510050"
+            ],
+            "period": null
+          },
+          "llm_ast_status": "dry_run",
+          "phase": "v3.5",
+          "v3_5_subroute": "mongo",
+          "routing_result": {
+            "type": "ExecutableQuery",
+            "reason": null
+          },
+          "v3_5_route": {
+            "route": "mongo_single",
+            "reason": "basic_info",
+            "confidence": 1.0,
+            "needs_fund_identity": false,
+            "needs_clarification": false
+          },
+          "v3_5_route_mode": "local_router",
+          "v3_5_route_raw": null,
+          "v3_5_route_usage": {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 0
+          }
+        },
+        "query_plan": {
+          "intent": "report_holding",
+          "collection": "tb_ths_etf_report_year",
+          "filter": {
+            "fundcode": "510050"
+          }
+        }
+      }
+    },
+    {
+      "question_id": "无法回答的问题.2",
+      "question": "510300基金经理是谁",
+      "section": "无法回答的问题",
+      "phase": "v3.5",
+      "expected_status": "executable",
+      "expected_answer": "接口无法回答。当前直连接口只返回 ETF 实时行情字段，不返回基金经理信息。",
+      "user_visible_answer": "510300 的基金经理(现任)为 示例值，基金管理人为 示例值。\n\nLLM token：0",
+      "pass/fail": "PASS",
+      "actual_outcome": "ExecutableQuery",
+      "failure_stage": null,
+      "failure_reason": null,
+      "llm_total_tokens": 0,
+      "raw_result": {
+        "question": "510300基金经理是谁",
+        "answer": "510300 的基金经理(现任)为 示例值，基金管理人为 示例值。",
+        "v3": {
+          "recognized_query_mode": "single",
+          "intent": "manager",
+          "intent_candidates": [
+            "manager"
+          ],
+          "from_candidates": [
+            "tb_ths_etf_base"
+          ],
+          "entity_hints": {
+            "fundcodes": [],
+            "period": null
+          },
+          "llm_ast_status": "skipped",
+          "phase": "v3.5",
+          "v3_5_subroute": "mongo",
+          "routing_result": {
+            "type": "ExecutableQuery",
+            "reason": null
+          },
+          "v3_5_route": {
+            "route": "mongo_single",
+            "reason": "manager",
+            "confidence": 1.0,
+            "needs_fund_identity": false,
+            "needs_clarification": false
+          },
+          "v3_5_route_mode": "local_router",
+          "v3_5_route_raw": null,
+          "v3_5_route_usage": {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 0
+          }
+        },
+        "v3_ast": {
+          "intent": "manager",
+          "from": "tb_ths_etf_base",
+          "select": [
+            "fundcode",
+            "ths_fund_manager_current_fund",
+            "ths_fund_supervisor_fund"
+          ],
+          "where": [
+            {
+              "field": "fundcode",
+              "op": "eq",
+              "value": "510300"
+            }
+          ],
+          "order_by": null,
+          "limit": 1,
+          "output_style": "summary",
+          "answer_fields": [
+            {
+              "field": "fundcode",
+              "label": "基金代码",
+              "format": "plain"
+            },
+            {
+              "field": "ths_fund_manager_current_fund",
+              "label": "基金经理(现任)",
+              "format": "plain"
+            },
+            {
+              "field": "ths_fund_supervisor_fund",
+              "label": "基金管理人",
+              "format": "plain"
+            }
+          ],
+          "report_period": null,
+          "expand": null
+        },
+        "entities": {
+          "fundcode": "510300",
+          "question": "510300基金经理是谁"
+        },
+        "query_plan": {
+          "collection": "tb_ths_etf_base",
+          "filter": {
+            "fundcode": "510300"
+          },
+          "projection": [
+            "fundcode",
+            "ths_fund_manager_current_fund",
+            "ths_fund_supervisor_fund"
+          ],
+          "limit": 1,
+          "answer_fields": [
+            {
+              "field": "fundcode",
+              "label": "基金代码",
+              "format": "plain"
+            },
+            {
+              "field": "ths_fund_manager_current_fund",
+              "label": "基金经理(现任)",
+              "format": "plain"
+            },
+            {
+              "field": "ths_fund_supervisor_fund",
+              "label": "基金管理人",
+              "format": "plain"
+            }
+          ],
+          "output_style": "summary",
+          "timeseries_semantics": null
+        },
+        "result": {
+          "success": true,
+          "data": {
+            "fundcode": "510300",
+            "ths_fund_manager_current_fund": "示例值",
+            "ths_fund_supervisor_fund": "示例值"
+          }
+        }
+      }
+    },
+    {
+      "question_id": "无法回答的问题.3",
+      "question": "科创50ETF跟踪什么指数",
+      "section": "无法回答的问题",
+      "phase": "v3.5",
+      "expected_status": "ambiguous_fund_identity",
+      "expected_answer": "接口无法回答。当前直连接口只返回 ETF 实时行情字段，不返回跟踪指数信息。",
+      "user_visible_answer": "匹配到多只 ETF，请补充具体产品：科创50ETF华夏、科创50ETF易方达\n\nLLM token：0",
+      "pass/fail": "PASS",
+      "actual_outcome": "UnsupportedQuery(fund_identity_ambiguous)",
+      "failure_stage": "routing",
+      "failure_reason": "fund_identity_ambiguous",
+      "llm_total_tokens": 0,
+      "raw_result": {
+        "question": "科创50ETF跟踪什么指数",
+        "answer": "匹配到多只 ETF，请补充具体产品：科创50ETF华夏、科创50ETF易方达",
+        "v3": {
+          "type": "ClarificationRequired",
+          "recognized_query_mode": "clarify",
+          "reason": "name_ambiguity",
+          "question": "匹配到多只 ETF，请选择要查询的产品。",
+          "options": [
+            {
+              "id": "fund_588000",
+              "kind": "fund_candidate",
+              "label": "科创50ETF华夏",
+              "value": {
+                "fundcode": "588000",
+                "thscode": "588000.SH"
+              },
+              "fundcode": "588000",
+              "thscode": "588000.SH",
+              "reason": "名称匹配到多只候选之一"
+            },
+            {
+              "id": "fund_588080",
+              "kind": "fund_candidate",
+              "label": "科创50ETF易方达",
+              "value": {
+                "fundcode": "588080",
+                "thscode": "588080.SH"
+              },
+              "fundcode": "588080",
+              "thscode": "588080.SH",
+              "reason": "名称匹配到多只候选之一"
+            }
+          ],
+          "state_id": null,
+          "next_action": "choose_candidate",
+          "phase": "v3.5",
+          "v3_5_subroute": "mongo",
+          "routing_result": {
+            "type": "UnsupportedQuery",
+            "reason": "fund_identity_ambiguous"
+          },
+          "v3_5_route": {
+            "route": "mongo_single",
+            "reason": "filter",
+            "confidence": 1.0,
+            "needs_fund_identity": false,
+            "needs_clarification": false
+          },
+          "v3_5_route_mode": "local_router",
+          "v3_5_route_raw": null,
+          "v3_5_route_usage": {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 0
+          }
+        },
+        "failure_stage": "routing",
+        "failure_reason": "fund_identity_ambiguous"
+      }
+    },
+    {
+      "question_id": "无法回答的问题.4",
+      "question": "这只ETF规模多大",
+      "section": "无法回答的问题",
+      "phase": "v3.5",
+      "expected_status": "needs_fund_identity",
+      "expected_answer": "接口无法回答。当前直连接口不支持理解“这只ETF”的上下文指代，也不返回基金规模。",
+      "user_visible_answer": "请先提供ETF代码或名称。\n\nLLM token：0",
+      "pass/fail": "PASS",
+      "actual_outcome": "UnsupportedQuery(fund_identity_required)",
+      "failure_stage": "routing",
+      "failure_reason": "fund_identity_required",
+      "llm_total_tokens": 0,
+      "raw_result": {
+        "question": "这只ETF规模多大",
+        "answer": "请先提供ETF代码或名称。",
+        "v3": {
+          "phase": "v3.5",
+          "recognized_query_mode": "unsupported",
+          "intent": null,
+          "routing_result": {
+            "type": "UnsupportedQuery",
+            "reason": "fund_identity_required"
+          },
+          "v3_5_subroute": "mongo",
+          "remote_query_allowed": false,
+          "failure_stage": "routing",
+          "failure_reason": "fund_identity_required",
+          "llm_usage": [],
+          "v3_5_route": {
+            "route": "mongo_single",
+            "reason": "fund_scale",
+            "confidence": 1.0,
+            "needs_fund_identity": false,
+            "needs_clarification": false
+          },
+          "v3_5_route_mode": "local_router",
+          "v3_5_route_raw": null,
+          "v3_5_route_usage": {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 0
+          }
+        },
+        "v3_ast": null,
+        "validated_ast": null,
+        "query_plan": null,
+        "result": null,
+        "llm_usage": [],
+        "failure_stage": "routing",
+        "failure_reason": "fund_identity_required"
+      }
+    },
+    {
+      "question_id": "无法回答的问题.5",
+      "question": "510050费率多少",
+      "section": "无法回答的问题",
+      "phase": "v3.5",
+      "expected_status": "executable",
+      "expected_answer": "接口无法回答。当前直连接口只返回 ETF 实时行情字段，不返回费率信息。",
+      "user_visible_answer": "510050 的管理费率为 0.50%，托管费率为 0.10%。\n\nLLM token：0",
+      "pass/fail": "PASS",
+      "actual_outcome": "ExecutableQuery",
+      "failure_stage": null,
+      "failure_reason": null,
+      "llm_total_tokens": 0,
+      "raw_result": {
+        "question": "510050费率多少",
+        "answer": "510050 的管理费率为 0.50%，托管费率为 0.10%。",
+        "v3": {
+          "recognized_query_mode": "single",
+          "intent": "fee",
+          "intent_candidates": [
+            "fee"
+          ],
+          "from_candidates": [
+            "tb_ths_etf_base"
+          ],
+          "entity_hints": {
+            "fundcodes": [],
+            "period": null
+          },
+          "llm_ast_status": "skipped",
+          "phase": "v3.5",
+          "v3_5_subroute": "mongo",
+          "routing_result": {
+            "type": "ExecutableQuery",
+            "reason": null
+          },
+          "v3_5_route": {
+            "route": "mongo_single",
+            "reason": "fee",
+            "confidence": 1.0,
+            "needs_fund_identity": false,
+            "needs_clarification": false
+          },
+          "v3_5_route_mode": "local_router",
+          "v3_5_route_raw": null,
+          "v3_5_route_usage": {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 0
+          }
+        },
+        "v3_ast": {
+          "intent": "fee",
+          "from": "tb_ths_etf_base",
+          "select": [
+            "fundcode",
+            "ths_manage_fee_rate_fund",
+            "ths_mandate_fee_rate_fund"
+          ],
+          "where": [
+            {
+              "field": "fundcode",
+              "op": "eq",
+              "value": "510050"
+            }
+          ],
+          "order_by": null,
+          "limit": 1,
+          "output_style": "summary",
+          "answer_fields": [
+            {
+              "field": "fundcode",
+              "label": "基金代码",
+              "format": "plain"
+            },
+            {
+              "field": "ths_manage_fee_rate_fund",
+              "label": "管理费率",
+              "format": "percent"
+            },
+            {
+              "field": "ths_mandate_fee_rate_fund",
+              "label": "托管费率",
+              "format": "percent"
+            }
+          ],
+          "report_period": null,
+          "expand": null
+        },
+        "entities": {
+          "fundcode": "510050",
+          "question": "510050费率多少"
+        },
+        "query_plan": {
+          "collection": "tb_ths_etf_base",
+          "filter": {
+            "fundcode": "510050"
+          },
+          "projection": [
+            "fundcode",
+            "ths_manage_fee_rate_fund",
+            "ths_mandate_fee_rate_fund"
+          ],
+          "limit": 1,
+          "answer_fields": [
+            {
+              "field": "fundcode",
+              "label": "基金代码",
+              "format": "plain"
+            },
+            {
+              "field": "ths_manage_fee_rate_fund",
+              "label": "管理费率",
+              "format": "percent"
+            },
+            {
+              "field": "ths_mandate_fee_rate_fund",
+              "label": "托管费率",
+              "format": "percent"
+            }
+          ],
+          "output_style": "summary",
+          "timeseries_semantics": null
+        },
+        "result": {
+          "success": true,
+          "data": {
+            "fundcode": "510050",
+            "ths_manage_fee_rate_fund": 0.5,
+            "ths_mandate_fee_rate_fund": 0.1
+          }
+        }
+      }
+    },
+    {
+      "question_id": "无法回答的问题.6",
+      "question": "贵州茅台现在什么价",
+      "section": "无法回答的问题",
+      "phase": "v3.5",
+      "expected_status": "unsupported_domain",
+      "expected_answer": "接口无法回答。当前接口实测面向 ETF 行情；按本次任务未验证个股代码查询能力。",
+      "user_visible_answer": "暂无数据。该问题不在当前ETF查询能力范围内。\n\nLLM token：0",
+      "pass/fail": "PASS",
+      "actual_outcome": "UnsupportedQuery(unsupported_domain)",
+      "failure_stage": "routing",
+      "failure_reason": "unsupported_domain",
+      "llm_total_tokens": 0,
+      "raw_result": {
+        "question": "贵州茅台现在什么价",
+        "answer": "暂无数据。该问题不在当前ETF查询能力范围内。",
+        "v3": {
+          "phase": "v3.5",
+          "recognized_query_mode": "unsupported",
+          "intent": null,
+          "routing_result": {
+            "type": "UnsupportedQuery",
+            "reason": "unsupported_domain"
+          },
+          "remote_query_allowed": false,
+          "failure_stage": "routing",
+          "failure_reason": "unsupported_domain",
+          "llm_usage": [],
+          "v3_5_route": {
+            "route": "unsupported",
+            "reason": "unsupported_domain",
+            "confidence": 1.0,
+            "needs_fund_identity": false,
+            "needs_clarification": false
+          },
+          "v3_5_route_mode": "local_router",
+          "v3_5_route_raw": null,
+          "v3_5_route_usage": {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 0
+          }
+        },
+        "v3_ast": null,
+        "validated_ast": null,
+        "query_plan": null,
+        "result": null,
+        "llm_usage": [],
+        "failure_stage": "routing",
+        "failure_reason": "unsupported_domain"
+      }
+    },
+    {
+      "question_id": "无法回答的问题.7",
+      "question": "上证指数多少点",
+      "section": "无法回答的问题",
+      "phase": "v3.5",
+      "expected_status": "unsupported_domain",
+      "expected_answer": "接口无法回答。当前接口实测面向 ETF 行情；按本次任务未验证指数查询能力。",
+      "user_visible_answer": "暂无数据。该问题不在当前ETF查询能力范围内。\n\nLLM token：0",
+      "pass/fail": "PASS",
+      "actual_outcome": "UnsupportedQuery(unsupported_domain)",
+      "failure_stage": "routing",
+      "failure_reason": "unsupported_domain",
+      "llm_total_tokens": 0,
+      "raw_result": {
+        "question": "上证指数多少点",
+        "answer": "暂无数据。该问题不在当前ETF查询能力范围内。",
+        "v3": {
+          "phase": "v3.5",
+          "recognized_query_mode": "unsupported",
+          "intent": null,
+          "routing_result": {
+            "type": "UnsupportedQuery",
+            "reason": "unsupported_domain"
+          },
+          "remote_query_allowed": false,
+          "failure_stage": "routing",
+          "failure_reason": "unsupported_domain",
+          "llm_usage": [],
+          "v3_5_route": {
+            "route": "unsupported",
+            "reason": "unsupported_domain",
+            "confidence": 1.0,
+            "needs_fund_identity": false,
+            "needs_clarification": false
+          },
+          "v3_5_route_mode": "local_router",
+          "v3_5_route_raw": null,
+          "v3_5_route_usage": {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 0
+          }
+        },
+        "v3_ast": null,
+        "validated_ast": null,
+        "query_plan": null,
+        "result": null,
+        "llm_usage": [],
+        "failure_stage": "routing",
+        "failure_reason": "unsupported_domain"
+      }
+    },
+    {
+      "question_id": "无法回答的问题.8",
+      "question": "510050五档盘口",
+      "section": "无法回答的问题",
+      "phase": "v3.5",
+      "expected_status": "field_not_supported",
+      "expected_answer": "接口无法回答。当前接口只返回 `bid1`、`ask1`、`bidSize1`、`askSize1`，不返回五档盘口。",
+      "user_visible_answer": "暂无数据。当前实时能力不支持该字段。\n\nLLM token：0",
+      "pass/fail": "PASS",
+      "actual_outcome": "UnsupportedQuery(field_not_supported)",
+      "failure_stage": "routing",
+      "failure_reason": "field_not_supported",
+      "llm_total_tokens": 0,
+      "raw_result": {
+        "question": "510050五档盘口",
+        "answer": "暂无数据。当前实时能力不支持该字段。",
+        "v3": {
+          "phase": "v3.5",
+          "recognized_query_mode": "unsupported",
+          "intent": null,
+          "routing_result": {
+            "type": "UnsupportedQuery",
+            "reason": "field_not_supported"
+          },
+          "routing_evidence": {
+            "normalized_text": "510050五档盘口",
+            "emitted_scenarios": [],
+            "emitted_fields": [],
+            "emitted_terminal_outcomes": [
+              {
+                "canonical_id": "field_not_supported",
+                "pattern": "五档盘口",
+                "priority": 300
+              }
+            ]
+          },
+          "capability_id": "v3.5:unsupported:field_not_supported",
+          "capability_status": "field_not_supported",
+          "gate_status": "blocked",
+          "capability_status_reason": "field_not_supported",
+          "remote_query_allowed": false,
+          "failure_stage": "routing",
+          "failure_reason": "field_not_supported",
+          "llm_usage": [],
+          "v3_5_route": {
+            "route": "realtime",
+            "reason": "basic_info",
+            "confidence": 1.0,
+            "needs_fund_identity": false,
+            "needs_clarification": false
+          },
+          "v3_5_route_mode": "local_router",
+          "v3_5_route_raw": null,
+          "v3_5_route_usage": {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 0
+          }
+        },
+        "v3_ast": null,
+        "validated_ast": null,
+        "query_plan": null,
+        "result": null,
+        "llm_usage": [],
+        "failure_stage": "routing",
+        "failure_reason": "field_not_supported"
+      }
+    },
+    {
+      "question_id": "无法回答的问题.9",
+      "question": "这只ETF历史走势",
+      "section": "无法回答的问题",
+      "phase": "v3.5",
+      "expected_status": "needs_fund_identity",
+      "expected_answer": "接口无法回答。当前接口只返回单次实时快照，不返回历史走势，也不支持“这只ETF”的上下文指代。",
+      "user_visible_answer": "请先提供ETF代码或名称。\n\nLLM token：0",
+      "pass/fail": "PASS",
+      "actual_outcome": "UnsupportedQuery(fund_identity_required)",
+      "failure_stage": "routing",
+      "failure_reason": "fund_identity_required",
+      "llm_total_tokens": 0,
+      "raw_result": {
+        "question": "这只ETF历史走势",
+        "answer": "请先提供ETF代码或名称。",
+        "v3": {
+          "phase": "v3.5",
+          "recognized_query_mode": "unsupported",
+          "intent": null,
+          "routing_result": {
+            "type": "UnsupportedQuery",
+            "reason": "fund_identity_required"
+          },
+          "v3_5_subroute": "mongo",
+          "remote_query_allowed": false,
+          "failure_stage": "routing",
+          "failure_reason": "fund_identity_required",
+          "llm_usage": [],
+          "v3_5_route": {
+            "route": "mongo_single",
+            "reason": "basic_info",
+            "confidence": 1.0,
+            "needs_fund_identity": false,
+            "needs_clarification": false
+          },
+          "v3_5_route_mode": "local_router",
+          "v3_5_route_raw": null,
+          "v3_5_route_usage": {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 0
+          }
+        },
+        "v3_ast": null,
+        "validated_ast": null,
+        "query_plan": null,
+        "result": null,
+        "llm_usage": [],
+        "failure_stage": "routing",
+        "failure_reason": "fund_identity_required"
+      }
+    }
+  ]
+}

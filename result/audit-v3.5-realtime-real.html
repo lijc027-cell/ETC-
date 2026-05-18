@@ -1,0 +1,155 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>v3.5 Realtime Audit</title><style>:root{--bg:#f4f0e6;--paper:#fffaf0;--ink:#2f2418;--muted:#6e5c45;--line:#d7c8b2;--pass:#2f6f4e;--fail:#9f2f2f;}*{box-sizing:border-box;}body{margin:0;background:var(--bg);color:var(--ink);font-family:Georgia,serif;}.wrap{max-width:1320px;margin:0 auto;padding:28px 22px 48px;}.hero{padding:10px 0 18px;border-bottom:1px solid var(--line);margin-bottom:18px;}h1{margin:0 0 8px;font-size:32px;}.sub{color:var(--muted);font-size:14px;line-height:1.5;}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin:18px 0 24px;}.stat{background:var(--paper);border:1px solid var(--line);padding:14px 16px;border-radius:6px;}.stat .k{color:var(--muted);font-size:12px;}.stat .v{margin-top:6px;font-size:26px;}.cases{display:grid;gap:16px;}.card{background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:18px;}.head{display:flex;justify-content:space-between;gap:12px;align-items:baseline;margin-bottom:10px;}.qid{font-size:20px;line-height:1.35;}.badge{font-size:12px;padding:3px 8px;border-radius:999px;border:1px solid var(--line);white-space:nowrap;}.pass{color:var(--pass);}.fail{color:var(--fail);}.meta{color:var(--muted);font-size:13px;margin-bottom:14px;line-height:1.5;}.cols{display:grid;grid-template-columns:.85fr 1.15fr;gap:14px;}.panel{border:1px solid var(--line);border-radius:6px;overflow:hidden;}.panel h3{margin:0;padding:10px 12px;font-size:14px;background:rgba(0,0,0,.03);}.panel pre{margin:0;padding:12px;white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;line-height:1.5;}@media(max-width:900px){.cols{grid-template-columns:1fr;}}</style></head><body><div class="wrap"><div class="hero"><h1>v3.5 Realtime Audit</h1><div class="sub">expected from result/codex-realtime-direct-answers.md · 29 pass · 0 fail · LLM 总 token 数：43755</div></div><div class="grid"><div class="stat"><div class="k">Total Cases</div><div class="v">29</div></div><div class="stat"><div class="k">Passed</div><div class="v">29</div></div><div class="stat"><div class="k">Failed</div><div class="v">0</div></div><div class="stat"><div class="k">LLM Tokens</div><div class="v">43755</div></div></div><div class="cases"><section class="card"><div class="head"><div class="qid">基础行情.1 510050现在什么价</div><div class="badge pass">PASS</div></div><div class="meta">phase=v3.5 · actual=ExecutableQuery · tokens=2111</div><div class="cols"><div class="panel"><h3>Expected</h3><pre>510050 当前最新价为 `3.035` 元，今日开盘 `3.065` 元，最高 `3.076` 元，最低 `3.018` 元，前收 `3.074` 元，交易时间 `2026-05-15 16:01:03`。</pre></div><div class="panel"><h3>Answer</h3><pre>上证50ETF（510050）当前最新价为 3.035，数据时间 16:01:03。
+
+LLM token：2111</pre></div></div></section><section class="card"><div class="head"><div class="qid">基础行情.2 科创50ETF报多少</div><div class="badge pass">PASS</div></div><div class="meta">phase=v3.5 · actual=UnsupportedQuery(fund_identity_ambiguous) · tokens=438</div><div class="cols"><div class="panel"><h3>Expected</h3><pre>科创50ETF当前最新价为 `1.787` 元，今日开盘 `1.807` 元，最高 `1.865` 元，最低 `1.758` 元，前收 `1.815` 元，交易时间 `2026-05-15 16:01:07`。</pre></div><div class="panel"><h3>Answer</h3><pre>我查到几只可能匹配的 ETF，先列出来供你确认：
+- 科创50增强ETF鹏华（588460）：鹏华基金，跟踪 上证科创板50成份指数
+- 科创50增强ETF招商（588450）：招商基金，跟踪 上证科创板50成份指数
+- 科创50增强ETF南方（588370）：南方基金，跟踪 上证科创板50成份指数
+你可以直接回基金代码，我再继续查实时数据。
+
+LLM token：438</pre></div></div></section><section class="card"><div class="head"><div class="qid">涨跌.1 510050涨了吗</div><div class="badge pass">PASS</div></div><div class="meta">phase=v3.5 · actual=ExecutableQuery · tokens=2036</div><div class="cols"><div class="panel"><h3>Expected</h3><pre>510050 当前较前收下跌 `0.0390` 元，涨跌幅 `-1.2687%`。</pre></div><div class="panel"><h3>Answer</h3><pre>上证50ETF（510050）当前下跌，涨跌为 -0.039，涨跌幅为 -1.27%，数据时间 16:01:03。
+
+LLM token：2036</pre></div></div></section><section class="card"><div class="head"><div class="qid">涨跌.2 科创50ETF跌了多少</div><div class="badge pass">PASS</div></div><div class="meta">phase=v3.5 · actual=UnsupportedQuery(fund_identity_ambiguous) · tokens=438</div><div class="cols"><div class="panel"><h3>Expected</h3><pre>科创50ETF当前较前收下跌 `0.0280` 元，涨跌幅 `-1.5427%`。</pre></div><div class="panel"><h3>Answer</h3><pre>我查到几只可能匹配的 ETF，先列出来供你确认：
+- 科创50增强ETF鹏华（588460）：鹏华基金，跟踪 上证科创板50成份指数
+- 科创50增强ETF招商（588450）：招商基金，跟踪 上证科创板50成份指数
+- 科创50增强ETF南方（588370）：南方基金，跟踪 上证科创板50成份指数
+你可以直接回基金代码，我再继续查实时数据。
+
+LLM token：438</pre></div></div></section><section class="card"><div class="head"><div class="qid">成交.1 510050成交额多少</div><div class="badge pass">PASS</div></div><div class="meta">phase=v3.5 · actual=ExecutableQuery · tokens=1989</div><div class="cols"><div class="panel"><h3>Expected</h3><pre>510050 当前成交额 `33.8367亿`，成交量 `1109.0661万手`，现手 `2050手`。</pre></div><div class="panel"><h3>Answer</h3><pre>上证50ETF（510050）当前成交额为 33.84亿元，数据时间 16:01:03。
+
+LLM token：1989</pre></div></div></section><section class="card"><div class="head"><div class="qid">盘口.1 510050盘口</div><div class="badge pass">PASS</div></div><div class="meta">phase=v3.5 · actual=ExecutableQuery · tokens=2148</div><div class="cols"><div class="panel"><h3>Expected</h3><pre>510050 当前买一 `3.033元 / 379手`，卖一 `3.034元 / 8131手`。</pre></div><div class="panel"><h3>Answer</h3><pre>上证50ETF（510050）盘口上，买一价 3.033、卖一价 3.034；买一量 379、卖一量 8131。数据时间 16:01:03。
+
+LLM token：2148</pre></div></div></section><section class="card"><div class="head"><div class="qid">盘口.2 科创50ETF买一多少</div><div class="badge pass">PASS</div></div><div class="meta">phase=v3.5 · actual=UnsupportedQuery(fund_identity_ambiguous) · tokens=437</div><div class="cols"><div class="panel"><h3>Expected</h3><pre>科创50ETF当前买一价 `1.787` 元，买一量 `10909手`；卖一 `1.788元 / 37169手`。</pre></div><div class="panel"><h3>Answer</h3><pre>我查到几只可能匹配的 ETF，先列出来供你确认：
+- 科创50增强ETF鹏华（588460）：鹏华基金，跟踪 上证科创板50成份指数
+- 科创50增强ETF招商（588450）：招商基金，跟踪 上证科创板50成份指数
+- 科创50增强ETF南方（588370）：南方基金，跟踪 上证科创板50成份指数
+你可以直接回基金代码，我再继续查实时数据。
+
+LLM token：437</pre></div></div></section><section class="card"><div class="head"><div class="qid">折溢价.1 510050溢价多少</div><div class="badge pass">PASS</div></div><div class="meta">phase=v3.5 · actual=ExecutableQuery · tokens=2039</div><div class="cols"><div class="panel"><h3>Expected</h3><pre>510050 当前 IOPV 为 `3.0314` 元，最新价 `3.035` 元，折溢价率 `0.36%`，当前为溢价。</pre></div><div class="panel"><h3>Answer</h3><pre>上证50ETF（510050）当前折溢价率为 +0.36%，数据时间 16:01:03。
+
+LLM token：2039</pre></div></div></section><section class="card"><div class="head"><div class="qid">折溢价.2 科创50ETF是折价还是溢价</div><div class="badge pass">PASS</div></div><div class="meta">phase=v3.5 · actual=UnsupportedQuery(fund_identity_ambiguous) · tokens=442</div><div class="cols"><div class="panel"><h3>Expected</h3><pre>科创50ETF当前 IOPV 为 `1.7876` 元，最新价 `1.787` 元，当前为折价，折溢价率 `-0.06%`。</pre></div><div class="panel"><h3>Answer</h3><pre>我查到几只可能匹配的 ETF，先列出来供你确认：
+- 科创50增强ETF鹏华（588460）：鹏华基金，跟踪 上证科创板50成份指数
+- 科创50增强ETF招商（588450）：招商基金，跟踪 上证科创板50成份指数
+- 科创50增强ETF南方（588370）：南方基金，跟踪 上证科创板50成份指数
+你可以直接回基金代码，我再继续查实时数据。
+
+LLM token：442</pre></div></div></section><section class="card"><div class="head"><div class="qid">内外盘.1 510050内外盘</div><div class="badge pass">PASS</div></div><div class="meta">phase=v3.5 · actual=ExecutableQuery · tokens=2135</div><div class="cols"><div class="panel"><h3>Expected</h3><pre>510050 当前外盘 `5708.0776万手`，内盘 `5382.6060万手`，外内盘比 `1.06`。</pre></div><div class="panel"><h3>Answer</h3><pre>上证50ETF（510050）当前外盘 57080.78万手、内盘 53826.06万手，外内盘比 1.06，数据时间 16:01:03。
+
+LLM token：2135</pre></div></div></section><section class="card"><div class="head"><div class="qid">内外盘.2 科创50ETF外盘多少</div><div class="badge pass">PASS</div></div><div class="meta">phase=v3.5 · actual=UnsupportedQuery(fund_identity_ambiguous) · tokens=436</div><div class="cols"><div class="panel"><h3>Expected</h3><pre>科创50ETF当前外盘 `21132.0850万手`，内盘 `23048.6260万手`，外内盘比 `0.92`。</pre></div><div class="panel"><h3>Answer</h3><pre>我查到几只可能匹配的 ETF，先列出来供你确认：
+- 科创50增强ETF鹏华（588460）：鹏华基金，跟踪 上证科创板50成份指数
+- 科创50增强ETF招商（588450）：招商基金，跟踪 上证科创板50成份指数
+- 科创50增强ETF南方（588370）：南方基金，跟踪 上证科创板50成份指数
+你可以直接回基金代码，我再继续查实时数据。
+
+LLM token：436</pre></div></div></section><section class="card"><div class="head"><div class="qid">振幅.1 510050振幅多大</div><div class="badge pass">PASS</div></div><div class="meta">phase=v3.5 · actual=ExecutableQuery · tokens=2044</div><div class="cols"><div class="panel"><h3>Expected</h3><pre>510050 当前振幅 `1.8868%`。</pre></div><div class="panel"><h3>Answer</h3><pre>上证50ETF（510050）当前振幅为 1.89%，数据时间 16:01:03。
+
+LLM token：2044</pre></div></div></section><section class="card"><div class="head"><div class="qid">对比.1 对比510050和510300</div><div class="badge pass">PASS</div></div><div class="meta">phase=v3.5 · actual=ClarificationRequired(capability_ambiguous) · tokens=471</div><div class="cols"><div class="panel"><h3>Expected</h3><pre>| 指标 | 510050 | 510300 |
+| --- | --- | --- |
+| 最新价 | `3.035` | `4.878` |
+| 涨跌额 | `-0.0390` | `-0.0630` |
+| 涨跌幅 | `-1.2687%` | `-1.2750%` |
+| 成交额(亿) | `33.8367` | `51.3515` |
+| 成交量(万手) | `1109.0661` | `1047.9024` |
+| 买一 | `3.033 / 379手` | `4.875 / 2526手` |
+| 卖一 | `3.034 / 8131手` | `4.876 / 1289手` |
+| IOPV | `3.0314` | `4.8866` |
+| 折溢价率 | `0.36%` | `-0.86%` |
+| 外盘(万手) | `5708.0776` | `3905.1521` |
+| 内盘(万手) | `5382.6060` | `6573.8724` |
+| 振幅 | `1.8868%` | `2.0644%` |
+| 交易时间 | `2026-05-15 16:01:03` | `2026-05-15 16:01:21` |</pre></div><div class="panel"><h3>Answer</h3><pre>这个问题可以从两个方向看：
+
+实时行情：
+对比来看，上证50ETF（510050）当前涨跌幅相对更高，为 +0.49%。
+| 指标 | 上证50ETF（510050） | 沪深300ETF（510300） |
+| --- | --- | --- |
+| 最新价 | 2.5123 | 2.5123 |
+| 涨跌幅 | +0.49% | +0.49% |
+| 成交额 | 12.50亿元 | 12.50亿元 |
+| 折溢价率 | -0.17% | -0.17% |
+| 交易时间 | 14:56:03 | 14:56:03 |
+
+基金资料：
+510050 的管理费率为 0.15%，托管费率为 0.05%。
+
+510300 的管理费率为 0.15%，托管费率为 0.05%。
+
+LLM token：1955
+
+你想继续看实时行情对比，还是基金资料/收益/费率对比？
+
+LLM token：1950</pre></div></div></section><section class="card"><div class="head"><div class="qid">复合意图.1 510050涨了没，成交额多少</div><div class="badge pass">PASS</div></div><div class="meta">phase=v3.5 · actual=ExecutableQuery · tokens=2178</div><div class="cols"><div class="panel"><h3>Expected</h3><pre>510050 当前较前收下跌 `0.0390` 元，涨跌幅 `-1.2687%`。
+
+成交额 `33.8367亿`，成交量 `1109.0661万手`，现手 `2050手`。</pre></div><div class="panel"><h3>Answer</h3><pre>上证50ETF（510050）当前涨跌为 -0.039；涨跌幅 -1.27%，成交额 33.84亿元。数据时间 16:01:03。
+
+LLM token：2178</pre></div></div></section><section class="card"><div class="head"><div class="qid">复合意图.2 科创50ETF怎么样，折价了吗</div><div class="badge pass">PASS</div></div><div class="meta">phase=v3.5 · actual=UnsupportedQuery(fund_identity_ambiguous) · tokens=441</div><div class="cols"><div class="panel"><h3>Expected</h3><pre>科创50ETF当前最新价 `1.787` 元，较前收下跌 `0.0280` 元，涨跌幅 `-1.5427%`，交易时间 `2026-05-15 16:01:07`。
+
+当前 IOPV 为 `1.7876` 元，最新价 `1.787` 元，当前为折价，折溢价率 `-0.06%`。</pre></div><div class="panel"><h3>Answer</h3><pre>我查到几只可能匹配的 ETF，先列出来供你确认：
+- 科创50增强ETF鹏华（588460）：鹏华基金，跟踪 上证科创板50成份指数
+- 科创50增强ETF招商（588450）：招商基金，跟踪 上证科创板50成份指数
+- 科创50增强ETF南方（588370）：南方基金，跟踪 上证科创板50成份指数
+你可以直接回基金代码，我再继续查实时数据。
+
+LLM token：441</pre></div></div></section><section class="card"><div class="head"><div class="qid">复合意图.3 159915价格多少，买一卖一挂了多少</div><div class="badge pass">PASS</div></div><div class="meta">phase=v3.5 · actual=ExecutableQuery · tokens=2315</div><div class="cols"><div class="panel"><h3>Expected</h3><pre>159915 当前最新价 `3.970` 元，交易时间 `2026-05-15 16:01:03`。
+
+买一 `3.960元 / 500手`，卖一 `3.970元 / 245手`。</pre></div><div class="panel"><h3>Answer</h3><pre>创业板ETF（159915）当前最新价为 3.97；买一价 3.96，卖一价 3.97，买一量 500，卖一量 245。数据时间 16:01:03。
+
+LLM token：2315</pre></div></div></section><section class="card"><div class="head"><div class="qid">复合意图.4 对比510050和510300的涨跌幅和溢价</div><div class="badge pass">PASS</div></div><div class="meta">phase=v3.5 · actual=ExecutableQuery · tokens=457</div><div class="cols"><div class="panel"><h3>Expected</h3><pre>| 指标 | 510050 | 510300 |
+| --- | --- | --- |
+| 涨跌额 | `-0.0390` | `-0.0630` |
+| 涨跌幅 | `-1.2687%` | `-1.2750%` |
+| IOPV | `3.0314` | `4.8866` |
+| 最新价 | `3.035` | `4.878` |
+| 折溢价率 | `0.36%` | `-0.86%` |
+| 交易时间 | `2026-05-15 16:01:03` | `2026-05-15 16:01:21` |</pre></div><div class="panel"><h3>Answer</h3><pre>| 指标 | 上证50ETF（510050） | 沪深300ETF（510300） |
+| --- | --- | --- |
+| 涨跌幅 | -1.27% | -1.28% |
+| 折溢价率 | +0.36% | -0.86% |
+| 交易时间 | 16:01:03 | 16:01:21 |
+
+LLM token：457</pre></div></div></section><section class="card"><div class="head"><div class="qid">复合意图.5 这只ETF盘口什么情况，内外盘怎么样</div><div class="badge pass">PASS</div></div><div class="meta">phase=v3.5 · actual=UnsupportedQuery(fund_identity_required) · tokens=442</div><div class="cols"><div class="panel"><h3>Expected</h3><pre>无法直接回答。直连接口不支持理解“这只ETF”的上下文指代，需先提供明确 ETF 代码或名称。</pre></div><div class="panel"><h3>Answer</h3><pre>请先提供ETF代码或名称。
+
+LLM token：442</pre></div></div></section><section class="card"><div class="head"><div class="qid">复合意图.6 510050价格、涨跌幅、成交额、溢价率</div><div class="badge pass">PASS</div></div><div class="meta">phase=v3.5 · actual=ExecutableQuery · tokens=2263</div><div class="cols"><div class="panel"><h3>Expected</h3><pre>510050 当前最新价 `3.035` 元，交易时间 `2026-05-15 16:01:03`。
+
+当前涨跌幅 `-1.2687%`，涨跌额 `-0.0390` 元。
+
+当前成交额 `33.8367亿`，成交量 `1109.0661万手`，现手 `2050手`。
+
+当前 IOPV `3.0314` 元，折溢价率 `0.36%`。</pre></div><div class="panel"><h3>Answer</h3><pre>上证50ETF（510050）当前最新价为 3.035；涨跌幅 -1.27%，成交额 33.84亿元，折溢价率 +0.36%。数据时间 16:01:03。
+
+LLM token：2263</pre></div></div></section><section class="card"><div class="head"><div class="qid">复合意图.7 510300现在行情，有没有折价，外盘强还是内盘强</div><div class="badge pass">PASS</div></div><div class="meta">phase=v3.5 · actual=ExecutableQuery · tokens=2397</div><div class="cols"><div class="panel"><h3>Expected</h3><pre>510300 当前最新价 `4.878` 元，开盘 `4.935` 元，最高 `4.954` 元，最低 `4.852` 元，前收 `4.941` 元，交易时间 `2026-05-15 16:01:21`。
+
+当前 IOPV `4.8866` 元，最新价 `4.878` 元，当前为折价，折溢价率 `-0.86%`。
+
+当前外盘 `3905.1521万手`，内盘 `6573.8724万手`，外内盘比 `0.59`，内盘更强。</pre></div><div class="panel"><h3>Answer</h3><pre>沪深300ETF（510300）当前内盘为 65738.72万手；外盘 39051.52万手，折溢价率 -0.86%。数据时间 16:01:21。
+
+LLM token：2397</pre></div></div></section><section class="card"><div class="head"><div class="qid">无法回答的问题.1 510050持仓哪些股票</div><div class="badge pass">PASS</div></div><div class="meta">phase=v3.5 · actual=ExecutableQuery · tokens=2898</div><div class="cols"><div class="panel"><h3>Expected</h3><pre>接口无法回答。当前直连接口只返回 ETF 实时行情字段，不返回持仓信息。</pre></div><div class="panel"><h3>Answer</h3><pre>510050 的2024年年报报告数据如下：
+| 排名 | 前十大重仓股代码 | 前十大股票占基金净值比 |
+| --- | --- | --- |
+| 1 | 600519 | 11.87% |
+| 2 | 601318 | 7.03% |
+| 3 | 600036 | 6.03% |
+| 4 | 600900 | 4.48% |
+| 5 | 600030 | 3.53% |
+| 6 | 601166 | 3.45% |
+| 7 | 601899 | 3.09% |
+| 8 | 601398 | 3.01% |
+| 9 | 600276 | 2.54% |
+| 10 | 600887 | 2.38% |
+
+LLM token：2454</pre></div></div></section><section class="card"><div class="head"><div class="qid">无法回答的问题.2 510300基金经理是谁</div><div class="badge pass">PASS</div></div><div class="meta">phase=v3.5 · actual=ExecutableQuery · tokens=2338</div><div class="cols"><div class="panel"><h3>Expected</h3><pre>接口无法回答。当前直连接口只返回 ETF 实时行情字段，不返回基金经理信息。</pre></div><div class="panel"><h3>Answer</h3><pre>510300 的基金经理(现任)为 柳军，基金管理人为 华泰柏瑞基金。
+
+LLM token：1900</pre></div></div></section><section class="card"><div class="head"><div class="qid">无法回答的问题.3 科创50ETF跟踪什么指数</div><div class="badge pass">PASS</div></div><div class="meta">phase=v3.5 · actual=UnsupportedQuery(fund_identity_ambiguous) · tokens=6263</div><div class="cols"><div class="panel"><h3>Expected</h3><pre>接口无法回答。当前直连接口只返回 ETF 实时行情字段，不返回跟踪指数信息。</pre></div><div class="panel"><h3>Answer</h3><pre>未找到符合条件的 ETF。
+
+LLM token：5820</pre></div></div></section><section class="card"><div class="head"><div class="qid">无法回答的问题.4 这只ETF规模多大</div><div class="badge pass">PASS</div></div><div class="meta">phase=v3.5 · actual=UnsupportedQuery(fund_identity_required) · tokens=439</div><div class="cols"><div class="panel"><h3>Expected</h3><pre>接口无法回答。当前直连接口不支持理解“这只ETF”的上下文指代，也不返回基金规模。</pre></div><div class="panel"><h3>Answer</h3><pre>请先提供ETF代码或名称。
+
+LLM token：439</pre></div></div></section><section class="card"><div class="head"><div class="qid">无法回答的问题.5 510050费率多少</div><div class="badge pass">PASS</div></div><div class="meta">phase=v3.5 · actual=ExecutableQuery · tokens=2398</div><div class="cols"><div class="panel"><h3>Expected</h3><pre>接口无法回答。当前直连接口只返回 ETF 实时行情字段，不返回费率信息。</pre></div><div class="panel"><h3>Answer</h3><pre>510050 的管理费率为 0.15%，托管费率为 0.05%。
+
+LLM token：1960</pre></div></div></section><section class="card"><div class="head"><div class="qid">无法回答的问题.6 贵州茅台现在什么价</div><div class="badge pass">PASS</div></div><div class="meta">phase=v3.5 · actual=UnsupportedQuery(unsupported_domain) · tokens=438</div><div class="cols"><div class="panel"><h3>Expected</h3><pre>接口无法回答。当前接口实测面向 ETF 行情；按本次任务未验证个股代码查询能力。</pre></div><div class="panel"><h3>Answer</h3><pre>暂无数据。当前实时问句能力仅支持ETF，不支持该标的。
+
+LLM token：438</pre></div></div></section><section class="card"><div class="head"><div class="qid">无法回答的问题.7 上证指数多少点</div><div class="badge pass">PASS</div></div><div class="meta">phase=v3.5 · actual=UnsupportedQuery(unsupported_domain) · tokens=436</div><div class="cols"><div class="panel"><h3>Expected</h3><pre>接口无法回答。当前接口实测面向 ETF 行情；按本次任务未验证指数查询能力。</pre></div><div class="panel"><h3>Answer</h3><pre>暂无数据。该问题不在当前ETF查询能力范围内。
+
+LLM token：436</pre></div></div></section><section class="card"><div class="head"><div class="qid">无法回答的问题.8 510050五档盘口</div><div class="badge pass">PASS</div></div><div class="meta">phase=v3.5 · actual=UnsupportedQuery(field_not_supported) · tokens=440</div><div class="cols"><div class="panel"><h3>Expected</h3><pre>接口无法回答。当前接口只返回 `bid1`、`ask1`、`bidSize1`、`askSize1`，不返回五档盘口。</pre></div><div class="panel"><h3>Answer</h3><pre>暂无数据。当前实时能力不支持该字段。
+
+LLM token：440</pre></div></div></section><section class="card"><div class="head"><div class="qid">无法回答的问题.9 这只ETF历史走势</div><div class="badge pass">PASS</div></div><div class="meta">phase=v3.5 · actual=UnsupportedQuery(fund_identity_required) · tokens=448</div><div class="cols"><div class="panel"><h3>Expected</h3><pre>接口无法回答。当前接口只返回单次实时快照，不返回历史走势，也不支持“这只ETF”的上下文指代。</pre></div><div class="panel"><h3>Answer</h3><pre>请先提供ETF代码或名称。
+
+LLM token：448</pre></div></div></section></div></div></body></html>

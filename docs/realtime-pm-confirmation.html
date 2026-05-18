@@ -1,0 +1,632 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ETF 实时查询扩展 PM 确认表</title>
+  <style>
+    :root {
+      --ink: #17202a;
+      --muted: #667085;
+      --line: #d9e2ec;
+      --band: #f6f8fb;
+      --accent: #0f766e;
+      --accent-soft: #e7f5f2;
+      --warn: #9a3412;
+      --warn-soft: #fff4e8;
+      --blue: #1d4ed8;
+      --blue-soft: #edf4ff;
+      --red: #b42318;
+      --red-soft: #fff1f0;
+      --ok: #166534;
+      --ok-soft: #edf7ed;
+      --card: #ffffff;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: #eef2f6;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+      font-size: 15px;
+      line-height: 1.55;
+    }
+
+    header {
+      background: var(--card);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .wrap {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 28px 24px;
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: 28px;
+      line-height: 1.25;
+      letter-spacing: 0;
+    }
+
+    h2 {
+      margin: 0 0 14px;
+      font-size: 21px;
+      letter-spacing: 0;
+    }
+
+    h3 {
+      margin: 0 0 10px;
+      font-size: 17px;
+      letter-spacing: 0;
+    }
+
+    p {
+      margin: 0 0 10px;
+    }
+
+    .subtitle {
+      max-width: 980px;
+      color: var(--muted);
+      font-size: 16px;
+    }
+
+    .section {
+      margin: 18px 0;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 22px;
+    }
+
+    .note {
+      border-left: 4px solid var(--accent);
+      background: var(--accent-soft);
+      padding: 12px 14px;
+      border-radius: 6px;
+      margin-top: 14px;
+    }
+
+    .grid {
+      display: grid;
+      gap: 14px;
+    }
+
+    .grid.cols-3 {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .grid.cols-4 {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .mini-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      background: #fff;
+      min-height: 112px;
+    }
+
+    .mini-card strong {
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .tag {
+      display: inline-block;
+      border-radius: 999px;
+      padding: 3px 9px;
+      font-size: 12px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .tag.business {
+      color: var(--warn);
+      background: var(--warn-soft);
+    }
+
+    .tag.tech {
+      color: var(--blue);
+      background: var(--blue-soft);
+    }
+
+    .tag.done {
+      color: var(--ok);
+      background: var(--ok-soft);
+    }
+
+    .tag.risk {
+      color: var(--red);
+      background: var(--red-soft);
+    }
+
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(120px, 1fr));
+      gap: 10px;
+      align-items: stretch;
+      margin-top: 12px;
+    }
+
+    .step {
+      position: relative;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      padding: 12px;
+      min-height: 92px;
+    }
+
+    .step:after {
+      content: "→";
+      position: absolute;
+      right: -12px;
+      top: 34px;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .step:last-child:after {
+      content: "";
+    }
+
+    .step .title {
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .step .desc {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+
+    th,
+    td {
+      border: 1px solid var(--line);
+      padding: 10px 9px;
+      text-align: left;
+      vertical-align: top;
+      word-break: break-word;
+    }
+
+    th {
+      background: #f2f6fa;
+      font-weight: 700;
+    }
+
+    tbody tr:nth-child(even) td {
+      background: #fbfcfe;
+    }
+
+    .wide-table {
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+
+    .wide-table table {
+      min-width: 1160px;
+      border: 0;
+    }
+
+    .wide-table th:first-child,
+    .wide-table td:first-child {
+      border-left: 0;
+    }
+
+    .wide-table th:last-child,
+    .wide-table td:last-child {
+      border-right: 0;
+    }
+
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 13px;
+      background: #f2f4f7;
+      padding: 1px 5px;
+      border-radius: 4px;
+    }
+
+    .decision-box {
+      min-height: 62px;
+      border: 1px dashed #aeb8c4;
+      border-radius: 6px;
+      background: #fff;
+      padding: 8px;
+      color: #475467;
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    .small {
+      font-size: 13px;
+    }
+
+    @media (max-width: 980px) {
+      .grid.cols-3,
+      .grid.cols-4,
+      .flow {
+        grid-template-columns: 1fr;
+      }
+
+      .step:after {
+        content: "";
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <h1>ETF 实时查询 3 项确认表</h1>
+      <p class="subtitle">这张表只聚焦 3 个问题：1. 意图如何映射到分类场景；2. 场景包含哪些需要查询的字段；3. 单位和展示口径怎么定。PM 只需要围绕这 3 件事给结论。</p>
+      <div class="note">
+        当前已确认的技术方向不在这张表里讨论：实时查询不走 Mongo；使用独立 realtime registry 和独立 embedding cards；后续代码实现会按 PM 确认后的这 3 张表落地。
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="section">
+      <h2>一、这 3 个问题分别是什么</h2>
+      <div class="grid cols-4">
+        <div class="mini-card">
+          <strong>问题 1</strong>
+          <span class="tag business">PM 需要确认</span>
+          <p class="small muted">用户问法应该归到哪个实时场景。例：盘口、折溢价、成交量额、实时行情概况。</p>
+        </div>
+        <div class="mini-card">
+          <strong>问题 2</strong>
+          <span class="tag business">PM 需要确认</span>
+          <p class="small muted">每个实时场景默认应该包含哪些查询字段。例：盘口要不要带买卖量。</p>
+        </div>
+        <div class="mini-card">
+          <strong>问题 3</strong>
+          <span class="tag business">PM / 数据方需要确认</span>
+          <p class="small muted">字段怎么展示给用户。例：成交额是不是要转亿元，premium 是价差还是比例。</p>
+        </div>
+        <div class="mini-card">
+          <strong>目标</strong>
+          <span class="tag done">研发使用</span>
+          <p class="small muted">PM 只要填完这 3 张表，研发就可以把这轮实时查询需求落到配置和代码里。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>二、问题 1：意图 -&gt; 分类场景</h2>
+      <p class="muted">这张表只回答一件事：用户问某种问题时，应该归到哪个实时场景。后续代码里不会把这些关系写死，而是做成可替换配置。</p>
+      <div class="wide-table">
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 220px;">用户问题类型 / 问法示例</th>
+              <th style="width: 170px;">建议分类场景</th>
+              <th style="width: 280px;">当前理解</th>
+              <th style="width: 280px;">PM 需要确认</th>
+              <th style="width: 260px;">PM 结论填写区</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>实时行情怎么样；现在什么情况；今天表现如何。</td>
+              <td><code>overview</code></td>
+              <td>理解为“实时行情概况”。</td>
+              <td>概况类是否就是一个独立场景。</td>
+              <td><div class="decision-box"></div></td>
+            </tr>
+            <tr>
+              <td>现在多少钱；涨了吗；跌了多少；涨跌幅多少。</td>
+              <td><code>price_change</code></td>
+              <td>理解为“价格涨跌类”。</td>
+              <td>价格和涨跌幅是否独立于概况，还是并入概况。</td>
+              <td><div class="decision-box"></div></td>
+            </tr>
+            <tr>
+              <td>成交额多少；成交量多少；交易活跃吗；现手多少。</td>
+              <td><code>trading</code></td>
+              <td>理解为“成交量额类”。</td>
+              <td>现手是否也归在成交类里。</td>
+              <td><div class="decision-box"></div></td>
+            </tr>
+            <tr>
+              <td>IOPV 多少；实时净值估算；折溢价怎么样；溢价了吗。</td>
+              <td><code>valuation</code></td>
+              <td>理解为“IOPV / 折溢价类”。</td>
+              <td>IOPV 和折溢价是否是同一个场景。</td>
+              <td><div class="decision-box"></div></td>
+            </tr>
+            <tr>
+              <td>盘口怎么样；买一卖一多少；买卖报价；挂单情况。</td>
+              <td><code>order_book</code></td>
+              <td>理解为“盘口类”。</td>
+              <td>盘口是否单独成一类。</td>
+              <td><div class="decision-box"></div></td>
+            </tr>
+            <tr>
+              <td>内盘外盘多少；主动买卖情况；买盘卖盘活跃吗。</td>
+              <td><code>trade_flow</code></td>
+              <td>理解为“内外盘 / 成交方向类”。</td>
+              <td>这类是否作为第一版支持场景。</td>
+              <td><div class="decision-box"></div></td>
+            </tr>
+            <tr>
+              <td>复合问法，例如“折溢价和成交额怎么样”。</td>
+              <td>多场景组合</td>
+              <td>理解为可同时命中多个场景。</td>
+              <td>第一版是否支持一个问题同时命中多个场景。</td>
+              <td><div class="decision-box"></div></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>三、问题 2：场景 -&gt; 包含哪些需要查询的字段</h2>
+      <p class="muted">这张表只回答一件事：每个场景默认查哪些字段。后续可以直接改这张表，不需要改主流程代码。</p>
+      <div class="wide-table">
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 150px;">Profile</th>
+              <th style="width: 160px;">中文名</th>
+              <th style="width: 390px;">默认字段初稿</th>
+              <th style="width: 320px;">PM 要确认</th>
+              <th style="width: 240px;">PM 结论填写区</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>overview</code></td>
+              <td>实时行情概况</td>
+              <td><code>latest</code>, <code>change</code>, <code>changeRatio</code>, <code>open</code>, <code>high</code>, <code>low</code>, <code>amount</code>, <code>volume</code>, <code>iopv</code>, <code>premium</code>, <code>tradeTime</code></td>
+              <td>概况里是否默认包含 IOPV / premium；是否包含成交量额；是否需要补 <code>preClose</code>。</td>
+              <td><div class="decision-box"></div></td>
+            </tr>
+            <tr>
+              <td><code>price_change</code></td>
+              <td>价格涨跌</td>
+              <td><code>latest</code>, <code>change</code>, <code>changeRatio</code>, <code>tradeTime</code></td>
+              <td>是否需要同时展示前收 <code>preClose</code>。</td>
+              <td><div class="decision-box"></div></td>
+            </tr>
+            <tr>
+              <td><code>trading</code></td>
+              <td>成交量额</td>
+              <td><code>amount</code>, <code>volume</code>, <code>latestVolume</code>, <code>tradeTime</code></td>
+              <td>成交额和成交量是否总是一起展示；现手是否默认展示。</td>
+              <td><div class="decision-box"></div></td>
+            </tr>
+            <tr>
+              <td><code>valuation</code></td>
+              <td>IOPV / 折溢价</td>
+              <td><code>latest</code>, <code>iopv</code>, <code>premium</code>, <code>tradeTime</code></td>
+              <td><code>premium</code> 是价差还是比例；是否需要展示 latest 作为对照。</td>
+              <td><div class="decision-box"></div></td>
+            </tr>
+            <tr>
+              <td><code>order_book</code></td>
+              <td>盘口</td>
+              <td><code>bid1</code>, <code>ask1</code>, <code>bidSize1</code>, <code>askSize1</code>, <code>tradeTime</code></td>
+              <td>盘口是否默认展示买卖量，还是只展示买卖价。</td>
+              <td><div class="decision-box"></div></td>
+            </tr>
+            <tr>
+              <td><code>trade_flow</code></td>
+              <td>内外盘 / 成交方向</td>
+              <td><code>sellVolume</code>, <code>buyVolume</code>, <code>latestVolume</code>, <code>tradeTime</code></td>
+              <td>内盘外盘是否作为第一版支持能力；名称是否用“内盘/外盘”还是更通俗。</td>
+              <td><div class="decision-box"></div></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>四、问题 3：单位问题</h2>
+      <p class="muted">这部分只回答一件事：接口返回的原始数字，最终应该怎么给用户展示。没有确认前，可以先用“保守默认展示”。</p>
+      <div class="wide-table">
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 130px;">字段</th>
+              <th style="width: 120px;">中文名</th>
+              <th style="width: 220px;">样例值</th>
+              <th style="width: 260px;">当前展示建议</th>
+              <th style="width: 330px;">需要确认的单位 / 口径问题</th>
+              <th style="width: 240px;">PM 结论填写区</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>tradeDate</code></td>
+              <td>交易日期</td>
+              <td>2026-05-15</td>
+              <td>原样展示。</td>
+              <td>是否一定是行情日期，而不是系统日期。</td>
+              <td><div class="decision-box"></div></td>
+            </tr>
+            <tr>
+              <td><code>tradeTime</code></td>
+              <td>交易时间</td>
+              <td>16:01:03</td>
+              <td>和交易日期拼成“数据时间”。</td>
+              <td>盘后返回是否代表收盘确认时间；是否需要提示延迟。</td>
+              <td><div class="decision-box"></div></td>
+            </tr>
+            <tr>
+              <td><code>preClose</code></td>
+              <td>前收盘价</td>
+              <td>3.074</td>
+              <td>保留 4 位以内，去掉多余 0。</td>
+              <td>价格类统一保留几位小数：3 位还是 4 位。</td>
+              <td><div class="decision-box"></div></td>
+            </tr>
+            <tr>
+              <td><code>open</code></td>
+              <td>开盘价</td>
+              <td>3.065</td>
+              <td>同价格类。</td>
+              <td>是否在概况默认展示。</td>
+              <td><div class="decision-box"></div></td>
+            </tr>
+            <tr>
+              <td><code>high</code></td>
+              <td>最高价</td>
+              <td>3.076</td>
+              <td>同价格类。</td>
+              <td>是否在概况默认展示。</td>
+              <td><div class="decision-box"></div></td>
+            </tr>
+            <tr>
+              <td><code>low</code></td>
+              <td>最低价</td>
+              <td>3.018</td>
+              <td>同价格类。</td>
+              <td>是否在概况默认展示。</td>
+              <td><div class="decision-box"></div></td>
+            </tr>
+            <tr>
+              <td><code>latest</code></td>
+              <td>最新价</td>
+              <td>3.035</td>
+              <td>价格类核心字段，建议保留 4 位以内。</td>
+              <td>中文名用“最新价”还是“实时价”。</td>
+              <td><div class="decision-box"></div></td>
+            </tr>
+            <tr>
+              <td><code>change</code></td>
+              <td>涨跌</td>
+              <td>-0.039</td>
+              <td>保留 4 位以内；正负号保留。</td>
+              <td>中文名用“涨跌”还是“涨跌额”。</td>
+              <td><div class="decision-box"></div></td>
+            </tr>
+            <tr>
+              <td><code>changeRatio</code></td>
+              <td>涨跌幅</td>
+              <td>-1.2687052700064965</td>
+              <td>展示为 -1.27%。</td>
+              <td>是否确认 -1.2687 表示 -1.2687%，不是 -126.87%。</td>
+              <td><div class="decision-box"></div></td>
+            </tr>
+            <tr>
+              <td><code>swing</code></td>
+              <td>振幅</td>
+              <td>1.8867924528301976</td>
+              <td>展示为 1.89%。</td>
+              <td>是否和涨跌幅一样已经是百分数。</td>
+              <td><div class="decision-box"></div></td>
+            </tr>
+            <tr>
+              <td><code>amount</code></td>
+              <td>成交额</td>
+              <td>3383669400.0</td>
+              <td>若单位是元，展示为 33.84 亿元；未确认前可原值展示。</td>
+              <td>接口单位是元、万元，还是已经缩放后的金额。</td>
+              <td><div class="decision-box"></div></td>
+            </tr>
+            <tr>
+              <td><code>volume</code></td>
+              <td>成交量</td>
+              <td>11090661.0</td>
+              <td>若单位是手，展示为 1109.07 万手；未确认前可原值展示。</td>
+              <td>接口单位是手、股、份，还是其它口径。</td>
+              <td><div class="decision-box"></div></td>
+            </tr>
+            <tr>
+              <td><code>latestVolume</code></td>
+              <td>现手</td>
+              <td>2050.0</td>
+              <td>原值或按确认单位展示。</td>
+              <td>单位是什么；是否适合普通用户默认展示。</td>
+              <td><div class="decision-box"></div></td>
+            </tr>
+            <tr>
+              <td><code>sellVolume</code></td>
+              <td>内盘</td>
+              <td>538260600.0</td>
+              <td>原值或按确认单位展示。</td>
+              <td>单位是什么；字段含义是否是主动卖出量。</td>
+              <td><div class="decision-box"></div></td>
+            </tr>
+            <tr>
+              <td><code>buyVolume</code></td>
+              <td>外盘</td>
+              <td>570807760.0</td>
+              <td>原值或按确认单位展示。</td>
+              <td>单位是什么；字段含义是否是主动买入量。</td>
+              <td><div class="decision-box"></div></td>
+            </tr>
+            <tr>
+              <td><code>iopv</code></td>
+              <td>IOPV</td>
+              <td>3.0314</td>
+              <td>保留 4 位以内。</td>
+              <td>中文展示是否写“IOPV”还是“净值估算”。</td>
+              <td><div class="decision-box"></div></td>
+            </tr>
+            <tr>
+              <td><code>premium</code></td>
+              <td>折价 / 折溢价</td>
+              <td>0.0036</td>
+              <td>先按价差展示为 0.0036。</td>
+              <td>这是价差、折价、还是折溢价率；若是率，是否要展示为百分比。</td>
+              <td><div class="decision-box"></div></td>
+            </tr>
+            <tr>
+              <td><code>bid1</code></td>
+              <td>买一价</td>
+              <td>3.033</td>
+              <td>同价格类。</td>
+              <td>中文名用“买一价”还是“买 1 价”。</td>
+              <td><div class="decision-box"></div></td>
+            </tr>
+            <tr>
+              <td><code>ask1</code></td>
+              <td>卖一价</td>
+              <td>3.034</td>
+              <td>同价格类。</td>
+              <td>中文名用“卖一价”还是“卖 1 价”。</td>
+              <td><div class="decision-box"></div></td>
+            </tr>
+            <tr>
+              <td><code>bidSize1</code></td>
+              <td>买一量</td>
+              <td>379.0</td>
+              <td>原值或按确认单位展示。</td>
+              <td>单位是手、股、份，还是张；是否默认展示。</td>
+              <td><div class="decision-box"></div></td>
+            </tr>
+            <tr>
+              <td><code>askSize1</code></td>
+              <td>卖一量</td>
+              <td>8131.0</td>
+              <td>原值或按确认单位展示。</td>
+              <td>单位是手、股、份，还是张；是否默认展示。</td>
+              <td><div class="decision-box"></div></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
