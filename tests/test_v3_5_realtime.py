@@ -344,6 +344,15 @@ def test_semantic_query_v3_5_realtime_does_not_use_v3_4_denial_in_dry_run():
     assert "不提供实时行情" not in result["answer"]
 
 
+def test_semantic_query_v3_5_local_router_treats_price_questions_as_realtime():
+    result = semantic_query_v3("510050现在什么价", root=".", dry_run=True, phase="v3.5")
+
+    assert result["v3"]["recognized_query_mode"] == "realtime"
+    assert result["v3"]["v3_5_route"]["route"] == "realtime"
+    assert result["query_plan"]["fields"] == ["latest", "tradeTime"]
+    assert "当前最新价" in result["answer"]
+
+
 def test_semantic_query_v3_5_real_mode_uses_llm_router_before_realtime(monkeypatch):
     def fake_router(**_kwargs):
         return {

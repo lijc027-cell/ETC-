@@ -93,6 +93,8 @@ def route_v3_5_locally(question: str, *, classification: dict[str, Any]) -> dict
         else:
             route = "capability_clarify"
             needs_clarification = True
+    elif mode in {"single", "filter", "search"} and _has_realtime_signal(question):
+        route = "realtime"
     elif mode in {"single", "filter", "search"}:
         route = "mongo_single"
 
@@ -117,6 +119,35 @@ def _has_explicit_realtime_compare_metric(question: str) -> bool:
             "价格",
             "涨跌",
             "涨跌幅",
+            "成交",
+            "溢价",
+            "折价",
+            "折溢价",
+            "盘口",
+            "买一",
+            "卖一",
+            "内外盘",
+            "外盘",
+            "内盘",
+            "振幅",
+        )
+    )
+
+
+def _has_realtime_signal(question: str) -> bool:
+    return any(
+        term in question
+        for term in (
+            "实时",
+            "现在什么价",
+            "什么价",
+            "价格",
+            "报多少",
+            "多少钱",
+            "涨了吗",
+            "涨了没",
+            "跌了多少",
+            "涨跌",
             "成交",
             "溢价",
             "折价",
